@@ -21,8 +21,8 @@ namespace ReplicateTest
             return new ClientServer()
             {
                 channel = channel,
-                client = new ReplicationManager(channel.CreateEndpoint()),
-                server = new ReplicationManager(channel.CreateEndpoint())
+                client = new ReplicationManager() { ID = 1 }.RegisterClient(0, channel.CreateEndpoint()),
+                server = new ReplicationManager() { ID = 0 }.RegisterClient(1, channel.CreateEndpoint())
             };
         }
     }

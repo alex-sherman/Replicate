@@ -9,15 +9,21 @@ namespace Replicate.MetaData
     public class ReplicationModel
     {
         public static ReplicationModel Default { get; } = new ReplicationModel();
-        Dictionary<Type, ReplicationData> typeLookup = new Dictionary<Type, ReplicationData>();
-        public ReplicationData this[Type type]
+        Dictionary<Type, TypeData> typeLookup = new Dictionary<Type, TypeData>();
+        Dictionary<string, TypeData> stringLookup = new Dictionary<string, TypeData>();
+        public TypeData this[Type type]
         {
             get { return typeLookup[type]; }
         }
-        public ReplicationData Add(Type type)
+        public TypeData this[string typeName]
         {
-            var output = new ReplicationData(type);
+            get { return stringLookup[typeName]; }
+        }
+        public TypeData Add(Type type)
+        {
+            var output = new TypeData(type);
             typeLookup.Add(type, output);
+            stringLookup.Add(type.Name, output);
             return output;
         }
     }
