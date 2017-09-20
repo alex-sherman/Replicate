@@ -5,8 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.Remoting.Messaging;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Replicate
@@ -117,6 +115,11 @@ namespace Replicate
         public virtual void HandleReplication(ReplicationMessage message)
         {
             var metaData = idLookup[message.id];
+            foreach (var member in message.members)
+            {
+                var target = metaData.targets[member.objectIndex ?? 0];
+                Model.FromBytes(target.Item1, member.value, target.Item2.Type, target.Item2);
+            }
         }
 
         private void HandleInit(InitMessage message)
@@ -134,7 +137,7 @@ namespace Replicate
                 members = metaData.targets.Select((target, i) => new ReplicationTargetData()
                 {
                     objectIndex = (byte)i,
-                    value = target.Item2.GetBytes(target.Item1)
+                    value = Model.GetBytes(target.Item1, target.Item2)
                 }).ToList()
             };
             Send(MessageIDs.REPLICATE, message, destination);

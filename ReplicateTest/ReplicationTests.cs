@@ -30,6 +30,7 @@ namespace ReplicateTest
         {
             typeData = ReplicationModel.Default.Add(typeof(ReplicatedType));
             ReplicationModel.Default.Add(typeof(ReplicatedType2));
+            ReplicationModel.Default.Compile();
         }
         [TestMethod]
         public void TypeDataTest()
@@ -65,7 +66,11 @@ namespace ReplicateTest
             ReplicatedType replicated = new ReplicatedType()
             {
                 field1 = 3,
-                field2 = "herpderp"
+                field2 = "herpderp",
+                child1 = new ReplicatedType2()
+                {
+                    field3 = .9f
+                }
             };
             var cs = Util.MakeClientServer();
             cs.server.RegisterObject(replicated);

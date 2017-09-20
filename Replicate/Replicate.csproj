@@ -47,6 +47,7 @@
     <Compile Include="Interfaces\ReplicatedProxy.cs" />
     <Compile Include="IReplicationChannel.cs" />
     <Compile Include="Messages\InitMessage.cs" />
+    <Compile Include="Messages\MemberData.cs" />
     <Compile Include="Messages\ReplicatedID.cs" />
     <Compile Include="Messages\ReplicationMessage.cs" />
     <Compile Include="MetaData\MemberInfo.cs" />

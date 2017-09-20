@@ -1,4 +1,5 @@
 ﻿using ProtoBuf;
+using Replicate.Messages;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -33,17 +34,6 @@ namespace Replicate.MetaData
         {
             var cinfo = Type.GetConstructor(new Type[] { });
             return cinfo.Invoke(new object[] { });
-        }
-        public byte[] GetBytes(object replicate)
-        {
-            MemoryStream stream = new MemoryStream();
-            // Only replicate primitives
-            /// TODO: Replicate members by reference or copy depending on <see cref="ReplicationPolicy"/>
-            foreach (var member in ReplicatedMembers.Where(m => m.TypeData == null))
-            {
-                Serializer.NonGeneric.Serialize(stream, member.GetValue(replicate));
-            }
-            return stream.ToArray();
         }
     }
 }
