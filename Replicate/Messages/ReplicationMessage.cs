@@ -1,26 +1,26 @@
-﻿using ProtoBuf;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Replicate.Messages
 {
-    [ProtoContract]
+    [Replicate]
     public struct ReplicationTargetData
     {
-        [ProtoMember(1, IsRequired = false)]
-        public byte? objectIndex;
-        [ProtoMember(2)]
+        [Replicate]
+        public byte objectIndex;
+        [Replicate]
         public byte[] value;
     }
-    [ProtoContract]
+    [Replicate]
     public struct ReplicationMessage
     {
-        [ProtoMember(1, IsRequired = true)]
+        [Replicate]
         public ReplicatedID id;
-        [ProtoMember(2, IsRequired = true)]
+        [Replicate]
         public List<ReplicationTargetData> members;
     }
 }

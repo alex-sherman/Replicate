@@ -1,5 +1,4 @@
-﻿using ProtoBuf;
-using Replicate.Messages;
+﻿using Replicate.Messages;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -15,8 +14,10 @@ namespace Replicate.MetaData
         public string Name { get; private set; }
         public List<MemberInfo> ReplicatedMembers = new List<MemberInfo>();
         public Type Type { get; private set; }
+        public bool MarshalByReference { get; private set; }
         public TypeData(Type type)
         {
+            MarshalByReference = !type.IsValueType;
             Type = type;
             Name = type.Name;
             foreach (var field in type.GetFields(BindingFlags.Instance | BindingFlags.Public))

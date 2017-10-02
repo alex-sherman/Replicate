@@ -2,18 +2,21 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Replicate;
 using ProtoBuf;
+using System.Diagnostics;
+using Replicate.MetaData;
+using System.Reflection;
 
 namespace ReplicateTest
 {
     [TestClass]
     public class SerializationTests
     {
-        [ProtoContract]
+        [Replicate]
         struct SimpleMessage
         {
-            [ProtoMember(1)]
+            [Replicate]
             public float time;
-            [ProtoMember(2)]
+            [Replicate]
             public string faff;
         }
         [TestMethod]

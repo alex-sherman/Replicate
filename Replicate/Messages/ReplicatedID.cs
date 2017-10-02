@@ -1,5 +1,4 @@
-﻿using ProtoBuf;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,12 +6,12 @@ using System.Threading.Tasks;
 
 namespace Replicate.Messages
 {
-    [ProtoContract]
+    [Replicate]
     public struct ReplicatedID
     {
-        [ProtoMember(1, IsRequired = true)]
+        [Replicate]
         public ushort owner;
-        [ProtoMember(2, IsRequired = true)]
+        [Replicate]
         public uint objectId;
 
         public override int GetHashCode()

@@ -30,9 +30,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="protobuf-net, Version=2.3.2.0, Culture=neutral, PublicKeyToken=257b51d87d2e4d67, processorArchitecture=MSIL">
-      <HintPath>..\packages\protobuf-net.2.3.2\lib\net40\protobuf-net.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -47,9 +44,10 @@
     <Compile Include="Interfaces\ReplicatedProxy.cs" />
     <Compile Include="IReplicationChannel.cs" />
     <Compile Include="Messages\InitMessage.cs" />
-    <Compile Include="Messages\MemberData.cs" />
+    <Compile Include="Messages\NetMessage.cs" />
     <Compile Include="Messages\ReplicatedID.cs" />
     <Compile Include="Messages\ReplicationMessage.cs" />
+    <Compile Include="Messages\TypeID.cs" />
     <Compile Include="MetaData\MemberInfo.cs" />
     <Compile Include="MetaData\TypeData.cs" />
     <Compile Include="MetaData\ReplicationModel.cs" />
@@ -60,10 +58,10 @@
     <Compile Include="ReplicateContext.cs" />
     <Compile Include="ReplicationManager.cs" />
     <Compile Include="ReplicationPolicy.cs" />
+    <Compile Include="Serialization\IReplicateSerializer.cs" />
+    <Compile Include="Serialization\PrimitiveSerializer.cs" />
+    <Compile Include="Serialization\Serializer.cs" />
     <Compile Include="TaskQueue.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

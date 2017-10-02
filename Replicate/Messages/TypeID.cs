@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 namespace Replicate.Messages
 {
     [Replicate]
-    public struct InitMessage
+    public struct TypeID
     {
         [Replicate]
-        public ReplicatedID id;
+        public ushort id;
         [Replicate]
-        public string typeName;
+        public byte[] subtypes;
     }
 }

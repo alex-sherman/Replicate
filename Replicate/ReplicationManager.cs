@@ -1,10 +1,11 @@
-﻿using ProtoBuf;
-using Replicate.Messages;
+﻿using Replicate.Messages;
 using Replicate.MetaData;
+using Replicate.Serialization;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 
 namespace Replicate
@@ -17,6 +18,7 @@ namespace Replicate
     }
     public class ReplicationManager
     {
+        Serializer serializer;
         private static class MessageIDs
         {
             public const uint REPLICATE = uint.MaxValue;
@@ -25,12 +27,13 @@ namespace Replicate
         public ReplicationModel Model { get; set; }
         public ushort? ID = null;
         Dictionary<uint, Action<byte[]>> handlerLookup = new Dictionary<uint, Action<byte[]>>();
-        Dictionary<object, ReplicatedObject> objectLookup = new Dictionary<object, ReplicatedObject>();
+        public Dictionary<object, ReplicatedObject> objectLookup = new Dictionary<object, ReplicatedObject>();
         public Dictionary<ReplicatedID, ReplicatedObject> idLookup = new Dictionary<ReplicatedID, ReplicatedObject>();
         Dictionary<ushort, IReplicationChannel> peers = new Dictionary<ushort, IReplicationChannel>();
         public ReplicationManager(ReplicationModel typeModel = null)
         {
             Model = typeModel ?? ReplicationModel.Default;
+            serializer = new Serializer(this);
             RegisterHandler<ReplicationMessage>(MessageIDs.REPLICATE, HandleReplication);
             RegisterHandler<InitMessage>(MessageIDs.INIT, HandleInit);
         }
@@ -38,13 +41,13 @@ namespace Replicate
         Task recvTask = null;
         public void PumpMessages()
         {
-            while(recvTask == null || recvTask.IsCompleted)
+            while (recvTask == null || recvTask.IsCompleted)
             {
                 if (recvTask == null)
                     recvTask = Receive();
 #if REPMSGTHROW
                 if (recvTask.Exception != null)
-                    throw recvTask.Exception.InnerExceptions[0];
+                    ExceptionDispatchInfo.Capture(recvTask.Exception.InnerExceptions[0]).Throw();
 #endif
                 if (recvTask.IsCompleted)
                     recvTask = null;
@@ -80,7 +83,7 @@ namespace Replicate
         {
             MemoryStream stream = new MemoryStream();
             stream.Write(BitConverter.GetBytes(messageID), 0, 4);
-            Serializer.Serialize(stream, message);
+            serializer.Serialize(stream, message);
             SendBytes(stream, destination, reliability);
         }
 
@@ -91,7 +94,7 @@ namespace Replicate
         }
         public ReplicationManager RegisterHandler<T>(uint messageID, Action<T> handler)
         {
-            handlerLookup[messageID] = (bytes) => handler(Serializer.Deserialize<T>(new MemoryStream(bytes)));
+            handlerLookup[messageID] = (bytes) => handler(serializer.Deserialize<T>(new MemoryStream(bytes)));
             return this;
         }
 
@@ -117,8 +120,8 @@ namespace Replicate
             var metaData = idLookup[message.id];
             foreach (var member in message.members)
             {
-                var target = metaData.targets[member.objectIndex ?? 0];
-                Model.FromBytes(target.Item1, member.value, target.Item2.Type, target.Item2);
+                var target = metaData.targets[member.objectIndex];
+                serializer.Deserialize(target.Item1, new MemoryStream(member.value), target.Item2.Type, target.Item2);
             }
         }
 
@@ -134,10 +137,15 @@ namespace Replicate
             ReplicationMessage message = new ReplicationMessage()
             {
                 id = metaData.id,
-                members = metaData.targets.Select((target, i) => new ReplicationTargetData()
+                members = metaData.targets.Select((target, i) =>
                 {
-                    objectIndex = (byte)i,
-                    value = Model.GetBytes(target.Item1, target.Item2)
+                    MemoryStream innerStream = new MemoryStream();
+                    serializer.Serialize(innerStream, target.Item1, target.Item2, MarshalMethod.Value);
+                    return new ReplicationTargetData()
+                    {
+                        objectIndex = (byte)i,
+                        value = innerStream.ToArray()
+                    };
                 }).ToList()
             };
             Send(MessageIDs.REPLICATE, message, destination);
