@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReplicateTest", "ReplicateT
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Replicate", "Replicate\Replicate.csproj", "{558DE63F-B3B9-47BE-BB88-15F6602617AD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReplicateBenchmarks", "ReplicateBenchmarks\ReplicateBenchmarks.csproj", "{C50C6E79-2699-44B5-8E51-04C88626AEA2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -26,6 +28,12 @@ Global
 		{558DE63F-B3B9-47BE-BB88-15F6602617AD}.Release|Any CPU.Build.0 = Release|Any CPU
 		{558DE63F-B3B9-47BE-BB88-15F6602617AD}.VS|Any CPU.ActiveCfg = Release|Any CPU
 		{558DE63F-B3B9-47BE-BB88-15F6602617AD}.VS|Any CPU.Build.0 = Release|Any CPU
+		{C50C6E79-2699-44B5-8E51-04C88626AEA2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C50C6E79-2699-44B5-8E51-04C88626AEA2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C50C6E79-2699-44B5-8E51-04C88626AEA2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C50C6E79-2699-44B5-8E51-04C88626AEA2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C50C6E79-2699-44B5-8E51-04C88626AEA2}.VS|Any CPU.ActiveCfg = Release|Any CPU
+		{C50C6E79-2699-44B5-8E51-04C88626AEA2}.VS|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

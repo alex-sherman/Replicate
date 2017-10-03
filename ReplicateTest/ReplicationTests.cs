@@ -50,8 +50,8 @@ namespace ReplicateTest
                 field1 = 3,
                 field2 = "herpderp"
             };
-            Assert.AreEqual(typeData.ReplicatedMembers[0].GetValue(replicated), 3);
             Assert.AreEqual(typeData.ReplicatedMembers[1].GetValue(replicated), "herpderp");
+            Assert.AreEqual(typeData.ReplicatedMembers[0].GetValue(replicated), 3);
             typeData.ReplicatedMembers[1].SetValue(replicated, "FAFF");
             Assert.AreEqual(typeData.ReplicatedMembers[1].GetValue(replicated), "FAFF");
         }
@@ -80,8 +80,8 @@ namespace ReplicateTest
             cs.client.PumpMessages();
             Assert.IsInstanceOfType(cs.client.idLookup.Values.First().replicated, typeof(ReplicatedType));
             ReplicatedType clientValue = (ReplicatedType)cs.client.idLookup.Values.First().replicated;
-            Assert.AreEqual(clientValue.field1, replicated.field1);
-            Assert.AreEqual(clientValue.field2, replicated.field2);
+            Assert.AreEqual(replicated.field1, clientValue.field1);
+            Assert.AreEqual(replicated.field2, clientValue.field2);
         }
         [TestMethod]
         public void ReplicateObjReference()
@@ -114,8 +114,10 @@ namespace ReplicateTest
         [TestMethod]
         public void ReplicateDictionary()
         {
-            Dictionary<string, int> faff = new Dictionary<string, int>();
-            faff["herp"] = 3;
+            Dictionary<string, int> faff = new Dictionary<string, int>
+            {
+                ["herp"] = 3
+            };
             var cs = Util.MakeClientServer();
             cs.server.RegisterObject(faff);
             cs.server.Replicate(faff);

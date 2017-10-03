@@ -1,10 +1,11 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Replicate;
-using ProtoBuf;
 using System.Diagnostics;
 using Replicate.MetaData;
 using System.Reflection;
+using System.IO;
+using System.Collections.Generic;
 
 namespace ReplicateTest
 {
@@ -12,7 +13,7 @@ namespace ReplicateTest
     public class SerializationTests
     {
         [Replicate]
-        struct SimpleMessage
+        public struct SimpleMessage
         {
             [Replicate]
             public float time;
@@ -37,6 +38,38 @@ namespace ReplicateTest
             cs.server.Send(0, testMessage);
             cs.client.Receive().Wait();
             Assert.IsTrue(called);
+        }
+        [Replicate]
+        public class PropClass
+        {
+            [Replicate]
+            public int Property { get; set; }
+        }
+        [TestMethod]
+        public void TestProperty()
+        {
+            var model = new ReplicationModel();
+            var td = model.Add(typeof(PropClass));
+            td.MarshalByReference = false;
+            var ser = new Replicate.Serialization.Serializer(model);
+            var stream = new MemoryStream();
+            ser.Serialize(stream, new PropClass() { Property = 3 });
+            stream.Seek(0, SeekOrigin.Begin);
+            object output = ser.Deserialize(null, stream, typeof(PropClass), model[typeof(PropClass)]);
+            Assert.AreEqual(3, (output as PropClass).Property);
+        }
+        [TestMethod]
+        public void TestList()
+        {
+            var model = new ReplicationModel();
+            var td = model.Add(typeof(PropClass));
+            td.MarshalByReference = false;
+            var ser = new Replicate.Serialization.Serializer(model);
+            var stream = new MemoryStream();
+            ser.Serialize(stream, new List<PropClass>() { new PropClass() { Property = 3 } });
+            stream.Seek(0, SeekOrigin.Begin);
+            var output = (List<PropClass>)ser.Deserialize(null, stream, typeof(List<PropClass>));
+            Assert.AreEqual(3, output[0].Property);
         }
     }
 }

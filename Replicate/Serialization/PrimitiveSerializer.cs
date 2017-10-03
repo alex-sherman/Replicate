@@ -9,38 +9,38 @@ namespace Replicate.Serialization
 {
     class IntSerializer : IReplicateSerializer
     {
-        public object Read(BinaryReader stream)
+        public object Read(Stream stream)
         {
             return stream.ReadInt32();
         }
 
-        public void Write(object obj, BinaryWriter stream)
+        public void Write(object obj, Stream stream)
         {
-            stream.Write(Convert.ToInt32(obj));
+            stream.WriteInt32(Convert.ToInt32(obj));
         }
     }
     class FloatSerializer : IReplicateSerializer
     {
-        public object Read(BinaryReader stream)
+        public object Read(Stream stream)
         {
             return stream.ReadSingle();
         }
 
-        public void Write(object obj, BinaryWriter stream)
+        public void Write(object obj, Stream stream)
         {
-            stream.Write((float)obj);
+            stream.WriteSingle((float)obj);
         }
     }
     class StringSerializer : IReplicateSerializer
     {
-        public object Read(BinaryReader stream)
+        public object Read(Stream stream)
         {
             return stream.ReadString();
         }
 
-        public void Write(object obj, BinaryWriter stream)
+        public void Write(object obj, Stream stream)
         {
-            stream.Write((string)obj);
+            stream.WriteString((string)obj);
         }
     }
 }

@@ -14,7 +14,7 @@ namespace Replicate.MetaData
         public string Name { get; private set; }
         public List<MemberInfo> ReplicatedMembers = new List<MemberInfo>();
         public Type Type { get; private set; }
-        public bool MarshalByReference { get; private set; }
+        public bool MarshalByReference { get; set; }
         public TypeData(Type type)
         {
             MarshalByReference = !type.IsValueType;
@@ -30,6 +30,11 @@ namespace Replicate.MetaData
                 if (property.GetCustomAttributes().Where(attr => attr is ReplicateAttribute).Any())
                     ReplicatedMembers.Add(new MemberInfo(property, (byte)ReplicatedMembers.Count));
             }
+        }
+        /// TODO
+        public void AddMember(string name)
+        {
+
         }
         public object Construct()
         {

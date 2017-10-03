@@ -4,24 +4,26 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{558DE63F-B3B9-47BE-BB88-15F6602617AD}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Replicate</RootNamespace>
-    <AssemblyName>Replicate</AssemblyName>
+    <ProjectGuid>{C50C6E79-2699-44B5-8E51-04C88626AEA2}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>ReplicateBenchmarks</RootNamespace>
+    <AssemblyName>ReplicateBenchmarks</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;REPMSGTHROW</DefineConstants>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -30,6 +32,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="protobuf-net, Version=2.3.2.0, Culture=neutral, PublicKeyToken=257b51d87d2e4d67, processorArchitecture=MSIL">
+      <HintPath>..\packages\protobuf-net.2.3.2\lib\net40\protobuf-net.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -40,29 +45,18 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Interfaces\ReplicatedInterface.cs" />
-    <Compile Include="Interfaces\ReplicatedProxy.cs" />
-    <Compile Include="IReplicationChannel.cs" />
-    <Compile Include="Messages\InitMessage.cs" />
-    <Compile Include="Messages\NetMessage.cs" />
-    <Compile Include="Messages\ReplicatedID.cs" />
-    <Compile Include="Messages\ReplicationMessage.cs" />
-    <Compile Include="Messages\TypeID.cs" />
-    <Compile Include="MetaData\MemberInfo.cs" />
-    <Compile Include="MetaData\TypeData.cs" />
-    <Compile Include="MetaData\ReplicationModel.cs" />
-    <Compile Include="PassThroughChannel.cs" />
+    <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Interfaces\ProxyImplement.cs" />
-    <Compile Include="ReplicateAttribute.cs" />
-    <Compile Include="ReplicateContext.cs" />
-    <Compile Include="ReplicationManager.cs" />
-    <Compile Include="ReplicationPolicy.cs" />
-    <Compile Include="Serialization\IReplicateSerializer.cs" />
-    <Compile Include="Serialization\PrimitiveSerializer.cs" />
-    <Compile Include="Serialization\Serializer.cs" />
-    <Compile Include="Serialization\StreamExtensions.cs" />
-    <Compile Include="TaskQueue.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Replicate\Replicate.csproj">
+      <Project>{558de63f-b3b9-47be-bb88-15f6602617ad}</Project>
+      <Name>Replicate</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

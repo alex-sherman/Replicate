@@ -9,7 +9,7 @@ namespace Replicate.Serialization
 {
     interface IReplicateSerializer
     {
-        void Write(object obj, BinaryWriter stream);
-        object Read(BinaryReader stream);
+        void Write(object obj, Stream stream);
+        object Read(Stream stream);
     }
 }

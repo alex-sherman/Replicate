@@ -22,9 +22,20 @@ namespace Replicate.MetaData
         public static ReplicationModel Default { get; } = new ReplicationModel();
         Dictionary<Type, TypeData> typeLookup = new Dictionary<Type, TypeData>();
         Dictionary<string, TypeData> stringLookup = new Dictionary<string, TypeData>();
+        public ReplicationModel()
+        {
+            Add(typeof(Dictionary<,>));
+        }
         public TypeData this[Type type]
         {
-            get { if (typeLookup.ContainsKey(type)) return typeLookup[type]; return null; }
+            get
+            {
+                if (type.IsGenericType)
+                    type = type.GetGenericTypeDefinition();
+                if (typeLookup.ContainsKey(type))
+                    return typeLookup[type];
+                return null;
+            }
         }
         public TypeData this[string typeName]
         {
@@ -32,6 +43,8 @@ namespace Replicate.MetaData
         }
         public TypeData Add(Type type)
         {
+            if (type.IsGenericType)
+                type = type.GetGenericTypeDefinition();
             var output = new TypeData(type);
             typeLookup.Add(type, output);
             stringLookup.Add(type.Name, output);
