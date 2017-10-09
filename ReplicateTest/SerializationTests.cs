@@ -20,6 +20,18 @@ namespace ReplicateTest
             [Replicate]
             public string faff;
         }
+        [Replicate]
+        public class GenericClass<T>
+        {
+            [Replicate]
+            public T Value;
+        }
+        [Replicate(MarshalMethod.Value)]
+        public class PropClass
+        {
+            [Replicate]
+            public int Property { get; set; }
+        }
         [TestMethod]
         public void TestSendRecv()
         {
@@ -39,18 +51,10 @@ namespace ReplicateTest
             cs.client.Receive().Wait();
             Assert.IsTrue(called);
         }
-        [Replicate]
-        public class PropClass
-        {
-            [Replicate]
-            public int Property { get; set; }
-        }
         [TestMethod]
         public void TestProperty()
         {
             var model = new ReplicationModel();
-            var td = model.Add(typeof(PropClass));
-            td.MarshalByReference = false;
             var ser = new Replicate.Serialization.Serializer(model);
             var stream = new MemoryStream();
             ser.Serialize(stream, new PropClass() { Property = 3 });
@@ -59,17 +63,43 @@ namespace ReplicateTest
             Assert.AreEqual(3, (output as PropClass).Property);
         }
         [TestMethod]
+        public void TestGeneric()
+        {
+            var model = new ReplicationModel();
+            var ser = new Replicate.Serialization.Serializer(model);
+            var stream = new MemoryStream();
+            ser.Serialize(stream, new GenericClass<string>() { Value = "herp" });
+            stream.Seek(0, SeekOrigin.Begin);
+            object output = ser.Deserialize(null, stream, typeof(GenericClass<string>), model[typeof(GenericClass<string>)]);
+            Assert.AreEqual("herp", (output as GenericClass<string>).Value);
+        }
+        [TestMethod]
         public void TestList()
         {
             var model = new ReplicationModel();
-            var td = model.Add(typeof(PropClass));
-            td.MarshalByReference = false;
             var ser = new Replicate.Serialization.Serializer(model);
             var stream = new MemoryStream();
-            ser.Serialize(stream, new List<PropClass>() { new PropClass() { Property = 3 } });
+            ser.Serialize(stream, new List<PropClass>() { new PropClass() { Property = 3 }, new PropClass() { Property = 4 } });
             stream.Seek(0, SeekOrigin.Begin);
             var output = (List<PropClass>)ser.Deserialize(null, stream, typeof(List<PropClass>));
             Assert.AreEqual(3, output[0].Property);
+            Assert.AreEqual(4, output[1].Property);
+        }
+        [TestMethod]
+        public void TestDictionary()
+        {
+            var model = new ReplicationModel();
+            var ser = new Replicate.Serialization.Serializer(model);
+            var stream = new MemoryStream();
+            ser.Serialize(stream, new Dictionary<string, PropClass>()
+            {
+                ["faff"] = new PropClass() { Property = 3 },
+                ["herp"] = new PropClass() { Property = 4 }
+            });
+            stream.Seek(0, SeekOrigin.Begin);
+            var output = (Dictionary<string, PropClass>)ser.Deserialize(null, stream, typeof(Dictionary<string, PropClass>));
+            Assert.AreEqual(3, output["faff"].Property);
+            Assert.AreEqual(4, output["herp"].Property);
         }
     }
 }

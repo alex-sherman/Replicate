@@ -32,10 +32,7 @@ namespace ReplicateTest
         [ClassInitialize]
         public static void InitTypes(TestContext testContext)
         {
-            ReplicationModel.Default.LoadTypes();
-            ReplicationModel.Default.LoadTypes(Assembly.GetExecutingAssembly());
             typeData = ReplicationModel.Default[typeof(ReplicatedType)];
-            ReplicationModel.Default.Compile();
         }
         [TestMethod]
         public void TypeDataTest()

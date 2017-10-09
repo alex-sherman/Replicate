@@ -1,4 +1,5 @@
 ﻿using Replicate.Messages;
+using Replicate.Serialization;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -19,23 +20,43 @@ namespace Replicate.MetaData
     }
     public class ReplicationModel
     {
+        public bool AutoAddType { get; set; } = true;
         public static ReplicationModel Default { get; } = new ReplicationModel();
         Dictionary<Type, TypeData> typeLookup = new Dictionary<Type, TypeData>();
         Dictionary<string, TypeData> stringLookup = new Dictionary<string, TypeData>();
+        public IReplicateSerializer IntSerializer = new IntSerializer();
         public ReplicationModel()
         {
-            Add(typeof(Dictionary<,>));
+            Add(typeof(byte)).Policy.Serializer = IntSerializer;
+            Add(typeof(short)).Policy.Serializer = IntSerializer;
+            Add(typeof(int)).Policy.Serializer = IntSerializer;
+            Add(typeof(long)).Policy.Serializer = IntSerializer;
+            Add(typeof(ushort)).Policy.Serializer = IntSerializer;
+            Add(typeof(uint)).Policy.Serializer = IntSerializer;
+            Add(typeof(ulong)).Policy.Serializer = IntSerializer;
+            Add(typeof(float)).Policy.Serializer = new FloatSerializer();
+            Add(typeof(string)).Policy.Serializer = new StringSerializer();
+            Add(typeof(List<>)).Policy.MarshalMethod = MarshalMethod.Collection;
+            var kvpTD = Add(typeof(KeyValuePair<,>));
+            kvpTD.AddMember("Key");
+            kvpTD.AddMember("Value");
+        }
+
+        private TypeData GetTypeData(Type type, bool autoAddType)
+        {
+            if (type.IsGenericType)
+                type = type.GetGenericTypeDefinition();
+            if (typeLookup.ContainsKey(type))
+                return typeLookup[type];
+            if (type.GetInterface("ICollection`1") != null)
+                return typeLookup[typeof(List<>)];
+            if (autoAddType)
+                return Add(type);
+            return null;
         }
         public TypeData this[Type type]
         {
-            get
-            {
-                if (type.IsGenericType)
-                    type = type.GetGenericTypeDefinition();
-                if (typeLookup.ContainsKey(type))
-                    return typeLookup[type];
-                return null;
-            }
+            get { return GetTypeData(type, AutoAddType); }
         }
         public TypeData this[string typeName]
         {
@@ -46,26 +67,24 @@ namespace Replicate.MetaData
             if (type.IsGenericType)
                 type = type.GetGenericTypeDefinition();
             var output = new TypeData(type);
+            Compile(output);
             typeLookup.Add(type, output);
-            stringLookup.Add(type.Name, output);
+            stringLookup.Add(type.FullName, output);
             return output;
         }
         public void LoadTypes(Assembly assembly = null)
         {
             assembly = assembly ?? Assembly.GetExecutingAssembly();
-            foreach (var type in assembly.GetTypes().Where(asm => asm.GetCustomAttribute<ReplicateAttribute>() != null))
+            foreach (var type in assembly.GetTypes().Where(asmType => asmType.GetCustomAttribute<ReplicateAttribute>() != null))
             {
                 Add(type);
             }
         }
-        public void Compile()
+        private void Compile(TypeData typeData)
         {
-            foreach (var typeData in typeLookup.Values)
+            foreach (var member in typeData.ReplicatedMembers.Where(m => !m.IsGenericParameter))
             {
-                foreach (var member in typeData.ReplicatedMembers)
-                {
-                    member.TypeData = this[member.MemberType];
-                }
+                member.TypeData = GetTypeData(member.MemberType, AutoAddType && member.MemberType.GetCustomAttribute<ReplicateAttribute>() != null);
             }
         }
     }

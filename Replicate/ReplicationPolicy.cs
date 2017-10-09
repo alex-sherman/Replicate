@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Replicate.MetaData;
+using Replicate.Serialization;
 
 namespace Replicate
 {
@@ -15,7 +16,17 @@ namespace Replicate
     /// 
     /// Be able to specify replication frequency
     /// </todo>
-    class ReplicationPolicy
+    public struct ReplicationPolicy
     {
+        public IReplicateSerializer Serializer;
+        public MarshalMethod MarshalMethod;
+        public ReplicationPolicy OverrideWith(ReplicationPolicy @override)
+        {
+            return new ReplicationPolicy()
+            {
+                Serializer = @override.Serializer ?? Serializer,
+                MarshalMethod = @override.MarshalMethod == MarshalMethod.Null ? MarshalMethod : @override.MarshalMethod
+            };
+        }
     }
 }

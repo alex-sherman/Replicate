@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Replicate.Serialization
 {
-    interface IReplicateSerializer
+    public interface IReplicateSerializer
     {
         void Write(object obj, Stream stream);
         object Read(Stream stream);

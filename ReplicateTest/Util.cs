@@ -21,9 +21,6 @@ namespace ReplicateTest
         public static ClientServer MakeClientServer()
         {
             ReplicationModel model = new ReplicationModel();
-            model.LoadTypes();
-            model.LoadTypes(Assembly.GetExecutingAssembly());
-            model.Compile();
             PassThroughChannel channel = new PassThroughChannel();
             return new ClientServer()
             {

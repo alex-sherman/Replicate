@@ -19,6 +19,14 @@ namespace ReplicateBenchmarks
         [Replicate]
         public string faff;
     }
+    [ProtoBuf.ProtoContract]
+    [Replicate]
+    public struct GenericDerp<T>
+    {
+        [ProtoBuf.ProtoMember(1)]
+        [Replicate]
+        public T faff;
+    }
     class Program
     {
         static MemoryStream stream = new MemoryStream((int)1e8);
@@ -42,15 +50,19 @@ namespace ReplicateBenchmarks
             var herp = new Derp() { faff = "faff" };
             var derp = "faff";
             var herpList = new List<Derp> { herp, herp, herp };
+            var genDerp = new GenericDerp<string>() { faff = "faff" };
             ser.Serialize(new MemoryStream(), herp);
             TimeSerialize("Serialize String", derp, ser.Serialize);
             TimeSerialize("Proto Serialize String", derp, ProtoBuf.Serializer.Serialize);
             
             TimeSerialize<object>("Serialize Derp", herp, ser.Serialize);
             TimeSerialize("Proto Serialize Derp", herp, ProtoBuf.Serializer.Serialize);
-            
-            TimeSerialize<object>("Serialize List<Derp>", herpList, ser.Serialize, count:1e4);
-            TimeSerialize("Proto Serialize List<Derp>", herpList, ProtoBuf.Serializer.Serialize, count:1e4);
+
+            TimeSerialize<object>("Serialize List<Derp>", herpList, ser.Serialize, count: 1e4);
+            TimeSerialize("Proto Serialize List<Derp>", herpList, ProtoBuf.Serializer.Serialize, count: 1e4);
+
+            TimeSerialize<object>("Serialize GenericDerp<string>", genDerp, ser.Serialize);
+            TimeSerialize("Proto Serialize GenericDerp<string>", genDerp, ProtoBuf.Serializer.Serialize);
             Console.ReadLine();
         }
     }
