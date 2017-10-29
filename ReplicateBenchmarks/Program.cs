@@ -46,7 +46,7 @@ namespace ReplicateBenchmarks
             var model = ReplicationModel.Default;
             model.Add(typeof(Derp));
 
-            Serializer ser = new Serializer(model);
+            Serializer ser = new BinarySerializer(model);
             var herp = new Derp() { faff = "faff" };
             var derp = "faff";
             var herpList = new List<Derp> { herp, herp, herp };

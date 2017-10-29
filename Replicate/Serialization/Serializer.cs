@@ -10,15 +10,9 @@ using System.Threading.Tasks;
 
 namespace Replicate.Serialization
 {
-    public class Serializer
+    public abstract class Serializer
     {
-        ReplicationManager manager;
         ReplicationModel model;
-        public Serializer(ReplicationManager manager)
-            : this(manager.Model)
-        {
-            this.manager = manager;
-        }
         public Serializer(ReplicationModel model)
         {
             this.model = model;
@@ -26,27 +20,31 @@ namespace Replicate.Serialization
         private Serializer() { }
         public void Serialize(Stream stream, object obj)
         {
-            Serialize(stream, obj, model[obj.GetType()]);
+            Serialize(stream, obj, null);
+        }
+        public void Serialize(Stream stream, object obj, ReplicationManager manager)
+        {
+            Serialize(stream, obj, manager, model[obj.GetType()]);
         }
         /// TODO: Replicate members by reference or copy depending on <see cref="ReplicationPolicy"/>
-        public void Serialize(Stream stream, object obj, TypeData typeData)
+        public void Serialize(Stream stream, object obj, ReplicationManager manager, TypeAccessor typeAccessor)
         {
             MarshalMethod marshalMethod = MarshalMethod.Null;
             if (obj != null)
             {
                 Type type = obj.GetType();
-                if (typeData == null)
+                if (typeAccessor == null)
                 {
                     throw new InvalidOperationException(string.Format("Cannot serialize {0}", type.Name));
                 }
                 else
                 {
-                    marshalMethod = typeData.Policy.MarshalMethod;
+                    marshalMethod = typeAccessor.TypeData.Policy.MarshalMethod;
                 }
             }
-            Serialize(stream, obj, typeData, marshalMethod);
+            Serialize(stream, obj, manager, typeAccessor, marshalMethod);
         }
-        public void Serialize(Stream stream, object obj, TypeData typeData, MarshalMethod marshalMethod)
+        public void Serialize(Stream stream, object obj, ReplicationManager manager, TypeAccessor typeAccessor, MarshalMethod marshalMethod)
         {
             if (marshalMethod == MarshalMethod.Reference && manager == null)
                 marshalMethod = MarshalMethod.Value;
@@ -54,7 +52,7 @@ namespace Replicate.Serialization
             switch (marshalMethod)
             {
                 case MarshalMethod.Primitive:
-                    typeData.Policy.Serializer.Write(obj, stream);
+                    SerializePrimitive(stream, obj, typeAccessor);
                     return;
                 case MarshalMethod.Collection:
                     var enumerable = (IEnumerable)obj;
@@ -65,15 +63,19 @@ namespace Replicate.Serialization
                     foreach (var item in (IEnumerable)obj)
                         Serialize(stream, item);
                     break;
-                case MarshalMethod.Value:
-                    stream.Write(BitConverter.GetBytes(typeData.ReplicatedMembers.Count), 0, 4);
-                    for (int id = 0; id < typeData.ReplicatedMembers.Count; id++)
+                case MarshalMethod.Tuple:
+                    foreach (var member in typeAccessor.MemberAccessors)
                     {
-                        var member = typeData.ReplicatedMembers[id];
+                        Serialize(stream, member.GetValue(obj), manager, member.TypeAccessor);
+                    }
+                    break;
+                case MarshalMethod.Value:
+                    stream.Write(BitConverter.GetBytes(typeAccessor.MemberAccessors.Length), 0, 4);
+                    for (int id = 0; id < typeAccessor.MemberAccessors.Length; id++)
+                    {
+                        var member = typeAccessor.MemberAccessors[id];
                         stream.WriteByte((byte)id);
-                        var memberTypeData = member.IsGenericParameter ?
-                            model[obj.GetType().GetGenericArguments()[member.GenericParameterPosition]] : member.TypeData;
-                        Serialize(stream, member.GetValue(obj), memberTypeData);
+                        Serialize(stream, member.GetValue(obj), manager, member.TypeAccessor);
                     }
                     break;
                 case MarshalMethod.Reference:
@@ -84,20 +86,21 @@ namespace Replicate.Serialization
                     break;
             }
         }
-        public T Deserialize<T>(Stream stream)
+        public abstract void SerializePrimitive(Stream stream, object obj, TypeAccessor typeData);
+        public T Deserialize<T>(Stream stream, ReplicationManager manager = null)
         {
             Type type = typeof(T);
-            return (T)Deserialize(null, stream, type);
+            return (T)Deserialize(null, stream, type, manager);
         }
-        public object Deserialize(object obj, Stream stream, Type type, TypeData typeData = null)
+        public object Deserialize(object obj, Stream stream, Type type, ReplicationManager manager, TypeAccessor typeAccessor = null)
         {
             var marshalMethod = (MarshalMethod)stream.ReadByte();
+            if (typeAccessor == null)
+                typeAccessor = model[type];
             switch (marshalMethod)
             {
                 case MarshalMethod.Primitive:
-                    if (typeData == null)
-                        typeData = model[type];
-                    return Convert.ChangeType(typeData.Policy.Serializer.Read(stream), type);
+                    return DeserializePrimitive(stream, type, typeAccessor);
                 case MarshalMethod.Collection:
                     {
                         int count = stream.ReadInt32();
@@ -109,7 +112,7 @@ namespace Replicate.Serialization
                             var arr = obj as Array;
                             for (int i = 0; i < count; i++)
                             {
-                                arr.SetValue(Deserialize(null, stream, collectionType, collectionTypeData), i);
+                                arr.SetValue(Deserialize(null, stream, collectionType, manager, collectionTypeData), i);
                             }
                         }
                         else
@@ -117,11 +120,20 @@ namespace Replicate.Serialization
                             var addMeth = type.GetInterface("ICollection`1").GetMethod("Add");
                             for (int i = 0; i < count; i++)
                             {
-                                addMeth.Invoke(obj, new object[] { Deserialize(null, stream, collectionType, collectionTypeData) });
+                                addMeth.Invoke(obj, new object[] { Deserialize(null, stream, collectionType, manager, collectionTypeData) });
                             }
                         }
                         return obj;
                     }
+                case MarshalMethod.Tuple:
+                    List<object> parameters = new List<object>();
+                    List<Type> paramTypes = new List<Type>();
+                    foreach (var member in typeAccessor.MemberAccessors)
+                    {
+                        paramTypes.Add(member.Type);
+                        parameters.Add(Deserialize(null, stream, member.Type, manager, member.TypeAccessor));
+                    }
+                    return type.GetConstructor(paramTypes.ToArray()).Invoke(parameters.ToArray());
                 case MarshalMethod.Value:
                     {
                         if (obj == null)
@@ -130,13 +142,8 @@ namespace Replicate.Serialization
                         for (int i = 0; i < count; i++)
                         {
                             int id = stream.ReadByte();
-                            if (typeData == null)
-                                typeData = model[type];
-                            var member = typeData.ReplicatedMembers[id];
-                            if (member.IsGenericParameter)
-                                member.SetValue(obj, Deserialize(member.GetValue(obj), stream, type.GetGenericArguments()[member.GenericParameterPosition]));
-                            else
-                                member.SetValue(obj, Deserialize(member.GetValue(obj), stream, member.MemberType, member.TypeData));
+                            var member = typeAccessor.MemberAccessors[id];
+                            member.SetValue(obj, Deserialize(member.GetValue(obj), stream, member.Type, manager, member.TypeAccessor));
                         }
                         return obj;
                     }
@@ -144,7 +151,7 @@ namespace Replicate.Serialization
                     {
                         if (manager == null)
                             throw new InvalidOperationException("Cannot perform reference serialization without a ReplicationManager");
-                        var id = (ReplicatedID)Deserialize(null, stream, typeof(ReplicatedID), model[typeof(ReplicatedID)]);
+                        var id = (ReplicatedID)Deserialize(null, stream, typeof(ReplicatedID), manager, model[typeof(ReplicatedID)]);
                         return manager.idLookup[id].replicated;
                     }
                 case MarshalMethod.Null:
@@ -154,5 +161,6 @@ namespace Replicate.Serialization
                     return null;
             }
         }
+        public abstract object DeserializePrimitive(Stream stream, Type type, TypeAccessor typeData);
     }
 }

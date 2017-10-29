@@ -48,9 +48,11 @@
     <Compile Include="Messages\ReplicatedID.cs" />
     <Compile Include="Messages\ReplicationMessage.cs" />
     <Compile Include="Messages\TypeID.cs" />
+    <Compile Include="MetaData\MemberAccessor.cs" />
     <Compile Include="MetaData\MemberInfo.cs" />
-    <Compile Include="MetaData\TypeData.cs" />
+    <Compile Include="MetaData\TypeAccessor.cs" />
     <Compile Include="MetaData\ReplicationModel.cs" />
+    <Compile Include="MetaData\TypeData.cs" />
     <Compile Include="PassThroughChannel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Interfaces\ProxyImplement.cs" />
@@ -58,8 +60,8 @@
     <Compile Include="ReplicateContext.cs" />
     <Compile Include="ReplicationManager.cs" />
     <Compile Include="ReplicationPolicy.cs" />
+    <Compile Include="Serialization\BinarySerializer.cs" />
     <Compile Include="Serialization\IReplicateSerializer.cs" />
-    <Compile Include="Serialization\PrimitiveSerializer.cs" />
     <Compile Include="Serialization\Serializer.cs" />
     <Compile Include="Serialization\StreamExtensions.cs" />
     <Compile Include="TaskQueue.cs" />

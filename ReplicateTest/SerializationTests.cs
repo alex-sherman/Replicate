@@ -55,33 +55,33 @@ namespace ReplicateTest
         public void TestProperty()
         {
             var model = new ReplicationModel();
-            var ser = new Replicate.Serialization.Serializer(model);
+            var ser = new Replicate.Serialization.BinarySerializer(model);
             var stream = new MemoryStream();
             ser.Serialize(stream, new PropClass() { Property = 3 });
             stream.Seek(0, SeekOrigin.Begin);
-            object output = ser.Deserialize(null, stream, typeof(PropClass), model[typeof(PropClass)]);
+            object output = ser.Deserialize(null, stream, typeof(PropClass), null, model[typeof(PropClass)]);
             Assert.AreEqual(3, (output as PropClass).Property);
         }
         [TestMethod]
         public void TestGeneric()
         {
             var model = new ReplicationModel();
-            var ser = new Replicate.Serialization.Serializer(model);
+            var ser = new Replicate.Serialization.BinarySerializer(model);
             var stream = new MemoryStream();
             ser.Serialize(stream, new GenericClass<string>() { Value = "herp" });
             stream.Seek(0, SeekOrigin.Begin);
-            object output = ser.Deserialize(null, stream, typeof(GenericClass<string>), model[typeof(GenericClass<string>)]);
+            object output = ser.Deserialize(null, stream, typeof(GenericClass<string>), null, model[typeof(GenericClass<string>)]);
             Assert.AreEqual("herp", (output as GenericClass<string>).Value);
         }
         [TestMethod]
         public void TestList()
         {
             var model = new ReplicationModel();
-            var ser = new Replicate.Serialization.Serializer(model);
+            var ser = new Replicate.Serialization.BinarySerializer(model);
             var stream = new MemoryStream();
             ser.Serialize(stream, new List<PropClass>() { new PropClass() { Property = 3 }, new PropClass() { Property = 4 } });
             stream.Seek(0, SeekOrigin.Begin);
-            var output = (List<PropClass>)ser.Deserialize(null, stream, typeof(List<PropClass>));
+            var output = (List<PropClass>)ser.Deserialize(null, stream, typeof(List<PropClass>), null);
             Assert.AreEqual(3, output[0].Property);
             Assert.AreEqual(4, output[1].Property);
         }
@@ -89,7 +89,7 @@ namespace ReplicateTest
         public void TestDictionary()
         {
             var model = new ReplicationModel();
-            var ser = new Replicate.Serialization.Serializer(model);
+            var ser = new Replicate.Serialization.BinarySerializer(model);
             var stream = new MemoryStream();
             ser.Serialize(stream, new Dictionary<string, PropClass>()
             {
@@ -97,7 +97,7 @@ namespace ReplicateTest
                 ["herp"] = new PropClass() { Property = 4 }
             });
             stream.Seek(0, SeekOrigin.Begin);
-            var output = (Dictionary<string, PropClass>)ser.Deserialize(null, stream, typeof(Dictionary<string, PropClass>));
+            var output = (Dictionary<string, PropClass>)ser.Deserialize(null, stream, typeof(Dictionary<string, PropClass>), null);
             Assert.AreEqual(3, output["faff"].Property);
             Assert.AreEqual(4, output["herp"].Property);
         }

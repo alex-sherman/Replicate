@@ -14,7 +14,7 @@ namespace Replicate
     {
         public ReplicatedID id;
         public object replicated;
-        public List<Tuple<object, TypeData>> targets;
+        public List<Tuple<object, TypeAccessor>> targets;
     }
     public class ReplicationManager
     {
@@ -30,10 +30,10 @@ namespace Replicate
         public Dictionary<object, ReplicatedObject> objectLookup = new Dictionary<object, ReplicatedObject>();
         public Dictionary<ReplicatedID, ReplicatedObject> idLookup = new Dictionary<ReplicatedID, ReplicatedObject>();
         Dictionary<ushort, IReplicationChannel> peers = new Dictionary<ushort, IReplicationChannel>();
-        public ReplicationManager(ReplicationModel typeModel = null)
+        public ReplicationManager(Serializer serializer, ReplicationModel typeModel = null)
         {
             Model = typeModel ?? ReplicationModel.Default;
-            serializer = new Serializer(this);
+            this.serializer = serializer;
             RegisterHandler<ReplicationMessage>(MessageIDs.REPLICATE, HandleReplication);
             RegisterHandler<InitMessage>(MessageIDs.INIT, HandleInit);
         }
@@ -121,14 +121,14 @@ namespace Replicate
             foreach (var member in message.members)
             {
                 var target = metaData.targets[member.objectIndex];
-                serializer.Deserialize(target.Item1, new MemoryStream(member.value), target.Item2.Type, target.Item2);
+                serializer.Deserialize(target.Item1, new MemoryStream(member.value), target.Item2.Type, this, target.Item2);
             }
         }
 
         private void HandleInit(InitMessage message)
         {
             var typeData = Model[message.typeName];
-            AddObject(message.id, typeData.Construct());
+            //AddObject(message.id, typeData.Construct());
         }
 
         public virtual void Replicate(object replicated, ushort? destination = null)
@@ -140,7 +140,7 @@ namespace Replicate
                 members = metaData.targets.Select((target, i) =>
                 {
                     MemoryStream innerStream = new MemoryStream();
-                    serializer.Serialize(innerStream, target.Item1, target.Item2, MarshalMethod.Value);
+                    serializer.Serialize(innerStream, target.Item1, this, target.Item2, MarshalMethod.Value);
                     return new ReplicationTargetData()
                     {
                         objectIndex = (byte)i,
@@ -181,7 +181,7 @@ namespace Replicate
                 id = id,
                 replicated = replicated,
                 targets = targets.Select(
-                    target => new Tuple<object, TypeData>(target, Model[target.GetType()])
+                    target => new Tuple<object, TypeAccessor>(target, Model[target.GetType()])
                 ).ToList()
             };
             objectLookup[replicated] = data;

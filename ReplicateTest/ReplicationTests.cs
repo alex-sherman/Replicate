@@ -28,16 +28,16 @@ namespace ReplicateTest
     [TestClass]
     public class ReplicationTests
     {
-        static TypeData typeData;
+        static TypeAccessor typeAccessor;
         [ClassInitialize]
         public static void InitTypes(TestContext testContext)
         {
-            typeData = ReplicationModel.Default[typeof(ReplicatedType)];
+            typeAccessor = ReplicationModel.Default[typeof(ReplicatedType)];
         }
         [TestMethod]
         public void TypeDataTest()
         {
-            Assert.AreEqual(ReplicationModel.Default[typeof(ReplicatedType)].ReplicatedMembers[0].Name, "field1");
+            Assert.AreEqual(ReplicationModel.Default[typeof(ReplicatedType)].TypeData.ReplicatedMembers[0].Name, "field1");
         }
         [TestMethod]
         public void GetSetTest()
@@ -47,10 +47,10 @@ namespace ReplicateTest
                 field1 = 3,
                 field2 = "herpderp"
             };
-            Assert.AreEqual(typeData.ReplicatedMembers[1].GetValue(replicated), "herpderp");
-            Assert.AreEqual(typeData.ReplicatedMembers[0].GetValue(replicated), 3);
-            typeData.ReplicatedMembers[1].SetValue(replicated, "FAFF");
-            Assert.AreEqual(typeData.ReplicatedMembers[1].GetValue(replicated), "FAFF");
+            Assert.AreEqual(typeAccessor.MemberAccessors[1].GetValue(replicated), "herpderp");
+            Assert.AreEqual(typeAccessor.MemberAccessors[0].GetValue(replicated), 3);
+            typeAccessor.MemberAccessors[1].SetValue(replicated, "FAFF");
+            Assert.AreEqual(typeAccessor.MemberAccessors[1].GetValue(replicated), "FAFF");
         }
         [TestMethod]
         public void RegisterObj()

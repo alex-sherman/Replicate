@@ -17,6 +17,7 @@ namespace Replicate.MetaData
         Value = 2,
         Reference = 3,
         Collection = 4,
+        Tuple = 5,
     }
     public class ReplicationModel
     {
@@ -27,17 +28,18 @@ namespace Replicate.MetaData
         public IReplicateSerializer IntSerializer = new IntSerializer();
         public ReplicationModel()
         {
-            Add(typeof(byte)).Policy.Serializer = IntSerializer;
-            Add(typeof(short)).Policy.Serializer = IntSerializer;
-            Add(typeof(int)).Policy.Serializer = IntSerializer;
-            Add(typeof(long)).Policy.Serializer = IntSerializer;
-            Add(typeof(ushort)).Policy.Serializer = IntSerializer;
-            Add(typeof(uint)).Policy.Serializer = IntSerializer;
-            Add(typeof(ulong)).Policy.Serializer = IntSerializer;
-            Add(typeof(float)).Policy.Serializer = new FloatSerializer();
-            Add(typeof(string)).Policy.Serializer = new StringSerializer();
-            Add(typeof(List<>)).Policy.MarshalMethod = MarshalMethod.Collection;
+            Add(typeof(byte));
+            Add(typeof(short));
+            Add(typeof(int));
+            Add(typeof(long));
+            Add(typeof(ushort));
+            Add(typeof(uint));
+            Add(typeof(ulong));
+            Add(typeof(float));
+            Add(typeof(string));
+            Add(typeof(ICollection<>)).Policy.MarshalMethod = MarshalMethod.Collection;
             var kvpTD = Add(typeof(KeyValuePair<,>));
+            kvpTD.Policy.MarshalMethod = MarshalMethod.Tuple;
             kvpTD.AddMember("Key");
             kvpTD.AddMember("Value");
         }
@@ -49,14 +51,14 @@ namespace Replicate.MetaData
             if (typeLookup.ContainsKey(type))
                 return typeLookup[type];
             if (type.GetInterface("ICollection`1") != null)
-                return typeLookup[typeof(List<>)];
+                return typeLookup[typeof(ICollection<>)];
             if (autoAddType)
                 return Add(type);
             return null;
         }
-        public TypeData this[Type type]
+        public TypeAccessor this[Type type]
         {
-            get { return GetTypeData(type, AutoAddType); }
+            get { return GetTypeData(type, AutoAddType).GetAccessor(type); }
         }
         public TypeData this[string typeName]
         {
@@ -82,7 +84,7 @@ namespace Replicate.MetaData
         }
         private void Compile(TypeData typeData)
         {
-            foreach (var member in typeData.ReplicatedMembers.Where(m => !m.IsGenericParameter))
+            foreach (var member in typeData.ReplicatedMembers)
             {
                 member.TypeData = GetTypeData(member.MemberType, AutoAddType && member.MemberType.GetCustomAttribute<ReplicateAttribute>() != null);
             }
