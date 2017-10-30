@@ -127,8 +127,8 @@ namespace Replicate
 
         private void HandleInit(InitMessage message)
         {
-            var typeData = Model[message.typeName];
-            //AddObject(message.id, typeData.Construct());
+            var typeData = Model[message.typeID];
+            AddObject(message.id, typeData.Construct());
         }
 
         public virtual void Replicate(object replicated, ushort? destination = null)
@@ -168,7 +168,7 @@ namespace Replicate
             var message = new InitMessage()
             {
                 id = id,
-                typeName = Model[replicated.GetType()].Name
+                typeID = Model[replicated.GetType()].TypeID
             };
             Send(MessageIDs.INIT, message);
         }

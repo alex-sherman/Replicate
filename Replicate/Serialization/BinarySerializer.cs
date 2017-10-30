@@ -53,6 +53,8 @@ namespace Replicate.Serialization
         Dictionary<Type, IReplicateSerializer> serializers = new Dictionary<Type, IReplicateSerializer>()
         {
             {typeof(byte), intSer },
+            {typeof(short), intSer },
+            {typeof(ushort), intSer },
             {typeof(int), intSer },
             {typeof(uint), intSer },
             {typeof(long), intSer },

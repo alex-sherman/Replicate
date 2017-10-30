@@ -6,6 +6,7 @@ using Replicate.MetaData;
 using System.Reflection;
 using System.IO;
 using System.Collections.Generic;
+using Replicate.Messages;
 
 namespace ReplicateTest
 {
@@ -100,6 +101,24 @@ namespace ReplicateTest
             var output = (Dictionary<string, PropClass>)ser.Deserialize(null, stream, typeof(Dictionary<string, PropClass>), null);
             Assert.AreEqual(3, output["faff"].Property);
             Assert.AreEqual(4, output["herp"].Property);
+        }
+        [TestMethod]
+        public void TestInitMessage()
+        {
+            var model = new ReplicationModel();
+            var ser = new Replicate.Serialization.BinarySerializer(model);
+            var stream = new MemoryStream();
+            ser.Serialize(stream, new InitMessage()
+            {
+                id = new ReplicatedID() { objectId = 0, owner = 1 },
+                typeID = new TypeID()
+                {
+                    id = 12
+                }
+            });
+            stream.Seek(0, SeekOrigin.Begin);
+            var output = (InitMessage)ser.Deserialize(null, stream, typeof(InitMessage), null);
+            Assert.AreEqual(12, output.typeID.id);
         }
     }
 }

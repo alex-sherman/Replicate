@@ -15,11 +15,11 @@ namespace Replicate.MetaData
         public Type Type { get; private set; }
         public Type DeclaringType { get; private set; }
 
-        public MemberAccessor(MemberInfo info, TypeAccessor declaringType)
+        public MemberAccessor(MemberInfo info, TypeAccessor declaringType, ReplicationModel model)
         {
             DeclaringType = declaringType.Type;
             Type = info.GetMemberType(declaringType.Type);
-            TypeAccessor = info.TypeData?.GetAccessor(Type) ?? ReplicationModel.Default[Type];
+            TypeAccessor = info.TypeData?.GetAccessor(Type, model) ?? model[Type];
             this.info = info;
             if (info.field != null)
             {

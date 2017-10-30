@@ -12,6 +12,6 @@ namespace Replicate.Messages
         [Replicate]
         public ReplicatedID id;
         [Replicate]
-        public string typeName;
+        public TypeID typeID;
     }
 }

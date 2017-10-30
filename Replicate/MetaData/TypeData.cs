@@ -42,14 +42,14 @@ namespace Replicate.MetaData
             }
         }
 
-        public TypeAccessor GetAccessor(Type type)
+        public TypeAccessor GetAccessor(Type type, ReplicationModel model)
         {
             if(!(type.IsGenericType ? type.GetGenericTypeDefinition() == Type : type == Type))
             {
 
             }
             if (!accessors.ContainsKey(type))
-                accessors[type] = new TypeAccessor(this, type);
+                accessors[type] = new TypeAccessor(this, type, model);
             return accessors[type];
         }
 

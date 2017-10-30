@@ -12,6 +12,6 @@ namespace Replicate.Messages
         [Replicate]
         public ushort id;
         [Replicate]
-        public byte[] subtypes;
+        public TypeID[] subtypes;
     }
 }
