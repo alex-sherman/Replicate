@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 
@@ -29,6 +30,9 @@ namespace Replicate
         Dictionary<uint, Action<byte[]>> handlerLookup = new Dictionary<uint, Action<byte[]>>();
         public Dictionary<object, ReplicatedObject> objectLookup = new Dictionary<object, ReplicatedObject>();
         public Dictionary<ReplicatedID, ReplicatedObject> idLookup = new Dictionary<ReplicatedID, ReplicatedObject>();
+        Dictionary<ushort, Type> idTypeLookup = new Dictionary<ushort, Type>();
+        Dictionary<Type, ushort> typeIdLookup = new Dictionary<Type, ushort>();
+        ushort lastTypeId = 1;
         Dictionary<ushort, IReplicationChannel> peers = new Dictionary<ushort, IReplicationChannel>();
         public ReplicationManager(Serializer serializer, ReplicationModel typeModel = null)
         {
@@ -36,6 +40,25 @@ namespace Replicate
             this.serializer = serializer;
             RegisterHandler<ReplicationMessage>(MessageIDs.REPLICATE, HandleReplication);
             RegisterHandler<InitMessage>(MessageIDs.INIT, HandleInit);
+            RegisterType(typeof(byte));
+            RegisterType(typeof(ushort));
+            RegisterType(typeof(short));
+            RegisterType(typeof(uint));
+            RegisterType(typeof(int));
+            RegisterType(typeof(ulong));
+            RegisterType(typeof(long));
+            RegisterType(typeof(string));
+            RegisterType(typeof(char));
+            RegisterType(typeof(List<>));
+            RegisterType(typeof(Dictionary<,>));
+            foreach (var type in Assembly.GetCallingAssembly().GetTypes().OrderBy(_type => _type.FullName))
+            {
+                var replicate = type.GetCustomAttribute<ReplicateAttribute>();
+                if (replicate != null)
+                {
+                    RegisterType(type);
+                }
+            }
         }
 
         Task recvTask = null;
@@ -97,7 +120,39 @@ namespace Replicate
             handlerLookup[messageID] = (bytes) => handler(serializer.Deserialize<T>(new MemoryStream(bytes)));
             return this;
         }
+        public uint RegisterType(Type type)
+        {
+            var genericType = type.IsGenericType ? type.GetGenericTypeDefinition() : type;
+            ushort id = lastTypeId++;
+            typeIdLookup[type] = id;
+            idTypeLookup[id] = type;
+            return id;
+        }
 
+        public TypeID GetID(Type type)
+        {
+            var genericType = type.IsGenericType ? type.GetGenericTypeDefinition() : type;
+            var output = new TypeID()
+            {
+                id = typeIdLookup[genericType]
+            };
+            if (type.IsGenericType)
+                output.subtypes = type.GetGenericArguments().Select(t => GetID(t)).ToArray();
+            return output;
+        }
+        public Type GetType(TypeID typeID)
+        {
+            Type type = idTypeLookup[typeID.id];
+            if (type.IsGenericTypeDefinition)
+            {
+                type = type.MakeGenericType(typeID.subtypes.Select(subType => GetType(subType)).ToArray());
+            }
+            return type;
+        }
+        public TypeAccessor GetTypeAccessor(TypeID typeID)
+        {
+            return Model[GetType(typeID)];
+        }
         public ReplicationManager RegisterClient(ushort id, IReplicationChannel channel)
         {
             peers[id] = channel;
@@ -127,7 +182,7 @@ namespace Replicate
 
         private void HandleInit(InitMessage message)
         {
-            var typeData = Model[message.typeID];
+            var typeData = GetTypeAccessor(message.typeID);
             AddObject(message.id, typeData.Construct());
         }
 
@@ -168,7 +223,7 @@ namespace Replicate
             var message = new InitMessage()
             {
                 id = id,
-                typeID = Model[replicated.GetType()].TypeID
+                typeID = GetID(replicated.GetType())
             };
             Send(MessageIDs.INIT, message);
         }

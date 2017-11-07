@@ -1,5 +1,4 @@
-﻿using Replicate.Messages;
-using Replicate.Serialization;
+﻿using Replicate.Serialization;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -56,40 +55,9 @@ namespace Replicate.MetaData
                 return Add(type);
             return null;
         }
-        private ushort GetIndex(Type type)
-        {
-            return (ushort)typeLookup.Values.ToList().IndexOf(GetTypeData(type, false));
-        }
-        public TypeID GetID(Type type)
-        {
-            var output = new TypeID()
-            {
-                id = GetIndex(type)
-            };
-            if (type.IsGenericType)
-                output.subtypes = type.GetGenericArguments().Select(t => GetID(t)).ToArray();
-            return output;
-        }
-        public TypeAccessor this[TypeID typeID]
-        {
-            get
-            {
-                Type type = typeLookup.Keys.Skip(typeID.id).First();
-                // TODO
-                if(type.IsGenericTypeDefinition)
-                {
-
-                }
-                return this[type];
-            }
-        }
         public TypeAccessor this[Type type]
         {
             get { return GetTypeData(type, AutoAddType).GetAccessor(type, this); }
-        }
-        public TypeData this[string typeName]
-        {
-            get { return stringLookup[typeName]; }
         }
         public TypeData Add(Type type)
         {

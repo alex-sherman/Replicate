@@ -11,14 +11,12 @@ namespace Replicate.MetaData
 {
     public class TypeAccessor
     {
-        public TypeID TypeID { get; private set; }
         public string Name { get; private set; }
         public Type Type { get; private set; }
         public MemberAccessor[] MemberAccessors;
         public TypeData TypeData { get; private set; }
         public TypeAccessor(TypeData typeData, Type type, ReplicationModel model)
         {
-            TypeID = model.GetID(type);
             TypeData = typeData;
             Type = type;
             Name = type.FullName;
