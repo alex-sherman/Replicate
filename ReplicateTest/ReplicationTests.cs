@@ -32,12 +32,12 @@ namespace ReplicateTest
         [ClassInitialize]
         public static void InitTypes(TestContext testContext)
         {
-            typeAccessor = ReplicationModel.Default[typeof(ReplicatedType)];
+            typeAccessor = ReplicationModel.Default.GetTypeAccessor(typeof(ReplicatedType));
         }
         [TestMethod]
         public void TypeDataTest()
         {
-            Assert.AreEqual(ReplicationModel.Default[typeof(ReplicatedType)].TypeData.ReplicatedMembers[0].Name, "field1");
+            Assert.AreEqual(ReplicationModel.Default[typeof(ReplicatedType)].ReplicatedMembers[0].Name, "field1");
         }
         [TestMethod]
         public void GetSetTest()

@@ -151,7 +151,7 @@ namespace Replicate
         }
         public TypeAccessor GetTypeAccessor(TypeID typeID)
         {
-            return Model[GetType(typeID)];
+            return Model.GetTypeAccessor(GetType(typeID));
         }
         public ReplicationManager RegisterClient(ushort id, IReplicationChannel channel)
         {
@@ -236,7 +236,7 @@ namespace Replicate
                 id = id,
                 replicated = replicated,
                 targets = targets.Select(
-                    target => new Tuple<object, TypeAccessor>(target, Model[target.GetType()])
+                    target => new Tuple<object, TypeAccessor>(target, Model.GetTypeAccessor(target.GetType()))
                 ).ToList()
             };
             objectLookup[replicated] = data;

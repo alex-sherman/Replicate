@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -24,7 +25,7 @@ namespace Replicate.Serialization
         }
         public void Serialize(Stream stream, object obj, ReplicationManager manager)
         {
-            Serialize(stream, obj, manager, model[obj.GetType()]);
+            Serialize(stream, obj, manager, model.GetTypeAccessor(obj.GetType()));
         }
         /// TODO: Replicate members by reference or copy depending on <see cref="ReplicationPolicy"/>
         public void Serialize(Stream stream, object obj, ReplicationManager manager, TypeAccessor typeAccessor)
@@ -32,15 +33,18 @@ namespace Replicate.Serialization
             MarshalMethod marshalMethod = MarshalMethod.Null;
             if (obj != null)
             {
-                Type type = obj.GetType();
                 if (typeAccessor == null)
+                    throw new InvalidOperationException(string.Format("Cannot serialize {0}", obj.GetType().Name));
+
+                if (typeAccessor.TypeData.Surrogate != null)
                 {
-                    throw new InvalidOperationException(string.Format("Cannot serialize {0}", type.Name));
+                    var surType = typeAccessor.TypeData.Surrogate.Type;
+                    var castOp = surType.GetMethod("op_Implicit", new Type[] { typeAccessor.Type });
+                    var surrogate = castOp.Invoke(null, new object[] { obj });
+                    typeAccessor = typeAccessor.TypeData.Surrogate.GetAccessor(surrogate.GetType());
+                    obj = surrogate;
                 }
-                else
-                {
-                    marshalMethod = typeAccessor.TypeData.Policy.MarshalMethod;
-                }
+                marshalMethod = typeAccessor.TypeData.Policy.MarshalMethod;
             }
             Serialize(stream, obj, manager, typeAccessor, marshalMethod);
         }
@@ -94,9 +98,23 @@ namespace Replicate.Serialization
         }
         public object Deserialize(object obj, Stream stream, Type type, ReplicationManager manager, TypeAccessor typeAccessor = null)
         {
-            var marshalMethod = (MarshalMethod)stream.ReadByte();
             if (typeAccessor == null)
-                typeAccessor = model[type];
+                typeAccessor = model.GetTypeAccessor(type);
+            MethodInfo castOp = null;
+            if (typeAccessor.TypeData.Surrogate != null)
+            {
+                var surType = typeAccessor.TypeData.Surrogate.Type;
+                castOp = surType.GetMethods().FirstOrDefault(meth => meth.Name == "op_Implicit" && meth.ReturnType == type);
+                typeAccessor = typeAccessor.TypeData.Surrogate.GetAccessor(castOp.GetParameters()[0].ParameterType);
+            }
+            obj = DeserializeRaw(obj, stream, manager, typeAccessor);
+            return castOp?.Invoke(null, new object[] { obj }) ?? obj;
+
+        }
+        public object DeserializeRaw(object obj, Stream stream, ReplicationManager manager, TypeAccessor typeAccessor)
+        {
+            var type = typeAccessor.Type;
+            var marshalMethod = (MarshalMethod)stream.ReadByte();
             switch (marshalMethod)
             {
                 case MarshalMethod.Primitive:
@@ -106,13 +124,13 @@ namespace Replicate.Serialization
                         int count = stream.ReadInt32();
                         obj = type.GetConstructor(new Type[] { typeof(int) }).Invoke(new object[] { count });
                         var collectionType = type.GetInterface("ICollection`1").GetGenericArguments()[0];
-                        var collectionTypeData = model[collectionType];
+                        var collectionTypeAccessor = model.GetTypeAccessor(collectionType);
                         if (obj is Array)
                         {
                             var arr = obj as Array;
                             for (int i = 0; i < count; i++)
                             {
-                                arr.SetValue(Deserialize(null, stream, collectionType, manager, collectionTypeData), i);
+                                arr.SetValue(Deserialize(null, stream, collectionType, manager, collectionTypeAccessor), i);
                             }
                         }
                         else
@@ -120,7 +138,7 @@ namespace Replicate.Serialization
                             var addMeth = type.GetInterface("ICollection`1").GetMethod("Add");
                             for (int i = 0; i < count; i++)
                             {
-                                addMeth.Invoke(obj, new object[] { Deserialize(null, stream, collectionType, manager, collectionTypeData) });
+                                addMeth.Invoke(obj, new object[] { Deserialize(null, stream, collectionType, manager, collectionTypeAccessor) });
                             }
                         }
                         return obj;
@@ -151,7 +169,7 @@ namespace Replicate.Serialization
                     {
                         if (manager == null)
                             throw new InvalidOperationException("Cannot perform reference serialization without a ReplicationManager");
-                        var id = (ReplicatedID)Deserialize(null, stream, typeof(ReplicatedID), manager, model[typeof(ReplicatedID)]);
+                        var id = (ReplicatedID)Deserialize(null, stream, typeof(ReplicatedID), manager, model.GetTypeAccessor(typeof(ReplicatedID)));
                         return manager.idLookup[id].replicated;
                     }
                 case MarshalMethod.Null:

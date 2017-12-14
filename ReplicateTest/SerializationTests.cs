@@ -65,38 +65,29 @@ namespace ReplicateTest
             cs.client.Receive().Wait();
             Assert.IsTrue(called);
         }
-        T SerializeDeserialize<T>(T data)
-        {
-            var model = new ReplicationModel();
-            var ser = new Replicate.Serialization.BinarySerializer(model);
-            var stream = new MemoryStream();
-            ser.Serialize(stream, data);
-            stream.Seek(0, SeekOrigin.Begin);
-            return ser.Deserialize<T>(stream);
-        }
         [TestMethod]
         public void TestProperty()
         {
-            var output = SerializeDeserialize(new PropClass() { Property = 3 });
+            var output = Util.SerializeDeserialize(new PropClass() { Property = 3 });
             Assert.AreEqual(3, output.Property);
         }
         [TestMethod]
         public void TestGeneric()
         {
-            var output = SerializeDeserialize(new GenericClass<string>() { Value = "herp" });
+            var output = Util.SerializeDeserialize(new GenericClass<string>() { Value = "herp" });
             Assert.AreEqual("herp", output.Value);
         }
         [TestMethod]
         public void TestList()
         {
-            var output = SerializeDeserialize(new List<PropClass>() { new PropClass() { Property = 3 }, new PropClass() { Property = 4 } });
+            var output = Util.SerializeDeserialize(new List<PropClass>() { new PropClass() { Property = 3 }, new PropClass() { Property = 4 } });
             Assert.AreEqual(3, output[0].Property);
             Assert.AreEqual(4, output[1].Property);
         }
         [TestMethod]
         public void TestDictionary()
         {
-            var output = SerializeDeserialize(new Dictionary<string, PropClass>()
+            var output = Util.SerializeDeserialize(new Dictionary<string, PropClass>()
             {
                 ["faff"] = new PropClass() { Property = 3 },
                 ["herp"] = new PropClass() { Property = 4 }
@@ -125,7 +116,7 @@ namespace ReplicateTest
         [TestMethod]
         public void TestInheritedType()
         {
-            var value = SerializeDeserialize(new SubClass()
+            var value = Util.SerializeDeserialize(new SubClass()
             {
                 Field = "test",
                 Property = 5
@@ -136,7 +127,7 @@ namespace ReplicateTest
         [TestMethod]
         public void TestNestedGeneric()
         {
-            var value = SerializeDeserialize(new GenericSubClass<GenericClass<int>, GenericClass<string>>()
+            var value = Util.SerializeDeserialize(new GenericSubClass<GenericClass<int>, GenericClass<string>>()
             {
                 Value = new GenericClass<int>() { Value = 1 },
                 OtherValue = new GenericClass<string>() { Value = "faff" }

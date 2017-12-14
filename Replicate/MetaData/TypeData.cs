@@ -15,10 +15,14 @@ namespace Replicate.MetaData
         public Type Type { get; private set; }
         public List<MemberInfo> ReplicatedMembers = new List<MemberInfo>();
         private Dictionary<Type, TypeAccessor> accessors = new Dictionary<Type, TypeAccessor>();
-        public TypeData(Type type)
+        public TypeData Surrogate { get; private set; }
+        public ReplicationModel Model { get; private set; }
+        private bool isSurrogate = false;
+        public TypeData(Type type, ReplicationModel model)
         {
             Type = type;
             Name = type.FullName;
+            Model = model;
             if (type.IsPrimitive || type == typeof(string))
                 Policy.MarshalMethod = MarshalMethod.Primitive;
             else if (type.IsValueType)
@@ -42,14 +46,10 @@ namespace Replicate.MetaData
             }
         }
 
-        public TypeAccessor GetAccessor(Type type, ReplicationModel model)
+        public TypeAccessor GetAccessor(Type type)
         {
-            if(!(type.IsGenericType ? type.GetGenericTypeDefinition() == Type : type == Type))
-            {
-
-            }
             if (!accessors.ContainsKey(type))
-                accessors[type] = new TypeAccessor(this, type, model);
+                accessors[type] = new TypeAccessor(this, type, Model);
             return accessors[type];
         }
 
@@ -72,6 +72,14 @@ namespace Replicate.MetaData
         private void AddMember(PropertyInfo property)
         {
             ReplicatedMembers.Add(new MemberInfo(property, (byte)ReplicatedMembers.Count));
+        }
+        public TypeData SetSurrogate(Type surrogate)
+        {
+            if (isSurrogate)
+                throw new InvalidOperationException("Cannot set the surrogate of a surrogate type");
+            var _surrogate = Model.GetTypeData(surrogate);
+            _surrogate.isSurrogate = true;
+            return (Surrogate = _surrogate);
         }
     }
 }

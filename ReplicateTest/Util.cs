@@ -3,6 +3,7 @@ using Replicate.MetaData;
 using Replicate.Serialization;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -31,6 +32,16 @@ namespace ReplicateTest
                 client = new ReplicationManager(serializer, model) { ID = 1 }.RegisterClient(0, channel.CreateEndpoint()),
                 server = new ReplicationManager(serializer, model) { ID = 0 }.RegisterClient(1, channel.CreateEndpoint())
             };
+        }
+
+        public static T SerializeDeserialize<T>(T data, ReplicationModel model = null)
+        {
+            model = model ?? new ReplicationModel();
+            var ser = new Replicate.Serialization.BinarySerializer(model);
+            var stream = new MemoryStream();
+            ser.Serialize(stream, data);
+            stream.Seek(0, SeekOrigin.Begin);
+            return ser.Deserialize<T>(stream);
         }
     }
 }

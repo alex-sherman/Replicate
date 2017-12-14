@@ -20,7 +20,6 @@ namespace Replicate.MetaData
     }
     public class ReplicationModel
     {
-        public bool AutoAddType { get; set; } = true;
         public static ReplicationModel Default { get; } = new ReplicationModel();
         Dictionary<Type, TypeData> typeLookup = new Dictionary<Type, TypeData>();
         Dictionary<string, TypeData> stringLookup = new Dictionary<string, TypeData>();
@@ -42,8 +41,11 @@ namespace Replicate.MetaData
             kvpTD.AddMember("Key");
             kvpTD.AddMember("Value");
         }
-
-        private TypeData GetTypeData(Type type, bool autoAddType)
+        public TypeAccessor GetTypeAccessor(Type type)
+        {
+            return GetTypeData(type).GetAccessor(type);
+        }
+        public TypeData GetTypeData(Type type, bool autoAddType = true)
         {
             if (type.IsGenericType)
                 type = type.GetGenericTypeDefinition();
@@ -55,15 +57,15 @@ namespace Replicate.MetaData
                 return Add(type);
             return null;
         }
-        public TypeAccessor this[Type type]
+        public TypeData this[Type type]
         {
-            get { return GetTypeData(type, AutoAddType).GetAccessor(type, this); }
+            get { return GetTypeData(type); }
         }
         public TypeData Add(Type type)
         {
             if (type.IsGenericType)
                 type = type.GetGenericTypeDefinition();
-            var output = new TypeData(type);
+            var output = new TypeData(type, this);
             Compile(output);
             typeLookup.Add(type, output);
             stringLookup.Add(type.FullName, output);
@@ -81,7 +83,7 @@ namespace Replicate.MetaData
         {
             foreach (var member in typeData.ReplicatedMembers)
             {
-                member.TypeData = GetTypeData(member.MemberType, AutoAddType && member.MemberType.GetCustomAttribute<ReplicateAttribute>() != null);
+                member.TypeData = GetTypeData(member.MemberType, member.MemberType.GetCustomAttribute<ReplicateAttribute>() != null);
             }
         }
     }

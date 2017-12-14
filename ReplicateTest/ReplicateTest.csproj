@@ -55,6 +55,7 @@
     <Compile Include="SerializationTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ProxyImplementTests.cs" />
+    <Compile Include="SurrogateTests.cs" />
     <Compile Include="Util.cs" />
   </ItemGroup>
   <ItemGroup>
