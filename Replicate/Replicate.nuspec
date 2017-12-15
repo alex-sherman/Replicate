@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>$id$</id>
+    <version>$version$</version>
+    <title>$title$</title>
+    <authors>alex-sherman</authors>
+    <owners>alex-sherman</owners>
+    <licenseUrl>https://github.com/alex-sherman/Replicate/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/alex-sherman/Replicate</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>$description$</description>
+    <releaseNotes>Initial release</releaseNotes>
+    <copyright>Copyright 2017</copyright>
+    <tags>serialization serialize replicate replication rpc networking</tags>
+  </metadata>
+</package>
