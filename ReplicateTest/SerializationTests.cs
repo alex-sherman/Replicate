@@ -26,6 +26,8 @@ namespace ReplicateTest
         {
             [Replicate]
             public T Value;
+            [Replicate]
+            public T Prop { get; set; }
         }
         [Replicate(MarshalMethod.Value)]
         public class PropClass
@@ -74,8 +76,9 @@ namespace ReplicateTest
         [TestMethod]
         public void TestGeneric()
         {
-            var output = Util.SerializeDeserialize(new GenericClass<string>() { Value = "herp" });
+            var output = Util.SerializeDeserialize(new GenericClass<string>() { Value = "herp", Prop = "derp" });
             Assert.AreEqual("herp", output.Value);
+            Assert.AreEqual("derp", output.Prop);
         }
         [TestMethod]
         public void TestList()

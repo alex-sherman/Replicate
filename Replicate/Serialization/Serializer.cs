@@ -41,7 +41,7 @@ namespace Replicate.Serialization
                     var surType = typeAccessor.TypeData.Surrogate.Type;
                     var castOp = surType.GetMethod("op_Implicit", new Type[] { typeAccessor.Type });
                     var surrogate = castOp.Invoke(null, new object[] { obj });
-                    typeAccessor = typeAccessor.TypeData.Surrogate.GetAccessor(surrogate.GetType());
+                    typeAccessor = typeAccessor.TypeData.Surrogate;
                     obj = surrogate;
                 }
                 marshalMethod = typeAccessor.TypeData.Policy.MarshalMethod;
@@ -104,8 +104,9 @@ namespace Replicate.Serialization
             if (typeAccessor.TypeData.Surrogate != null)
             {
                 var surType = typeAccessor.TypeData.Surrogate.Type;
-                castOp = surType.GetMethods().FirstOrDefault(meth => meth.Name == "op_Implicit" && meth.ReturnType == type);
-                typeAccessor = typeAccessor.TypeData.Surrogate.GetAccessor(castOp.GetParameters()[0].ParameterType);
+                var invCastOp = surType.GetMethod("op_Implicit", new Type[] { type });
+                castOp = surType.GetMethod("op_Implicit", new Type[] { invCastOp.ReturnType });
+                typeAccessor = typeAccessor.TypeData.Surrogate;
             }
             obj = DeserializeRaw(obj, stream, manager, typeAccessor);
             return castOp?.Invoke(null, new object[] { obj }) ?? obj;

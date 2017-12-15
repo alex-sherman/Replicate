@@ -15,7 +15,7 @@ namespace Replicate.MetaData
         public Type Type { get; private set; }
         public List<MemberInfo> ReplicatedMembers = new List<MemberInfo>();
         private Dictionary<Type, TypeAccessor> accessors = new Dictionary<Type, TypeAccessor>();
-        public TypeData Surrogate { get; private set; }
+        public TypeAccessor Surrogate { get; private set; }
         public ReplicationModel Model { get; private set; }
         private bool isSurrogate = false;
         public TypeData(Type type, ReplicationModel model)
@@ -48,6 +48,8 @@ namespace Replicate.MetaData
 
         public TypeAccessor GetAccessor(Type type)
         {
+            if (type.IsGenericTypeDefinition)
+                throw new InvalidOperationException("Cannot create a type accessor for a generic type definition");
             if (!accessors.ContainsKey(type))
                 accessors[type] = new TypeAccessor(this, type, Model);
             return accessors[type];
@@ -77,9 +79,12 @@ namespace Replicate.MetaData
         {
             if (isSurrogate)
                 throw new InvalidOperationException("Cannot set the surrogate of a surrogate type");
+            if (surrogate.IsGenericTypeDefinition)
+                throw new InvalidOperationException("Cannot set a surrogate type that is generic");
             var _surrogate = Model.GetTypeData(surrogate);
             _surrogate.isSurrogate = true;
-            return (Surrogate = _surrogate);
+            Surrogate = _surrogate.GetAccessor(surrogate);
+            return _surrogate;
         }
     }
 }

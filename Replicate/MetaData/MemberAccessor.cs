@@ -49,7 +49,7 @@ namespace Replicate.MetaData
 
         public void SetValue(object obj, object value)
         {
-            if (info.IsGenericParameter)
+            if (DeclaringType.IsGenericType)
             {
                 if (info.property != null)
                     obj.GetType().GetProperty(info.property.Name).SetValue(obj, value);
