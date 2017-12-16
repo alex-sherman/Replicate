@@ -25,10 +25,15 @@ namespace Replicate.MetaData
             Model = model;
             if (type.IsPrimitive || type == typeof(string))
                 Policy.MarshalMethod = MarshalMethod.Primitive;
-            else if (type.IsValueType)
-                Policy.MarshalMethod = MarshalMethod.Value;
             else
-                Policy.MarshalMethod = MarshalMethod.Reference;
+            {
+                if (!type.IsValueType)
+                    Policy.AllowReference = true;
+                if (type.GetInterface("ICollection`1") != null)
+                    Policy.MarshalMethod = MarshalMethod.Collection;
+                else
+                    Policy.MarshalMethod = MarshalMethod.Object;
+            }
 
             ReplicateAttribute replicateAttribute = type.GetCustomAttribute<ReplicateAttribute>();
             if (replicateAttribute != null && replicateAttribute.MarshalMethod.HasValue)

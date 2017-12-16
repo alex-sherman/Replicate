@@ -13,10 +13,10 @@ namespace Replicate.MetaData
     {
         Null = 0,
         Primitive = 1,
-        Value = 2,
-        Reference = 3,
-        Collection = 4,
-        Tuple = 5,
+        Object = 2,
+        Collection = 3,
+        Tuple = 4,
+        Reference = -1,
     }
     public class ReplicationModel
     {
@@ -51,8 +51,6 @@ namespace Replicate.MetaData
                 type = type.GetGenericTypeDefinition();
             if (typeLookup.ContainsKey(type))
                 return typeLookup[type];
-            if (type.GetInterface("ICollection`1") != null)
-                return typeLookup[typeof(ICollection<>)];
             if (autoAddType)
                 return Add(type);
             return null;

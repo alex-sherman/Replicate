@@ -22,21 +22,22 @@ namespace Replicate
         Serializer serializer;
         private static class MessageIDs
         {
-            public const uint REPLICATE = uint.MaxValue;
-            public const uint INIT = uint.MaxValue - 1;
+            public const byte REPLICATE = byte.MaxValue;
+            public const byte INIT = byte.MaxValue - 1;
         }
         public ReplicationModel Model { get; set; }
-        public ushort? ID = null;
+        public ushort ID { get { return replicationChannel.LocalID; } }
         Dictionary<uint, Action<byte[]>> handlerLookup = new Dictionary<uint, Action<byte[]>>();
         public Dictionary<object, ReplicatedObject> objectLookup = new Dictionary<object, ReplicatedObject>();
         public Dictionary<ReplicatedID, ReplicatedObject> idLookup = new Dictionary<ReplicatedID, ReplicatedObject>();
         Dictionary<ushort, Type> idTypeLookup = new Dictionary<ushort, Type>();
         Dictionary<Type, ushort> typeIdLookup = new Dictionary<Type, ushort>();
         ushort lastTypeId = 1;
-        Dictionary<ushort, IReplicationChannel> peers = new Dictionary<ushort, IReplicationChannel>();
-        public ReplicationManager(Serializer serializer, ReplicationModel typeModel = null)
+        IReplicationChannel replicationChannel;
+        public ReplicationManager(Serializer serializer, IReplicationChannel channel, ReplicationModel typeModel = null)
         {
             Model = typeModel ?? ReplicationModel.Default;
+            replicationChannel = channel;
             this.serializer = serializer;
             RegisterHandler<ReplicationMessage>(MessageIDs.REPLICATE, HandleReplication);
             RegisterHandler<InitMessage>(MessageIDs.INIT, HandleInit);
@@ -80,34 +81,25 @@ namespace Replicate
         public async Task Receive()
         {
             /// TODO: Receive from all peers
-            byte[] message = await peers.Values.First().Poll();
-            ReplicateContext.Client = peers.Keys.First();
-            Handle(message);
+            byte[] message = await replicationChannel.Poll();
+
+            ReplicateContext.Client = BitConverter.ToUInt16(message, 0);
+            byte messageID = message[2];
+            if (handlerLookup.ContainsKey(messageID))
+            {
+                byte[] body = new byte[message.Length - 3];
+                Array.Copy(message, 3, body, 0, body.Length);
+                handlerLookup[messageID](body);
+            }
         }
 
-        private void SendBytes(MemoryStream stream, ushort? destination, ReliabilityMode reliability)
-        {
-            if (destination.HasValue)
-                peers[destination.Value].Send(stream.ToArray(), reliability);
-            else
-                foreach (var peer in peers.Values)
-                    peer.Send(stream.ToArray(), reliability);
-        }
-
-        public void Send(uint messageID, byte[] message, ushort? destination = null, ReliabilityMode reliability = ReliabilityMode.Reliable | ReliabilityMode.Sequenced)
-        {
-            MemoryStream stream = new MemoryStream(4 + message.Length);
-            stream.Write(BitConverter.GetBytes(messageID), 0, 4);
-            stream.Write(message, 0, message.Length);
-            SendBytes(stream, destination, reliability);
-        }
-
-        public void Send<T>(uint messageID, T message, ushort? destination = null, ReliabilityMode reliability = ReliabilityMode.Reliable | ReliabilityMode.Sequenced)
+        public void Send<T>(byte messageID, T message, ushort? destination = null, ReliabilityMode reliability = ReliabilityMode.Reliable | ReliabilityMode.Sequenced)
         {
             MemoryStream stream = new MemoryStream();
-            stream.Write(BitConverter.GetBytes(messageID), 0, 4);
+            stream.Write(BitConverter.GetBytes(replicationChannel.LocalID), 0, 2);
+            stream.Write(BitConverter.GetBytes(messageID), 0, 1);
             serializer.Serialize(stream, message);
-            SendBytes(stream, destination, reliability);
+            replicationChannel.Send(destination, stream.ToArray(), reliability);
         }
 
         public ReplicationManager RegisterHandler(uint messageID, Action<byte[]> handler)
@@ -149,25 +141,10 @@ namespace Replicate
             }
             return type;
         }
+
         public TypeAccessor GetTypeAccessor(TypeID typeID)
         {
             return Model.GetTypeAccessor(GetType(typeID));
-        }
-        public ReplicationManager RegisterClient(ushort id, IReplicationChannel channel)
-        {
-            peers[id] = channel;
-            return this;
-        }
-
-        public virtual void Handle(byte[] message)
-        {
-            uint messageID = BitConverter.ToUInt32(message, 0);
-            if (handlerLookup.ContainsKey(messageID))
-            {
-                byte[] body = new byte[message.Length - 4];
-                Array.Copy(message, 4, body, 0, body.Length);
-                handlerLookup[messageID](body);
-            }
         }
 
         public virtual void HandleReplication(ReplicationMessage message)
@@ -195,7 +172,7 @@ namespace Replicate
                 members = metaData.targets.Select((target, i) =>
                 {
                     MemoryStream innerStream = new MemoryStream();
-                    serializer.Serialize(innerStream, target.Item1, this, target.Item2, MarshalMethod.Value);
+                    serializer.Serialize(innerStream, target.Item1, this, target.Item2, false);
                     return new ReplicationTargetData()
                     {
                         objectIndex = (byte)i,
@@ -217,7 +194,7 @@ namespace Replicate
             var id = new ReplicatedID()
             {
                 objectId = objectId,
-                owner = ID.Value,
+                owner = ID,
             };
             AddObject(id, replicated);
             var message = new InitMessage()

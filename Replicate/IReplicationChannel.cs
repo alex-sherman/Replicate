@@ -13,7 +13,13 @@ namespace Replicate
     }
     public interface IReplicationChannel
     {
+        ushort LocalID { get; }
+        /// <summary>
+        /// Specifies whether or not the channel is allowed to send/receive messages.
+        /// When IsOpen is true <see cref="LocalID"/> must be valid.
+        /// </summary>
+        bool IsOpen { get; }
         Task<byte[]> Poll();
-        void Send(byte[] message, ReliabilityMode reliability);
+        void Send(ushort? destination, byte[] message, ReliabilityMode reliability);
     }
 }

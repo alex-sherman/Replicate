@@ -10,7 +10,6 @@ namespace Replicate
     {
         private Queue<T> queue = new Queue<T>();
         private Queue<TaskCompletionSource<T>> sources = new Queue<TaskCompletionSource<T>>();
-        public int MyProperty { get; set; } = 4;
 
         public void Put(T item)
         {

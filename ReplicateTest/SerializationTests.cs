@@ -14,14 +14,6 @@ namespace ReplicateTest
     public class SerializationTests
     {
         [Replicate]
-        public struct SimpleMessage
-        {
-            [Replicate]
-            public float time;
-            [Replicate]
-            public string faff;
-        }
-        [Replicate]
         public class GenericClass<T>
         {
             [Replicate]
@@ -29,43 +21,23 @@ namespace ReplicateTest
             [Replicate]
             public T Prop { get; set; }
         }
-        [Replicate(MarshalMethod.Value)]
+        [Replicate(MarshalMethod.Object)]
         public class PropClass
         {
             [Replicate]
             public int Property { get; set; }
         }
-        [Replicate(MarshalMethod.Value)]
+        [Replicate(MarshalMethod.Object)]
         public class SubClass : PropClass
         {
             [Replicate]
             public string Field;
         }
-        [Replicate(MarshalMethod.Value)]
+        [Replicate(MarshalMethod.Object)]
         public class GenericSubClass<T, V> : GenericClass<T>
         {
             [Replicate]
             public V OtherValue;
-        }
-
-        [TestMethod]
-        public void TestSendRecv()
-        {
-            var testMessage = new SimpleMessage()
-            {
-                time = 10,
-                faff = "FAFF"
-            };
-            var cs = Util.MakeClientServer();
-            bool called = false;
-            cs.client.RegisterHandler<SimpleMessage>(0, (message) =>
-            {
-                called = true;
-                Assert.AreEqual(message, testMessage);
-            });
-            cs.server.Send(0, testMessage);
-            cs.client.Receive().Wait();
-            Assert.IsTrue(called);
         }
         [TestMethod]
         public void TestProperty()

@@ -29,8 +29,8 @@ namespace ReplicateTest
             {
                 model = model,
                 channel = channel,
-                client = new ReplicationManager(serializer, model) { ID = 1 }.RegisterClient(0, channel.CreateEndpoint()),
-                server = new ReplicationManager(serializer, model) { ID = 0 }.RegisterClient(1, channel.CreateEndpoint())
+                server = new ReplicationManager(serializer, channel.CreateEndpoint(0), model),
+                client = new ReplicationManager(serializer, channel.CreateEndpoint(1), model)
             };
         }
 

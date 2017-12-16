@@ -27,8 +27,7 @@ namespace Replicate.Serialization
         {
             Serialize(stream, obj, manager, model.GetTypeAccessor(obj.GetType()));
         }
-        /// TODO: Replicate members by reference or copy depending on <see cref="ReplicationPolicy"/>
-        public void Serialize(Stream stream, object obj, ReplicationManager manager, TypeAccessor typeAccessor)
+        public void Serialize(Stream stream, object obj, ReplicationManager manager, TypeAccessor typeAccessor, bool allowReference = true)
         {
             MarshalMethod marshalMethod = MarshalMethod.Null;
             if (obj != null)
@@ -44,14 +43,11 @@ namespace Replicate.Serialization
                     typeAccessor = typeAccessor.TypeData.Surrogate;
                     obj = surrogate;
                 }
-                marshalMethod = typeAccessor.TypeData.Policy.MarshalMethod;
+                if (allowReference && typeAccessor.TypeData.Policy.AllowReference && manager != null)
+                    marshalMethod = MarshalMethod.Reference;
+                else
+                    marshalMethod = typeAccessor.TypeData.Policy.MarshalMethod;
             }
-            Serialize(stream, obj, manager, typeAccessor, marshalMethod);
-        }
-        public void Serialize(Stream stream, object obj, ReplicationManager manager, TypeAccessor typeAccessor, MarshalMethod marshalMethod)
-        {
-            if (marshalMethod == MarshalMethod.Reference && manager == null)
-                marshalMethod = MarshalMethod.Value;
             stream.WriteByte((byte)marshalMethod);
             switch (marshalMethod)
             {
@@ -73,7 +69,7 @@ namespace Replicate.Serialization
                         Serialize(stream, member.GetValue(obj), manager, member.TypeAccessor);
                     }
                     break;
-                case MarshalMethod.Value:
+                case MarshalMethod.Object:
                     stream.Write(BitConverter.GetBytes(typeAccessor.MemberAccessors.Length), 0, 4);
                     for (int id = 0; id < typeAccessor.MemberAccessors.Length; id++)
                     {
@@ -123,7 +119,13 @@ namespace Replicate.Serialization
                 case MarshalMethod.Collection:
                     {
                         int count = stream.ReadInt32();
-                        obj = type.GetConstructor(new Type[] { typeof(int) }).Invoke(new object[] { count });
+                        if(obj == null)
+                            obj = type.GetConstructor(new Type[] { typeof(int) }).Invoke(new object[] { count });
+                        else
+                        {
+                            var clearMeth = type.GetInterface("ICollection`1").GetMethod("Clear");
+                            clearMeth.Invoke(obj, new object[] { });
+                        }
                         var collectionType = type.GetInterface("ICollection`1").GetGenericArguments()[0];
                         var collectionTypeAccessor = model.GetTypeAccessor(collectionType);
                         if (obj is Array)
@@ -153,7 +155,7 @@ namespace Replicate.Serialization
                         parameters.Add(Deserialize(null, stream, member.Type, manager, member.TypeAccessor));
                     }
                     return type.GetConstructor(paramTypes.ToArray()).Invoke(parameters.ToArray());
-                case MarshalMethod.Value:
+                case MarshalMethod.Object:
                     {
                         if (obj == null)
                             obj = Activator.CreateInstance(type);

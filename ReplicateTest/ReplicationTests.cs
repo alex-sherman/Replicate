@@ -39,6 +39,33 @@ namespace ReplicateTest
         {
             Assert.AreEqual(ReplicationModel.Default[typeof(ReplicatedType)].ReplicatedMembers[0].Name, "field1");
         }
+        [Replicate]
+        public struct SimpleMessage
+        {
+            [Replicate]
+            public float time;
+            [Replicate]
+            public string faff;
+        }
+        [TestMethod, Timeout(100)]
+        public void TestSendRecv()
+        {
+            var testMessage = new SimpleMessage()
+            {
+                time = 10,
+                faff = "FAFF"
+            };
+            var cs = Util.MakeClientServer();
+            bool called = false;
+            cs.client.RegisterHandler<SimpleMessage>(0, (message) =>
+            {
+                called = true;
+                Assert.AreEqual(message, testMessage);
+            });
+            cs.server.Send(0, testMessage);
+            cs.client.Receive().Wait();
+            Assert.IsTrue(called);
+        }
         [TestMethod]
         public void GetSetTest()
         {
@@ -119,6 +146,10 @@ namespace ReplicateTest
             cs.server.RegisterObject(faff);
             cs.server.Replicate(faff);
             cs.client.PumpMessages();
+            Assert.IsInstanceOfType(cs.client.idLookup.Values.First().replicated, typeof(Dictionary<string, int>));
+            Dictionary<string, int> clientValue = (Dictionary<string, int>)cs.client.idLookup.Values.First().replicated;
+            Assert.AreEqual("herp", clientValue.Keys.First());
+            Assert.AreEqual(3, clientValue["herp"]);
         }
     }
 }

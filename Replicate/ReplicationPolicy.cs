@@ -18,7 +18,18 @@ namespace Replicate
     /// </todo>
     public struct ReplicationPolicy
     {
-        public MarshalMethod MarshalMethod;
+        private MarshalMethod marshalMethod;
+        public MarshalMethod MarshalMethod
+        {
+            get { return marshalMethod; }
+            set
+            {
+                if (value == MarshalMethod.Reference)
+                    throw new InvalidOperationException("Cannot set a marshall method of null or reference");
+                marshalMethod = value;
+            }
+        }
+        public bool AllowReference;
         public ReplicationPolicy OverrideWith(ReplicationPolicy @override)
         {
             return new ReplicationPolicy()
