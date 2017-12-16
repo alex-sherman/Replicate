@@ -19,7 +19,7 @@ namespace Replicate.MetaData
         {
             DeclaringType = declaringType.Type;
             Type = info.GetMemberType(declaringType.Type);
-            TypeAccessor = info.TypeData?.GetAccessor(Type) ?? model[Type]?.GetAccessor(Type);
+            TypeAccessor = model.GetTypeAccessor(Type);
             this.info = info;
             if (info.field != null)
             {

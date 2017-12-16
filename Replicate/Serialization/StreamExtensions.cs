@@ -15,7 +15,6 @@ namespace Replicate.Serialization
             stream.WriteByte((byte)((value >> 8) & 0xFF));
             stream.WriteByte((byte)((value >> 16) & 0xFF));
             stream.WriteByte((byte)((value >> 24) & 0xFF));
-            //stream.Write(BitConverter.GetBytes(value), 0, 4);
         }
         public static int ReadInt32(this Stream stream)
         {

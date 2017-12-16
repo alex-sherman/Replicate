@@ -72,8 +72,7 @@ namespace Replicate.Serialization
         public override void SerializePrimitive(Stream stream, object obj, TypeAccessor typeData)
         {
             var type = typeData.Type;
-            if (serializers.ContainsKey(type))
-                serializers[type].Write(obj, stream);
+            serializers[type].Write(obj, stream);
         }
     }
 }

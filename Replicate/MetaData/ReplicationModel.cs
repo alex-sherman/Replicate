@@ -21,6 +21,7 @@ namespace Replicate.MetaData
     public class ReplicationModel
     {
         public static ReplicationModel Default { get; } = new ReplicationModel();
+        Dictionary<Type, TypeAccessor> typeAccessorLookup = new Dictionary<Type, TypeAccessor>();
         Dictionary<Type, TypeData> typeLookup = new Dictionary<Type, TypeData>();
         Dictionary<string, TypeData> stringLookup = new Dictionary<string, TypeData>();
         public IReplicateSerializer IntSerializer = new IntSerializer();
@@ -43,14 +44,18 @@ namespace Replicate.MetaData
         }
         public TypeAccessor GetTypeAccessor(Type type)
         {
-            return GetTypeData(type).GetAccessor(type);
+            if (type.IsGenericTypeDefinition)
+                throw new InvalidOperationException("Cannot create a type accessor for a generic type definition");
+            if (!typeAccessorLookup.TryGetValue(type, out TypeAccessor typeAcessor))
+                typeAcessor = typeAccessorLookup[type] = new TypeAccessor(GetTypeData(type), type, this);
+            return typeAcessor;
         }
         public TypeData GetTypeData(Type type, bool autoAddType = true)
         {
             if (type.IsGenericType)
                 type = type.GetGenericTypeDefinition();
-            if (typeLookup.ContainsKey(type))
-                return typeLookup[type];
+            if (typeLookup.TryGetValue(type, out TypeData td))
+                return td;
             if (autoAddType)
                 return Add(type);
             return null;
