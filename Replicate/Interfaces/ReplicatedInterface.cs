@@ -7,14 +7,14 @@ using System.Threading.Tasks;
 
 namespace Replicate.Interfaces
 {
-    public class ReplicatedInterface<T>
+    public class ReplicatedInterface
     {
         Type interfaceType;
         MethodInfo[] methods;
-        T target;
-        public ReplicatedInterface(T target)
+        object target;
+        public ReplicatedInterface(object target, Type interfaceType)
         {
-            interfaceType = typeof(T);
+            this.interfaceType = interfaceType;
             methods = interfaceType.GetMethods();
             this.target = target;
         }
@@ -26,7 +26,7 @@ namespace Replicate.Interfaces
         {
             return methods[id];
         }
-        public object Invoke(byte methodID, object[] args)
+        public object Invoke(ushort methodID, object[] args)
         {
             return methods[methodID].Invoke(target, args);
         }

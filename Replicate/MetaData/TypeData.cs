@@ -10,7 +10,7 @@ namespace Replicate.MetaData
 {
     public class TypeData
     {
-        public ReplicationPolicy Policy;
+        public MarshalMethod MarshalMethod;
         public string Name { get; private set; }
         public Type Type { get; private set; }
         public List<MemberInfo> ReplicatedMembers = new List<MemberInfo>();
@@ -23,20 +23,14 @@ namespace Replicate.MetaData
             Name = type.FullName;
             Model = model;
             if (type.IsPrimitive || type == typeof(string))
-                Policy.MarshalMethod = MarshalMethod.Primitive;
+                MarshalMethod = MarshalMethod.Primitive;
             else
             {
-                if (!type.IsValueType)
-                    Policy.AllowReference = true;
                 if (type.GetInterface("ICollection`1") != null)
-                    Policy.MarshalMethod = MarshalMethod.Collection;
+                    MarshalMethod = MarshalMethod.Collection;
                 else
-                    Policy.MarshalMethod = MarshalMethod.Object;
+                    MarshalMethod = MarshalMethod.Object;
             }
-
-            ReplicateAttribute replicateAttribute = type.GetCustomAttribute<ReplicateAttribute>();
-            if (replicateAttribute != null && replicateAttribute.MarshalMethod.HasValue)
-                Policy.MarshalMethod = replicateAttribute.MarshalMethod.Value;
 
             foreach (var field in type.GetFields(BindingFlags.Instance | BindingFlags.Public))
             {

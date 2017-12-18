@@ -12,29 +12,19 @@ namespace Replicate
     /// Should be applied to <see cref="TypeAccessor"/>
     /// 
     /// Be able to specify a policy that allows grouping multiple replicated objects <see cref="ReplicatedObject"/>
-    /// together such that updates will be applied to the group at once only. 
+    /// together such that updates will be applied to the group at once only.
     /// 
     /// Be able to specify replication frequency
     /// </todo>
-    public struct ReplicationPolicy
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Field | AttributeTargets.Property)]
+    public class ReplicatePolicyAttribute : Attribute 
     {
-        private MarshalMethod marshalMethod;
-        public MarshalMethod MarshalMethod
+        public bool AsReference;
+        public ReplicatePolicyAttribute OverrideWith(ReplicatePolicyAttribute @override)
         {
-            get { return marshalMethod; }
-            set
+            return new ReplicatePolicyAttribute()
             {
-                if (value == MarshalMethod.Reference)
-                    throw new InvalidOperationException("Cannot set a marshall method of null or reference");
-                marshalMethod = value;
-            }
-        }
-        public bool AllowReference;
-        public ReplicationPolicy OverrideWith(ReplicationPolicy @override)
-        {
-            return new ReplicationPolicy()
-            {
-                MarshalMethod = @override.MarshalMethod == MarshalMethod.Null ? MarshalMethod : @override.MarshalMethod
+                AsReference = @override.AsReference
             };
         }
     }

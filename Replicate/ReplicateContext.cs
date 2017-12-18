@@ -7,12 +7,19 @@ using System.Threading.Tasks;
 
 namespace Replicate
 {
-    public static class ReplicateContext
+    [Serializable]
+    public struct ReplicateContext
     {
-        public static uint Client
+        public uint Client { get; internal set; }
+        public ReplicationManager Manager { get; internal set; }
+        public static ReplicateContext Current
         {
-            get { return (uint)CallContext.LogicalGetData("Replicate.Client"); }
-            internal set { CallContext.LogicalSetData("Replicate.Client", value); }
+            get { return (ReplicateContext)CallContext.LogicalGetData("Replicate.Context"); }
+            internal set { CallContext.LogicalSetData("Replicate.Context", value); }
+        }
+        internal static void Clear()
+        {
+            CallContext.FreeNamedDataSlot("Replicate.Context");
         }
     }
 }

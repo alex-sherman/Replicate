@@ -16,7 +16,6 @@ namespace Replicate.MetaData
         Object = 2,
         Collection = 3,
         Tuple = 4,
-        Reference = -1,
     }
     public class ReplicationModel
     {
@@ -24,7 +23,6 @@ namespace Replicate.MetaData
         Dictionary<Type, TypeAccessor> typeAccessorLookup = new Dictionary<Type, TypeAccessor>();
         Dictionary<Type, TypeData> typeLookup = new Dictionary<Type, TypeData>();
         Dictionary<string, TypeData> stringLookup = new Dictionary<string, TypeData>();
-        public IReplicateSerializer IntSerializer = new IntSerializer();
         public ReplicationModel()
         {
             Add(typeof(byte));
@@ -36,9 +34,9 @@ namespace Replicate.MetaData
             Add(typeof(ulong));
             Add(typeof(float));
             Add(typeof(string));
-            Add(typeof(ICollection<>)).Policy.MarshalMethod = MarshalMethod.Collection;
+            Add(typeof(ICollection<>)).MarshalMethod = MarshalMethod.Collection;
             var kvpTD = Add(typeof(KeyValuePair<,>));
-            kvpTD.Policy.MarshalMethod = MarshalMethod.Tuple;
+            kvpTD.MarshalMethod = MarshalMethod.Tuple;
             kvpTD.AddMember("Key");
             kvpTD.AddMember("Value");
         }
@@ -47,7 +45,12 @@ namespace Replicate.MetaData
             if (type.IsGenericTypeDefinition)
                 throw new InvalidOperationException("Cannot create a type accessor for a generic type definition");
             if (!typeAccessorLookup.TryGetValue(type, out TypeAccessor typeAcessor))
-                typeAcessor = typeAccessorLookup[type] = new TypeAccessor(GetTypeData(type), type, this);
+            {
+                var typeData = GetTypeData(type);
+                if (typeData == null)
+                    throw new InvalidOperationException(string.Format("The type {0} has not been added to the replication model", type.FullName));
+                typeAcessor = typeAccessorLookup[type] = new TypeAccessor(typeData, type, this);
+            }
             return typeAcessor;
         }
         public TypeData GetTypeData(Type type, bool autoAddType = true)
@@ -58,6 +61,8 @@ namespace Replicate.MetaData
                 return td;
             if (autoAddType)
                 return Add(type);
+            if (type.GetInterface("ICollection`1") != null)
+                return typeLookup[typeof(ICollection<>)];
             return null;
         }
         public TypeData this[Type type]
@@ -66,6 +71,8 @@ namespace Replicate.MetaData
         }
         public TypeData Add(Type type)
         {
+            if (typeLookup.ContainsKey(type))
+                return typeLookup[type];
             if (type.IsGenericType)
                 type = type.GetGenericTypeDefinition();
             var output = new TypeData(type, this);
@@ -77,7 +84,7 @@ namespace Replicate.MetaData
         public void LoadTypes(Assembly assembly = null)
         {
             assembly = assembly ?? Assembly.GetExecutingAssembly();
-            foreach (var type in assembly.GetTypes().Where(asmType => asmType.GetCustomAttribute<ReplicateAttribute>() != null))
+            foreach (var type in AppDomain.CurrentDomain.GetAssemblies().SelectMany(asm => asm.GetTypes().Where(asmType => asmType.GetCustomAttribute<ReplicateAttribute>() != null)))
             {
                 Add(type);
             }

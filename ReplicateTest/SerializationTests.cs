@@ -21,19 +21,19 @@ namespace ReplicateTest
             [Replicate]
             public T Prop { get; set; }
         }
-        [Replicate(MarshalMethod.Object)]
+        [Replicate]
         public class PropClass
         {
             [Replicate]
             public int Property { get; set; }
         }
-        [Replicate(MarshalMethod.Object)]
+        [Replicate]
         public class SubClass : PropClass
         {
             [Replicate]
             public string Field;
         }
-        [Replicate(MarshalMethod.Object)]
+        [Replicate]
         public class GenericSubClass<T, V> : GenericClass<T>
         {
             [Replicate]
@@ -85,7 +85,7 @@ namespace ReplicateTest
                 }
             });
             stream.Seek(0, SeekOrigin.Begin);
-            var output = (InitMessage)ser.Deserialize(null, stream, typeof(InitMessage), null);
+            var output = ser.Deserialize<InitMessage>(stream);
             Assert.AreEqual(12, output.typeID.id);
         }
         [TestMethod]

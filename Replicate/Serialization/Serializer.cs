@@ -13,41 +13,32 @@ namespace Replicate.Serialization
 {
     public abstract class Serializer
     {
-        ReplicationModel model;
+        public delegate Type DynamicSurrogate(TypeAccessor typeAccessor, MemberAccessor memberAccessor);
+        public ReplicationModel Model { get; private set; }
         public Serializer(ReplicationModel model)
         {
-            this.model = model;
+            Model = model;
         }
         private Serializer() { }
         public void Serialize(Stream stream, object obj)
         {
-            Serialize(stream, obj, null);
+            Serialize(stream, obj, Model.GetTypeAccessor(obj.GetType()), null);
         }
-        public void Serialize(Stream stream, object obj, ReplicationManager manager)
-        {
-            Serialize(stream, obj, manager, model.GetTypeAccessor(obj.GetType()));
-        }
-        public void Serialize(Stream stream, object obj, ReplicationManager manager, TypeAccessor typeAccessor, bool allowReference = true)
+        public void Serialize(Stream stream, object obj, TypeAccessor typeAccessor, MemberAccessor memberAccessor, DynamicSurrogate dynamicSurrogate = null)
         {
             MarshalMethod marshalMethod = MarshalMethod.Null;
-            if (obj != null)
-            {
-                if (typeAccessor == null)
-                    throw new InvalidOperationException(string.Format("Cannot serialize {0}", obj.GetType().Name));
+            if (obj != null && typeAccessor == null)
+                throw new InvalidOperationException(string.Format("Cannot serialize {0}", obj.GetType().Name));
 
-                if (typeAccessor.TypeData.Surrogate != null)
-                {
-                    var surType = typeAccessor.TypeData.Surrogate.Type;
-                    var castOp = surType.GetMethod("op_Implicit", new Type[] { typeAccessor.Type });
-                    var surrogate = castOp.Invoke(null, new object[] { obj });
-                    typeAccessor = typeAccessor.TypeData.Surrogate;
-                    obj = surrogate;
-                }
-                if (allowReference && typeAccessor.TypeData.Policy.AllowReference && manager != null)
-                    marshalMethod = MarshalMethod.Reference;
-                else
-                    marshalMethod = typeAccessor.TypeData.Policy.MarshalMethod;
+            var surType = dynamicSurrogate?.Invoke(typeAccessor, memberAccessor) ?? typeAccessor.TypeData.Surrogate?.Type;
+            if (surType != null)
+            {
+                var castOp = surType.GetMethod("op_Implicit", new Type[] { typeAccessor.Type });
+                var surrogate = castOp.Invoke(null, new object[] { obj });
+                typeAccessor = Model.GetTypeAccessor(surType);
+                obj = surrogate;
             }
+            marshalMethod = obj == null ? MarshalMethod.Null : typeAccessor.TypeData.MarshalMethod;
             stream.WriteByte((byte)marshalMethod);
             switch (marshalMethod)
             {
@@ -66,7 +57,7 @@ namespace Replicate.Serialization
                 case MarshalMethod.Tuple:
                     foreach (var member in typeAccessor.MemberAccessors)
                     {
-                        Serialize(stream, member.GetValue(obj), manager, member.TypeAccessor);
+                        Serialize(stream, member.GetValue(obj), member.TypeAccessor, member, dynamicSurrogate);
                     }
                     break;
                 case MarshalMethod.Object:
@@ -75,11 +66,8 @@ namespace Replicate.Serialization
                     {
                         var member = typeAccessor.MemberAccessors[id];
                         stream.WriteByte((byte)id);
-                        Serialize(stream, member.GetValue(obj), manager, member.TypeAccessor);
+                        Serialize(stream, member.GetValue(obj), member.TypeAccessor, member, dynamicSurrogate);
                     }
-                    break;
-                case MarshalMethod.Reference:
-                    Serialize(stream, manager.objectLookup[obj].id);
                     break;
                 case MarshalMethod.Null:
                 default:
@@ -87,28 +75,29 @@ namespace Replicate.Serialization
             }
         }
         public abstract void SerializePrimitive(Stream stream, object obj, TypeAccessor typeData);
-        public T Deserialize<T>(Stream stream, ReplicationManager manager = null)
+        public T Deserialize<T>(Stream stream)
         {
             Type type = typeof(T);
-            return (T)Deserialize(null, stream, type, manager);
+            return (T)Deserialize(null, stream, type, null, null);
         }
-        public object Deserialize(object obj, Stream stream, Type type, ReplicationManager manager, TypeAccessor typeAccessor = null)
+        public object Deserialize(object obj, Stream stream, Type type, TypeAccessor typeAccessor, MemberAccessor memberAccessor, DynamicSurrogate dynamicSurrogate = null)
         {
             if (typeAccessor == null)
-                typeAccessor = model.GetTypeAccessor(type);
+                typeAccessor = Model.GetTypeAccessor(type);
             MethodInfo castOp = null;
-            if (typeAccessor.TypeData.Surrogate != null)
+            var surType = dynamicSurrogate?.Invoke(typeAccessor, memberAccessor) ?? typeAccessor.TypeData.Surrogate?.Type;
+            if (surType != null)
             {
-                var surType = typeAccessor.TypeData.Surrogate.Type;
                 var invCastOp = surType.GetMethod("op_Implicit", new Type[] { type });
                 castOp = surType.GetMethod("op_Implicit", new Type[] { invCastOp.ReturnType });
-                typeAccessor = typeAccessor.TypeData.Surrogate;
+                typeAccessor = Model.GetTypeAccessor(surType);
+                obj = null;
             }
-            obj = DeserializeRaw(obj, stream, manager, typeAccessor);
+            obj = DeserializeRaw(obj, stream, typeAccessor, dynamicSurrogate);
             return castOp?.Invoke(null, new object[] { obj }) ?? obj;
 
         }
-        public object DeserializeRaw(object obj, Stream stream, ReplicationManager manager, TypeAccessor typeAccessor)
+        public object DeserializeRaw(object obj, Stream stream, TypeAccessor typeAccessor, DynamicSurrogate dynamicSurrogate)
         {
             var type = typeAccessor.Type;
             var marshalMethod = (MarshalMethod)stream.ReadByte();
@@ -119,7 +108,7 @@ namespace Replicate.Serialization
                 case MarshalMethod.Collection:
                     {
                         int count = stream.ReadInt32();
-                        if(obj == null)
+                        if (obj == null)
                             obj = type.GetConstructor(new Type[] { typeof(int) }).Invoke(new object[] { count });
                         else
                         {
@@ -127,13 +116,13 @@ namespace Replicate.Serialization
                             clearMeth.Invoke(obj, new object[] { });
                         }
                         var collectionType = type.GetInterface("ICollection`1").GetGenericArguments()[0];
-                        var collectionTypeAccessor = model.GetTypeAccessor(collectionType);
+                        var collectionTypeAccessor = Model.GetTypeAccessor(collectionType);
                         if (obj is Array)
                         {
                             var arr = obj as Array;
                             for (int i = 0; i < count; i++)
                             {
-                                arr.SetValue(Deserialize(null, stream, collectionType, manager, collectionTypeAccessor), i);
+                                arr.SetValue(Deserialize(null, stream, collectionType, collectionTypeAccessor, null, dynamicSurrogate), i);
                             }
                         }
                         else
@@ -141,7 +130,7 @@ namespace Replicate.Serialization
                             var addMeth = type.GetInterface("ICollection`1").GetMethod("Add");
                             for (int i = 0; i < count; i++)
                             {
-                                addMeth.Invoke(obj, new object[] { Deserialize(null, stream, collectionType, manager, collectionTypeAccessor) });
+                                addMeth.Invoke(obj, new object[] { Deserialize(null, stream, collectionType, collectionTypeAccessor, null, dynamicSurrogate) });
                             }
                         }
                         return obj;
@@ -152,7 +141,7 @@ namespace Replicate.Serialization
                     foreach (var member in typeAccessor.MemberAccessors)
                     {
                         paramTypes.Add(member.Type);
-                        parameters.Add(Deserialize(null, stream, member.Type, manager, member.TypeAccessor));
+                        parameters.Add(Deserialize(null, stream, member.Type, member.TypeAccessor, member, dynamicSurrogate));
                     }
                     return type.GetConstructor(paramTypes.ToArray()).Invoke(parameters.ToArray());
                 case MarshalMethod.Object:
@@ -164,16 +153,9 @@ namespace Replicate.Serialization
                         {
                             int id = stream.ReadByte();
                             var member = typeAccessor.MemberAccessors[id];
-                            member.SetValue(obj, Deserialize(member.GetValue(obj), stream, member.Type, manager, member.TypeAccessor));
+                            member.SetValue(obj, Deserialize(member.GetValue(obj), stream, member.Type, member.TypeAccessor, member, dynamicSurrogate));
                         }
                         return obj;
-                    }
-                case MarshalMethod.Reference:
-                    {
-                        if (manager == null)
-                            throw new InvalidOperationException("Cannot perform reference serialization without a ReplicationManager");
-                        var id = (ReplicatedID)Deserialize(null, stream, typeof(ReplicatedID), manager, model.GetTypeAccessor(typeof(ReplicatedID)));
-                        return manager.idLookup[id].replicated;
                     }
                 case MarshalMethod.Null:
                 default:

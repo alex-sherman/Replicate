@@ -26,8 +26,7 @@ namespace Replicate.MetaData
         }
         public object Construct()
         {
-            var cinfo = Type.GetConstructor(new Type[] { });
-            return cinfo.Invoke(new object[] { });
+            return Activator.CreateInstance(Type);
         }
     }
 }

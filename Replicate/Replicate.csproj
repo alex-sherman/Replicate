@@ -49,6 +49,7 @@
     <Compile Include="Messages\InitMessage.cs" />
     <Compile Include="Messages\ReplicatedID.cs" />
     <Compile Include="Messages\ReplicationMessage.cs" />
+    <Compile Include="Messages\RPCMessage.cs" />
     <Compile Include="Messages\TypeID.cs" />
     <Compile Include="MetaData\MemberAccessor.cs" />
     <Compile Include="MetaData\MemberInfo.cs" />
@@ -60,6 +61,8 @@
     <Compile Include="Interfaces\ProxyImplement.cs" />
     <Compile Include="ReplicateAttribute.cs" />
     <Compile Include="ReplicateContext.cs" />
+    <Compile Include="ReplicatedReference.cs" />
+    <Compile Include="ReplicateRPCAttribute.cs" />
     <Compile Include="ReplicationManager.cs" />
     <Compile Include="ReplicationPolicy.cs" />
     <Compile Include="Serialization\BinarySerializer.cs" />
@@ -67,6 +70,7 @@
     <Compile Include="Serialization\Serializer.cs" />
     <Compile Include="Serialization\StreamExtensions.cs" />
     <Compile Include="TaskQueue.cs" />
+    <Compile Include="TypedValue.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

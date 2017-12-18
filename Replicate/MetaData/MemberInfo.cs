@@ -18,6 +18,10 @@ namespace Replicate.MetaData
         internal FieldInfo field;
         internal PropertyInfo property;
         public int GenericParameterPosition { get { return MemberType.GenericParameterPosition; } }
+        public T GetAttribute<T>() where T : Attribute
+        {
+            return field != null ? field.GetCustomAttribute<T>() : property.GetCustomAttribute<T>();
+        }
         public MemberInfo(FieldInfo field, byte id)
         {
             ID = id;
