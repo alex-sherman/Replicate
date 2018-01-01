@@ -97,7 +97,7 @@ namespace Replicate.Serialization
             return castOp?.Invoke(null, new object[] { obj }) ?? obj;
 
         }
-        public object DeserializeRaw(object obj, Stream stream, TypeAccessor typeAccessor, DynamicSurrogate dynamicSurrogate)
+        private object DeserializeRaw(object obj, Stream stream, TypeAccessor typeAccessor, DynamicSurrogate dynamicSurrogate)
         {
             var type = typeAccessor.Type;
             var marshalMethod = (MarshalMethod)stream.ReadByte();

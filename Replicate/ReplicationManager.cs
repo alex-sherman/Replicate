@@ -190,7 +190,7 @@ namespace Replicate
 
         Type ReplicationSurrogateReplacement(TypeAccessor ta, MemberAccessor ma)
         {
-            if (ma?.Info.GetAttribute<ReplicatePolicyAttribute>() != null)
+            if (ma?.Info.GetAttribute<ReplicatePolicyAttribute>()?.AsReference == true)
                 return typeof(ReplicatedReference<>).MakeGenericType(ta.Type);
             return null;
         }
@@ -224,6 +224,8 @@ namespace Replicate
 
         public virtual void RegisterObject(object replicated)
         {
+            if (Model.GetTypeAccessor(replicated.GetType()).TypeData.Surrogate != null)
+                throw new InvalidOperationException("Cannot register objects which have surrogates");
             uint objectId = AllocateObjectID(replicated);
             var id = new ReplicatedID()
             {

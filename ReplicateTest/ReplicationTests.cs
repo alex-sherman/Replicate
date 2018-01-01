@@ -22,7 +22,7 @@ namespace ReplicateTest
         [Replicate]
         public string field2;
         [Replicate]
-        [ReplicatePolicyAttribute]
+        [ReplicatePolicy(AsReference = true)]
         public ReplicatedType2 child1;
     }
 
@@ -153,15 +153,12 @@ namespace ReplicateTest
             Assert.AreEqual(3, clientValue["herp"]);
         }
         [TestMethod]
-        public void TypedValueTest()
+        [ExpectedException(typeof(InvalidOperationException))]
+        public void RegisterSurrogatedType()
         {
             TypedValue v = new TypedValue("faff");
             var cs = Util.MakeClientServer();
             cs.server.RegisterObject(v);
-            cs.server.Replicate(v);
-            cs.client.PumpMessages();
-            var cv = (TypedValue)cs.client.idLookup.Values.First().replicated;
-            Assert.AreEqual("faff", cv.value);
         }
     }
 }
