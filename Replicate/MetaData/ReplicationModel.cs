@@ -1,4 +1,5 @@
-﻿using Replicate.Serialization;
+﻿using Replicate.Messages;
+using Replicate.Serialization;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -23,6 +24,7 @@ namespace Replicate.MetaData
         Dictionary<Type, TypeAccessor> typeAccessorLookup = new Dictionary<Type, TypeAccessor>();
         Dictionary<Type, TypeData> typeLookup = new Dictionary<Type, TypeData>();
         Dictionary<string, TypeData> stringLookup = new Dictionary<string, TypeData>();
+        List<Type> typeIndex;
         public ReplicationModel()
         {
             Add(typeof(byte));
@@ -34,11 +36,45 @@ namespace Replicate.MetaData
             Add(typeof(ulong));
             Add(typeof(float));
             Add(typeof(string));
+            Add(typeof(Dictionary<,>));
+            Add(typeof(List<>));
             Add(typeof(ICollection<>)).MarshalMethod = MarshalMethod.Collection;
             var kvpTD = Add(typeof(KeyValuePair<,>));
             kvpTD.MarshalMethod = MarshalMethod.Tuple;
             kvpTD.AddMember("Key");
             kvpTD.AddMember("Value");
+            this[typeof(TypedValue)].SetSurrogate(typeof(TypedValueSurrogate));
+            foreach (var type in Assembly.GetCallingAssembly().GetTypes())
+            {
+                var replicate = type.GetCustomAttribute<ReplicateAttribute>();
+                if (replicate != null)
+                {
+                    Add(type);
+                }
+            }
+            typeIndex = typeLookup.Values.OrderBy(td => td.Name).Select(td => td.Type).ToList();
+        }
+
+
+        public TypeID GetID(Type type)
+        {
+            var genericType = type.IsGenericType ? type.GetGenericTypeDefinition() : type;
+            var output = new TypeID()
+            {
+                id = (ushort)typeIndex.IndexOf(genericType)
+            };
+            if (type.IsGenericType)
+                output.subtypes = type.GetGenericArguments().Select(t => GetID(t)).ToArray();
+            return output;
+        }
+        public Type GetType(TypeID typeID)
+        {
+            Type type = typeIndex[typeID.id];
+            if (type.IsGenericTypeDefinition)
+            {
+                type = type.MakeGenericType(typeID.subtypes.Select(subType => GetType(subType)).ToArray());
+            }
+            return type;
         }
         public TypeAccessor GetTypeAccessor(Type type)
         {

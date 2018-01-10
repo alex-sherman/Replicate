@@ -14,6 +14,7 @@ namespace Replicate
     {
         public uint Client { get; internal set; }
         public ReplicationManager Manager { get; internal set; }
+        public ReplicationModel Model { get; internal set; }
         public static ReplicateContext Current
         {
             get { return (ReplicateContext)CallContext.LogicalGetData("Replicate.Context"); }

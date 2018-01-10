@@ -32,8 +32,6 @@ namespace Replicate
         Dictionary<uint, Action<byte[]>> handlerLookup = new Dictionary<uint, Action<byte[]>>();
         public Dictionary<object, ReplicatedObject> objectLookup = new Dictionary<object, ReplicatedObject>();
         public Dictionary<ReplicatedID, ReplicatedObject> idLookup = new Dictionary<ReplicatedID, ReplicatedObject>();
-        Dictionary<ushort, Type> idTypeLookup = new Dictionary<ushort, Type>();
-        Dictionary<Type, ushort> typeIdLookup = new Dictionary<Type, ushort>();
         Dictionary<ushort, ReplicatedInterface> rpcInterfaceLookup = new Dictionary<ushort, ReplicatedInterface>();
         ushort lastTypeId = 1;
         IReplicationChannel replicationChannel;
@@ -43,27 +41,6 @@ namespace Replicate
             this.Serializer = serializer;
             RegisterHandler<ReplicationMessage>(MessageIDs.REPLICATE, HandleReplication);
             RegisterHandler<InitMessage>(MessageIDs.INIT, HandleInit);
-            RegisterType(typeof(byte));
-            RegisterType(typeof(ushort));
-            RegisterType(typeof(short));
-            RegisterType(typeof(uint));
-            RegisterType(typeof(int));
-            RegisterType(typeof(ulong));
-            RegisterType(typeof(long));
-            RegisterType(typeof(string));
-            RegisterType(typeof(char));
-            RegisterType(typeof(List<>));
-            RegisterType(typeof(Dictionary<,>));
-            RegisterType(typeof(TypedValue));
-            Serializer.Model[typeof(TypedValue)].SetSurrogate(typeof(TypedValueSurrogate));
-            foreach (var type in Assembly.GetCallingAssembly().GetTypes().OrderBy(_type => _type.FullName))
-            {
-                var replicate = type.GetCustomAttribute<ReplicateAttribute>();
-                if (replicate != null)
-                {
-                    RegisterType(type);
-                }
-            }
         }
 
         Task recvTask = null;
@@ -90,7 +67,8 @@ namespace Replicate
             ReplicateContext.Current = new ReplicateContext()
             {
                 Client = BitConverter.ToUInt16(message, 0),
-                Manager = this
+                Manager = this,
+                Model = Model
             };
             byte messageID = message[2];
             if (handlerLookup.ContainsKey(messageID))
@@ -126,40 +104,6 @@ namespace Replicate
             rpcInterfaceLookup[interfaceID] = new ReplicatedInterface(handler, typeof(T));
             return this;
         }
-        public uint RegisterType(Type type)
-        {
-            var genericType = type.IsGenericType ? type.GetGenericTypeDefinition() : type;
-            ushort id = lastTypeId++;
-            typeIdLookup[type] = id;
-            idTypeLookup[id] = type;
-            return id;
-        }
-
-        public TypeID GetID(Type type)
-        {
-            var genericType = type.IsGenericType ? type.GetGenericTypeDefinition() : type;
-            var output = new TypeID()
-            {
-                id = typeIdLookup[genericType]
-            };
-            if (type.IsGenericType)
-                output.subtypes = type.GetGenericArguments().Select(t => GetID(t)).ToArray();
-            return output;
-        }
-        public Type GetType(TypeID typeID)
-        {
-            Type type = idTypeLookup[typeID.id];
-            if (type.IsGenericTypeDefinition)
-            {
-                type = type.MakeGenericType(typeID.subtypes.Select(subType => GetType(subType)).ToArray());
-            }
-            return type;
-        }
-
-        public TypeAccessor GetTypeAccessor(TypeID typeID)
-        {
-            return Model.GetTypeAccessor(GetType(typeID));
-        }
 
         private void HandleReplication(ReplicationMessage message)
         {
@@ -173,7 +117,7 @@ namespace Replicate
 
         private void HandleInit(InitMessage message)
         {
-            var typeData = GetTypeAccessor(message.typeID);
+            var typeData = Model.GetTypeAccessor(Model.GetType(message.typeID));
             AddObject(message.id, typeData.Construct());
         }
 
@@ -197,7 +141,11 @@ namespace Replicate
 
         public void Replicate(object replicated, ushort? destination = null)
         {
-            ReplicateContext.Current = new ReplicateContext() { Manager = this };
+            ReplicateContext.Current = new ReplicateContext()
+            {
+                Manager = this,
+                Model = Model
+            };
             var metaData = objectLookup[replicated];
             ReplicationMessage message = new ReplicationMessage()
             {
@@ -236,7 +184,7 @@ namespace Replicate
             var message = new InitMessage()
             {
                 id = id,
-                typeID = GetID(replicated.GetType())
+                typeID = Model.GetID(replicated.GetType())
             };
             Send(MessageIDs.INIT, message);
         }
