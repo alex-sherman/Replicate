@@ -78,17 +78,15 @@ namespace Replicate.Serialization
         public T Deserialize<T>(Stream stream)
         {
             Type type = typeof(T);
-            return (T)Deserialize(null, stream, type, null, null);
+            return (T)Deserialize(null, stream, Model.GetTypeAccessor(type), null);
         }
-        public object Deserialize(object obj, Stream stream, Type type, TypeAccessor typeAccessor, MemberAccessor memberAccessor, DynamicSurrogate dynamicSurrogate = null)
+        public object Deserialize(object obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor, DynamicSurrogate dynamicSurrogate = null)
         {
-            if (typeAccessor == null)
-                typeAccessor = Model.GetTypeAccessor(type);
             MethodInfo castOp = null;
             var surType = dynamicSurrogate?.Invoke(typeAccessor, memberAccessor) ?? typeAccessor.TypeData.Surrogate?.Type;
             if (surType != null)
             {
-                var invCastOp = surType.GetMethod("op_Implicit", new Type[] { type });
+                var invCastOp = surType.GetMethod("op_Implicit", new Type[] { typeAccessor.Type });
                 castOp = surType.GetMethod("op_Implicit", new Type[] { invCastOp.ReturnType });
                 typeAccessor = Model.GetTypeAccessor(surType);
                 obj = null;
@@ -122,7 +120,7 @@ namespace Replicate.Serialization
                             var arr = obj as Array;
                             for (int i = 0; i < count; i++)
                             {
-                                arr.SetValue(Deserialize(null, stream, collectionType, collectionTypeAccessor, null, dynamicSurrogate), i);
+                                arr.SetValue(Deserialize(null, stream, collectionTypeAccessor, null, dynamicSurrogate), i);
                             }
                         }
                         else
@@ -130,7 +128,7 @@ namespace Replicate.Serialization
                             var addMeth = type.GetInterface("ICollection`1").GetMethod("Add");
                             for (int i = 0; i < count; i++)
                             {
-                                addMeth.Invoke(obj, new object[] { Deserialize(null, stream, collectionType, collectionTypeAccessor, null, dynamicSurrogate) });
+                                addMeth.Invoke(obj, new object[] { Deserialize(null, stream, collectionTypeAccessor, null, dynamicSurrogate) });
                             }
                         }
                         return obj;
@@ -141,7 +139,7 @@ namespace Replicate.Serialization
                     foreach (var member in typeAccessor.MemberAccessors)
                     {
                         paramTypes.Add(member.Type);
-                        parameters.Add(Deserialize(null, stream, member.Type, member.TypeAccessor, member, dynamicSurrogate));
+                        parameters.Add(Deserialize(null, stream, member.TypeAccessor, member, dynamicSurrogate));
                     }
                     return type.GetConstructor(paramTypes.ToArray()).Invoke(parameters.ToArray());
                 case MarshalMethod.Object:
@@ -153,7 +151,7 @@ namespace Replicate.Serialization
                         {
                             int id = stream.ReadByte();
                             var member = typeAccessor.MemberAccessors[id];
-                            member.SetValue(obj, Deserialize(member.GetValue(obj), stream, member.Type, member.TypeAccessor, member, dynamicSurrogate));
+                            member.SetValue(obj, Deserialize(member.GetValue(obj), stream, member.TypeAccessor, member, dynamicSurrogate));
                         }
                         return obj;
                     }

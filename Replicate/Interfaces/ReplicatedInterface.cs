@@ -9,11 +9,15 @@ namespace Replicate.Interfaces
 {
     public class ReplicatedInterface
     {
-        Type interfaceType;
+        public Type InterfaceType;
         MethodInfo[] methods;
         public ReplicatedInterface(Type interfaceType)
         {
-            this.interfaceType = interfaceType;
+            // There appears to be no good way to convert a concrete Interface<string>.Method(string) -> Interface<T>.Method(T)
+            // https://stackoverflow.com/questions/5218395/reflection-how-to-get-a-generic-method
+            if (interfaceType.IsGenericType)
+                throw new InvalidOperationException("Cannot use generic interface definitions as replicated interfaces");
+            this.InterfaceType = interfaceType;
             methods = interfaceType.GetMethods();
         }
         public byte GetMethodID(MethodInfo info)
@@ -24,9 +28,9 @@ namespace Replicate.Interfaces
         {
             return methods[id];
         }
-        public object Invoke(object target, ushort methodID, object[] args)
+        public object Invoke(object target, byte methodID, object[] args)
         {
-            return methods[methodID].Invoke(target, args);
+            return GetMethodFromID(methodID).Invoke(target, args);
         }
     }
 }

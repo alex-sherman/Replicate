@@ -12,9 +12,9 @@ namespace Replicate.Messages
         [Replicate]
         public ReplicatedID ReplicatedID;
         [Replicate]
-        public ushort InterfaceID;
+        public byte InterfaceID;
         [Replicate]
-        public ushort MethodID;
+        public byte MethodID;
         [Replicate]
         public List<TypedValue> Args;
     }

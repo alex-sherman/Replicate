@@ -10,9 +10,16 @@ namespace ReplicateTest
     [TestClass]
     public class RPCTests
     {
+        [Replicate]
         public interface ITestInterface
         {
             int Herp(string faff);
+            void Derp();
+        }
+        [Replicate]
+        public interface ITestInterface<T>
+        {
+            int Herp(T faff);
             void Derp();
         }
         public class TestImplementor : IImplementor
@@ -51,6 +58,26 @@ namespace ReplicateTest
             var d = test.Herp("faff");
         }
         [TestMethod]
+        [ExpectedException(typeof(InvalidOperationException))]
+        public void ProxyOnUnregisteredObject()
+        {
+            Util.MakeClientServer().server.CreateProxy(new TestTarget());
+        }
+        [TestMethod]
+        public void ReplicatedInterface1()
+        {
+            var repint = new ReplicatedInterface(typeof(ITestInterface));
+            var methinfo = typeof(ITestInterface).GetMethod("Derp");
+            byte methID = repint.GetMethodID(methinfo);
+            Assert.AreEqual(methinfo, repint.GetMethodFromID(methID));
+        }
+        [TestMethod]
+        [ExpectedException(typeof(InvalidOperationException))]
+        public void ReplicatedInterface2()
+        {
+            var repInt = new ReplicatedInterface(typeof(ITestInterface<>));
+        }
+        [TestMethod]
         public void CreateRPCProxyTest1()
         {
             var cs = Util.MakeClientServer();
@@ -60,6 +87,7 @@ namespace ReplicateTest
             var clientTarget = cs.client.objectLookup.Values.First().replicated as TestTarget;
             var proxy = cs.server.CreateProxy<ITestInterface>(target);
             proxy.Derp();
+            cs.client.PumpMessages();
             Assert.IsTrue(clientTarget.DerpCalled);
         }
     }

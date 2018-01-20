@@ -26,9 +26,10 @@ namespace Replicate
         public static implicit operator TypedValue(TypedValueSurrogate self)
         {
             var manager = ReplicateContext.Current.Manager;
+            var model = ReplicateContext.Current.Model;
             return new TypedValue(manager.Serializer.Deserialize(
                 null, new MemoryStream(self.value),
-                ReplicateContext.Current.Model.GetType(self.typeID), null, null)
+                model.GetTypeAccessor(model.GetType(self.typeID)), null)
             );
         }
         public static implicit operator TypedValueSurrogate(TypedValue value)

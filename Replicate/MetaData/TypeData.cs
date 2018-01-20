@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Replicate.Interfaces;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -14,6 +15,7 @@ namespace Replicate.MetaData
         public string Name { get; private set; }
         public Type Type { get; private set; }
         public List<MemberInfo> ReplicatedMembers = new List<MemberInfo>();
+        public List<ReplicatedInterface> ReplicatedInterfaces;
         public TypeAccessor Surrogate { get; private set; }
         public ReplicationModel Model { get; private set; }
         private bool isSurrogate = false;
@@ -34,14 +36,18 @@ namespace Replicate.MetaData
 
             foreach (var field in type.GetFields(BindingFlags.Instance | BindingFlags.Public))
             {
-                if (field.GetCustomAttributes().Where(attr => attr is ReplicateAttribute).Any())
+                if (field.GetCustomAttribute<ReplicateAttribute>() != null)
                     AddMember(field);
             }
             foreach (var property in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
             {
-                if (property.GetCustomAttributes().Where(attr => attr is ReplicateAttribute).Any())
+                if (property.GetCustomAttribute<ReplicateAttribute>() != null)
                     AddMember(property);
             }
+            ReplicatedInterfaces = type.GetInterfaces()
+                .Where(interfaceType => interfaceType.GetCustomAttribute<ReplicateAttribute>() != null)
+                .Select(interfaceType => new ReplicatedInterface(interfaceType))
+                .ToList();
         }
 
         public TypeData AddMember(string name)
