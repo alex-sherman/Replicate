@@ -8,32 +8,28 @@ namespace Replicate
 {
     public class PassThroughChannel
     {
-        class PassThroughChannelEndpoint : IReplicationChannel
+        class PassThroughChannelEndpoint : ReplicationChannel
         {
             public PassThroughChannel channel;
-            public TaskQueue<byte[]> taskQueue = new TaskQueue<byte[]>();
-
-            public ushort LocalID { get; set;  }
-
             public bool IsOpen => true;
 
-            public Task<byte[]> Poll()
+            public PassThroughChannelEndpoint(ushort localID)
             {
-                return taskQueue.Poll();
+                this.LocalID = localID;
             }
 
-            public void Send(ushort? destination, byte[] message, ReliabilityMode reliability)
+            public override void Send(ushort? destination, byte[] message, ReliabilityMode reliability)
             {
                 foreach (var endpoint in channel.endpoints.Where(other => (destination == null || destination == other.LocalID) && other != this))
                 {
-                    endpoint.taskQueue.Put(message);
+                    endpoint.Put(message);
                 }
             }
         }
         List<PassThroughChannelEndpoint> endpoints = new List<PassThroughChannelEndpoint>();
-        public IReplicationChannel CreateEndpoint(ushort id)
+        public ReplicationChannel CreateEndpoint(ushort id)
         {
-            var ep = new PassThroughChannelEndpoint() { channel = this, LocalID =  id };
+            var ep = new PassThroughChannelEndpoint(id) { channel = this };
             endpoints.Add(ep);
             return ep;
         }

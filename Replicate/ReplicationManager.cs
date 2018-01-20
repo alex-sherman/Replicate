@@ -32,10 +32,9 @@ namespace Replicate
         Dictionary<uint, Action<byte[]>> handlerLookup = new Dictionary<uint, Action<byte[]>>();
         public Dictionary<object, ReplicatedObject> objectLookup = new Dictionary<object, ReplicatedObject>();
         public Dictionary<ReplicatedID, ReplicatedObject> idLookup = new Dictionary<ReplicatedID, ReplicatedObject>();
-        Dictionary<ushort, ReplicatedInterface> rpcInterfaceLookup = new Dictionary<ushort, ReplicatedInterface>();
-        ushort lastTypeId = 1;
-        IReplicationChannel replicationChannel;
-        public ReplicationManager(Serializer serializer, IReplicationChannel channel)
+        List<ReplicatedInterface> rpcInterfaceLookup = new List<ReplicatedInterface>();
+        ReplicationChannel replicationChannel;
+        public ReplicationManager(Serializer serializer, ReplicationChannel channel)
         {
             replicationChannel = channel;
             this.Serializer = serializer;
@@ -46,10 +45,15 @@ namespace Replicate
         Task recvTask = null;
         public void PumpMessages()
         {
+            while (replicationChannel.MessageQueue.Any())
+                handleMessage(replicationChannel.MessageQueue.Dequeue());
+        }
+        public void PumpMessagesAsync()
+        {
             while (recvTask == null || recvTask.IsCompleted)
             {
                 if (recvTask == null)
-                    recvTask = Receive();
+                    recvTask = ReceiveAsync();
 #if REPMSGTHROW
                 if (recvTask.Exception != null)
                     ExceptionDispatchInfo.Capture(recvTask.Exception.InnerExceptions[0]).Throw();
@@ -59,11 +63,15 @@ namespace Replicate
             }
         }
 
-        public async Task Receive()
+        private async Task ReceiveAsync()
         {
             /// TODO: Receive from all peers
             byte[] message = await replicationChannel.Poll();
+            handleMessage(message);
+        }
 
+        private void handleMessage(byte[] message)
+        {
             ReplicateContext.Current = new ReplicateContext()
             {
                 Client = BitConverter.ToUInt16(message, 0),
@@ -99,10 +107,12 @@ namespace Replicate
             handlerLookup[messageID] = (bytes) => handler(Serializer.Deserialize<T>(new MemoryStream(bytes)));
             return this;
         }
-        public ReplicationManager RegisterInterface<T>(ushort interfaceID, T handler) where T : class
+        public T CreateProxy<T>(T target) where T : class
         {
-            rpcInterfaceLookup[interfaceID] = new ReplicatedInterface(handler, typeof(T));
-            return this;
+            if (!objectLookup.ContainsKey(target))
+                throw new InvalidOperationException("Cannot create a proxy for a non-registered object");
+            
+            return null;
         }
 
         private void HandleReplication(ReplicationMessage message)
@@ -123,13 +133,10 @@ namespace Replicate
 
         private void HandleRPC(RPCMessage message)
         {
-            if (message.ReplicatedID == null)
-            {
-                if (rpcInterfaceLookup.TryGetValue(message.InterfaceID, out var target))
-                {
-                    target.Invoke(message.MethodID, message.Args.Select(v => v.value).ToArray());
-                }
-            }
+            rpcInterfaceLookup[message.InterfaceID].Invoke(
+                idLookup[message.ReplicatedID],
+                message.MethodID,
+                message.Args.Select(v => v.value).ToArray());
         }
 
         Type ReplicationSurrogateReplacement(TypeAccessor ta, MemberAccessor ma)
@@ -174,6 +181,9 @@ namespace Replicate
         {
             if (Model.GetTypeAccessor(replicated.GetType()).TypeData.Surrogate != null)
                 throw new InvalidOperationException("Cannot register objects which have surrogates");
+            var typeID = Model.GetID(replicated.GetType());
+            if (typeID.id == ushort.MaxValue)
+                throw new InvalidOperationException("Cannot register non [Replicate] objects");
             uint objectId = AllocateObjectID(replicated);
             var id = new ReplicatedID()
             {
@@ -184,7 +194,7 @@ namespace Replicate
             var message = new InitMessage()
             {
                 id = id,
-                typeID = Model.GetID(replicated.GetType())
+                typeID = typeID
             };
             Send(MessageIDs.INIT, message);
         }

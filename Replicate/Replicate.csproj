@@ -69,7 +69,6 @@
     <Compile Include="Serialization\IReplicateSerializer.cs" />
     <Compile Include="Serialization\Serializer.cs" />
     <Compile Include="Serialization\StreamExtensions.cs" />
-    <Compile Include="TaskQueue.cs" />
     <Compile Include="TypedValue.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

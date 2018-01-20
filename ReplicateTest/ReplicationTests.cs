@@ -64,7 +64,7 @@ namespace ReplicateTest
                 Assert.AreEqual(message, testMessage);
             });
             cs.server.Send(0, testMessage);
-            cs.client.Receive().Wait();
+            cs.client.PumpMessages();
             Assert.IsTrue(called);
         }
         [TestMethod]
@@ -159,6 +159,14 @@ namespace ReplicateTest
             TypedValue v = new TypedValue("faff");
             var cs = Util.MakeClientServer();
             cs.server.RegisterObject(v);
+        }
+        class Unknown { }
+        [TestMethod]
+        [ExpectedException(typeof(InvalidOperationException))]
+        public void RegisterUnknownType()
+        {
+            var cs = Util.MakeClientServer();
+            cs.server.RegisterObject(new Unknown());
         }
     }
 }

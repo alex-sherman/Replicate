@@ -11,12 +11,10 @@ namespace Replicate.Interfaces
     {
         Type interfaceType;
         MethodInfo[] methods;
-        object target;
-        public ReplicatedInterface(object target, Type interfaceType)
+        public ReplicatedInterface(Type interfaceType)
         {
             this.interfaceType = interfaceType;
             methods = interfaceType.GetMethods();
-            this.target = target;
         }
         public byte GetMethodID(MethodInfo info)
         {
@@ -26,7 +24,7 @@ namespace Replicate.Interfaces
         {
             return methods[id];
         }
-        public object Invoke(ushort methodID, object[] args)
+        public object Invoke(object target, ushort methodID, object[] args)
         {
             return methods[methodID].Invoke(target, args);
         }

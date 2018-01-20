@@ -10,7 +10,7 @@ namespace Replicate.Messages
     public class RPCMessage
     {
         [Replicate]
-        public ReplicatedID? ReplicatedID;
+        public ReplicatedID ReplicatedID;
         [Replicate]
         public ushort InterfaceID;
         [Replicate]
