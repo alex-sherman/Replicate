@@ -9,12 +9,13 @@ using System.Threading.Tasks;
 
 namespace Replicate
 {
-    [Serializable]
-    public struct ReplicateContext
+    public class ReplicateContext
     {
         public uint Client { get; internal set; }
         public ReplicationManager Manager { get; internal set; }
         public ReplicationModel Model { get; internal set; }
+        internal bool _isInRPC;
+        public static bool IsInRPC { get { return Current?._isInRPC ?? false; } }
         public static ReplicateContext Current { get; internal set; }
         // TODO: This is complaining about ReplicationManager not being Serializable.
         // Passing a deep copy of it around in the context will not work, so figure out how to
@@ -26,6 +27,7 @@ namespace Replicate
         //}
         internal static void Clear()
         {
+            Current = null;
             //CallContext.FreeNamedDataSlot("Replicate.Context");
         }
     }

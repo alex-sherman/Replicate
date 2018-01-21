@@ -22,15 +22,15 @@ namespace Replicate
     {
         public Serializer Serializer { get; protected set; }
         public ReplicationModel Model { get { return Serializer.Model; } }
-        public ushort ID { get { return replicationChannel.LocalID; } }
+        public ushort ID { get { return Channel.LocalID; } }
         Dictionary<uint, Action<byte[]>> handlerLookup = new Dictionary<uint, Action<byte[]>>();
         public Dictionary<object, ReplicatedObject> objectLookup = new Dictionary<object, ReplicatedObject>();
         public Dictionary<ReplicatedID, ReplicatedObject> idLookup = new Dictionary<ReplicatedID, ReplicatedObject>();
         List<ReplicatedInterface> rpcInterfaceLookup = new List<ReplicatedInterface>();
-        ReplicationChannel replicationChannel;
+        public ReplicationChannel Channel;
         public ReplicationManager(Serializer serializer, ReplicationChannel channel)
         {
-            replicationChannel = channel;
+            Channel = channel;
             this.Serializer = serializer;
             RegisterHandler<ReplicationMessage>(MessageIDs.REPLICATE, HandleReplication);
             RegisterHandler<InitMessage>(MessageIDs.INIT, HandleInit);
@@ -40,8 +40,8 @@ namespace Replicate
         Task recvTask = null;
         public void PumpMessages()
         {
-            while (replicationChannel.MessageQueue.Any())
-                handleMessage(replicationChannel.MessageQueue.Dequeue());
+            while (Channel.MessageQueue.Any())
+                handleMessage(Channel.MessageQueue.Dequeue());
         }
         public void PumpMessagesAsync()
         {
@@ -61,7 +61,7 @@ namespace Replicate
         private async Task ReceiveAsync()
         {
             /// TODO: Receive from all peers
-            byte[] message = await replicationChannel.Poll();
+            byte[] message = await Channel.Poll();
             handleMessage(message);
         }
 
@@ -85,11 +85,17 @@ namespace Replicate
 
         public void Send<T>(byte messageID, T message, ushort? destination = null, ReliabilityMode reliability = ReliabilityMode.Reliable | ReliabilityMode.Sequenced)
         {
+            ReplicateContext.Current = new ReplicateContext()
+            {
+                Manager = this,
+                Model = Model,
+            };
             MemoryStream stream = new MemoryStream();
-            stream.Write(BitConverter.GetBytes(replicationChannel.LocalID), 0, 2);
+            stream.Write(BitConverter.GetBytes(Channel.LocalID), 0, 2);
             stream.Write(BitConverter.GetBytes(messageID), 0, 1);
             Serializer.Serialize(stream, message);
-            replicationChannel.Send(destination, stream.ToArray(), reliability);
+            Channel.Send(destination, stream.ToArray(), reliability);
+            ReplicateContext.Clear();
         }
 
         public ReplicationManager RegisterHandler(uint messageID, Action<byte[]> handler)
@@ -133,7 +139,9 @@ namespace Replicate
         {
             var target = idLookup[message.ReplicatedID];
             var targetInterface = target.typeAccessor.TypeData.ReplicatedInterfaces[message.InterfaceID];
+            ReplicateContext.Current._isInRPC = true;
             targetInterface.Invoke(target.replicated, message.MethodID, message.Args.Select(v => v.value).ToArray());
+            ReplicateContext.Current._isInRPC = false;
         }
 
         Type ReplicationSurrogateReplacement(TypeAccessor ta, MemberAccessor ma)

@@ -4,6 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Replicate.Interfaces;
 using System.Linq;
 using Replicate;
+using static ReplicateTest.Util;
 
 namespace ReplicateTest
 {
@@ -37,6 +38,7 @@ namespace ReplicateTest
         [Replicate]
         public class TestTarget : ITestInterface
         {
+            public ITestInterface RPC;
             public bool DerpCalled = false;
             public string HerpValue = null;
             public void Derp()
@@ -46,6 +48,8 @@ namespace ReplicateTest
 
             public int Herp(string faff)
             {
+                if (!ReplicateContext.IsInRPC)
+                    RPC.Herp(faff);
                 HerpValue = faff;
                 return faff.Length;
             }
@@ -77,18 +81,33 @@ namespace ReplicateTest
         {
             var repInt = new ReplicatedInterface(typeof(ITestInterface<>));
         }
-        [TestMethod]
-        public void CreateRPCProxyTest1()
+        ClientServer rpcSetup(out TestTarget serverTarget, out TestTarget clientTarget)
         {
             var cs = Util.MakeClientServer();
-            var target = new TestTarget();
-            cs.server.RegisterObject(target);
+            serverTarget = new TestTarget();
+            cs.server.RegisterObject(serverTarget);
             cs.client.PumpMessages();
-            var clientTarget = cs.client.objectLookup.Values.First().replicated as TestTarget;
-            var proxy = cs.server.CreateProxy<ITestInterface>(target);
-            proxy.Derp();
+            clientTarget = cs.client.objectLookup.Values.First().replicated as TestTarget;
+            serverTarget.RPC = cs.server.CreateProxy<ITestInterface>(serverTarget);
+            clientTarget.RPC = cs.client.CreateProxy<ITestInterface>(clientTarget);
+            return cs;
+        }
+        [TestMethod]
+        public void RPCProxyTest1()
+        {
+            var cs = rpcSetup(out var serverTarget, out var clientTarget);
+            serverTarget.RPC.Derp();
             cs.client.PumpMessages();
             Assert.IsTrue(clientTarget.DerpCalled);
+        }
+        [TestMethod]
+        public void RPCProxyTest2()
+        {
+            var cs = rpcSetup(out var serverTarget, out var clientTarget);
+            serverTarget.Herp("derp");
+            cs.client.PumpMessages();
+            Assert.AreEqual("derp", clientTarget.HerpValue);
+            Assert.IsFalse(cs.server.Channel.MessageQueue.Any());
         }
     }
 }
