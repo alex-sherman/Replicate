@@ -11,6 +11,12 @@ namespace Replicate.Interfaces
     {
         object Intercept(MethodInfo method, object[] args);
     }
+    public class Implementor : IImplementor
+    {
+        public Func<MethodInfo, object[], object> Target;
+        public Implementor(Func<MethodInfo, object[], object> target) => Target = target;
+        public object Intercept(MethodInfo method, object[] args) => Target(method, args);
+    }
 
     public class ProxyImplement
     {

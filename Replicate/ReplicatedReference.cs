@@ -17,15 +17,13 @@ namespace Replicate
         {
             if (self == null)
                 return null;
-            var manager = ReplicateContext.Current.Manager;
-            return (T)manager.idLookup[self.replicatedID].replicated;
+            return (T)ReplicateContext.Current.Manager.IDLookup[self.replicatedID].replicated;
         }
         public static implicit operator ReplicatedReference<T>(T value)
         {
             if (value == null)
                 return null;
-            var manager = ReplicateContext.Current.Manager;
-            return new ReplicatedReference<T>() { replicatedID = manager.objectLookup[value].id };
+            return new ReplicatedReference<T>() { replicatedID = ReplicateContext.Current.Manager.ObjectLookup[value].id };
         }
     }
 }

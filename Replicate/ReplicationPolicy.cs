@@ -20,12 +20,7 @@ namespace Replicate
     public class ReplicatePolicyAttribute : Attribute 
     {
         public bool AsReference;
-        public ReplicatePolicyAttribute OverrideWith(ReplicatePolicyAttribute @override)
-        {
-            return new ReplicatePolicyAttribute()
-            {
-                AsReference = @override.AsReference
-            };
-        }
+        /// TODO: Implement
+        public bool Singleton;
     }
 }

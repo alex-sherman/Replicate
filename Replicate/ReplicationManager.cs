@@ -12,120 +12,69 @@ using System.Threading.Tasks;
 
 namespace Replicate
 {
-    public struct ReplicatedObject
+    public class ReplicatedObject
     {
         public ReplicatedID id;
         public object replicated;
+        public HashSet<ushort> relevance;
         public TypeAccessor typeAccessor;
     }
     public class ReplicationManager
     {
         public Serializer Serializer { get; protected set; }
         public ReplicationModel Model { get { return Serializer.Model; } }
-        public ushort ID { get { return Channel.LocalID; } }
         Dictionary<uint, Action<byte[]>> handlerLookup = new Dictionary<uint, Action<byte[]>>();
-        public Dictionary<object, ReplicatedObject> objectLookup = new Dictionary<object, ReplicatedObject>();
-        public Dictionary<ReplicatedID, ReplicatedObject> idLookup = new Dictionary<ReplicatedID, ReplicatedObject>();
+        public Dictionary<object, ReplicatedObject> ObjectLookup = new Dictionary<object, ReplicatedObject>();
+        public Dictionary<ReplicatedID, ReplicatedObject> IDLookup = new Dictionary<ReplicatedID, ReplicatedObject>();
         List<ReplicatedInterface> rpcInterfaceLookup = new List<ReplicatedInterface>();
-        public ReplicationChannel Channel;
-        public ReplicationManager(Serializer serializer, ReplicationChannel channel)
+        public IReplicationChannel Channel;
+        public Implementor ProxyImplementor;
+        public ReplicationManager(Serializer serializer, IReplicationChannel channel)
         {
+            ProxyImplementor = new Implementor(ProxyTarget);
             Channel = channel;
-            this.Serializer = serializer;
-            RegisterHandler<ReplicationMessage>(MessageIDs.REPLICATE, HandleReplication);
-            RegisterHandler<InitMessage>(MessageIDs.INIT, HandleInit);
-            RegisterHandler<RPCMessage>(MessageIDs.RPC, HandleRPC);
+            Serializer = serializer;
+            //RegisterHandler<ReplicationMessage>(MessageIDs.REPLICATE, HandleReplication);
+            //RegisterHandler<InitMessage>(MessageIDs.INIT, HandleInit);
+            //RegisterHandler<RPCMessage>(MessageIDs.RPC, HandleRPC);
         }
 
-        Task recvTask = null;
-        public void PumpMessages()
+        ReplicateContext CreateContext()
         {
-            while (Channel.MessageQueue.Any())
-                handleMessage(Channel.MessageQueue.Dequeue());
-        }
-        public void PumpMessagesAsync()
-        {
-            while (recvTask == null || recvTask.IsCompleted)
+            return new ReplicateContext()
             {
-                if (recvTask == null)
-                    recvTask = ReceiveAsync();
-#if REPMSGTHROW
-                if (recvTask.Exception != null)
-                    ExceptionDispatchInfo.Capture(recvTask.Exception.InnerExceptions[0]).Throw();
-#endif
-                if (recvTask.IsCompleted)
-                    recvTask = null;
-            }
-        }
-
-        private async Task ReceiveAsync()
-        {
-            /// TODO: Receive from all peers
-            byte[] message = await Channel.Poll();
-            handleMessage(message);
-        }
-
-        private void handleMessage(byte[] message)
-        {
-            ReplicateContext.Current = new ReplicateContext()
-            {
-                Client = BitConverter.ToUInt16(message, 0),
+                Serializer = Serializer,
                 Manager = this,
-                Model = Model
             };
-            byte messageID = message[2];
-            if (handlerLookup.ContainsKey(messageID))
-            {
-                byte[] body = new byte[message.Length - 3];
-                Array.Copy(message, 3, body, 0, body.Length);
-                handlerLookup[messageID](body);
-            }
-            ReplicateContext.Clear();
-        }
-
-        public void Send<T>(byte messageID, T message, ushort? destination = null, ReliabilityMode reliability = ReliabilityMode.Reliable | ReliabilityMode.Sequenced)
-        {
-            ReplicateContext.Current = new ReplicateContext()
-            {
-                Manager = this,
-                Model = Model,
-            };
-            MemoryStream stream = new MemoryStream();
-            stream.Write(BitConverter.GetBytes(Channel.LocalID), 0, 2);
-            stream.Write(BitConverter.GetBytes(messageID), 0, 1);
-            Serializer.Serialize(stream, message);
-            Channel.Send(destination, stream.ToArray(), reliability);
-            ReplicateContext.Clear();
-        }
-
-        public ReplicationManager RegisterHandler(uint messageID, Action<byte[]> handler)
-        {
-            handlerLookup[messageID] = handler;
-            return this;
-        }
-        public ReplicationManager RegisterHandler<T>(uint messageID, Action<T> handler)
-        {
-            handlerLookup[messageID] = (bytes) => handler(Serializer.Deserialize<T>(new MemoryStream(bytes)));
-            return this;
         }
 
         public T CreateProxy<T>(T target) where T : class
         {
-            if (!objectLookup.ContainsKey(target))
+            if (!ObjectLookup.ContainsKey(target))
                 throw new InvalidOperationException("Cannot create a proxy for a non-registered object");
 
-            var repObj = objectLookup[target];
+            var repObj = ObjectLookup[target];
             byte interfaceID = (byte)repObj.typeAccessor.TypeData.ReplicatedInterfaces.FindIndex(repInt => repInt.InterfaceType == typeof(T));
             if (interfaceID == byte.MaxValue)
                 throw new InvalidOperationException(
                     string.Format("Cannot find a replicated interface definition of {0} for {1}", typeof(T).FullName, repObj.typeAccessor.Name));
-            return ProxyImplement.HookUp<T>(
-                new ReplicatedProxy(repObj.id, interfaceID, this, repObj.typeAccessor.TypeData.ReplicatedInterfaces[interfaceID]));
+            return ProxyImplement.HookUp<T>(new Implementor(ProxyTarget));
         }
-
+        private object ProxyTarget(MethodInfo method, object[] args)
+        {
+            return null;
+            //Channel.Publish
+            //Send(MessageIDs.RPC, new RPCMessage()
+            //{
+            //    ReplicatedID = Target,
+            //    InterfaceID = InterfaceID,
+            //    MethodID = ReplicatedInterface.GetMethodID(method),
+            //    Args = args.Select(arg => new TypedValue(arg)).ToList(),
+            //});
+        }
         private void HandleReplication(ReplicationMessage message)
         {
-            var metaData = idLookup[message.id];
+            var metaData = IDLookup[message.id];
             Serializer.Deserialize(metaData.replicated, new MemoryStream(message.value), metaData.typeAccessor, null, ReplicationSurrogateReplacement);
         }
 
@@ -137,37 +86,33 @@ namespace Replicate
 
         private void HandleRPC(RPCMessage message)
         {
-            var target = idLookup[message.ReplicatedID];
+            var target = IDLookup[message.ReplicatedID];
             var targetInterface = target.typeAccessor.TypeData.ReplicatedInterfaces[message.InterfaceID];
-            ReplicateContext.Current._isInRPC = true;
-            targetInterface.Invoke(target.replicated, message.MethodID, message.Args.Select(v => v.value).ToArray());
-            ReplicateContext.Current._isInRPC = false;
+            using (ReplicateContext.UpdateContext(r => r.Value._isInRPC = true))
+                targetInterface.Invoke(target.replicated, message.MethodID, message.Args.Select(v => v.value).ToArray());
         }
 
-        Type ReplicationSurrogateReplacement(TypeAccessor ta, MemberAccessor ma)
+        Type ReplicationSurrogateReplacement(object obj, MemberAccessor ma)
         {
             if (ma?.Info.GetAttribute<ReplicatePolicyAttribute>()?.AsReference == true)
-                return typeof(ReplicatedReference<>).MakeGenericType(ta.Type);
+                return typeof(ReplicatedReference<>).MakeGenericType(ma.Type);
             return null;
         }
 
         public void Replicate(object replicated, ushort? destination = null)
         {
-            ReplicateContext.Current = new ReplicateContext()
+            using (ReplicateContext.UsingContext(CreateContext()))
             {
-                Manager = this,
-                Model = Model
-            };
-            var metaData = objectLookup[replicated];
-            MemoryStream innerStream = new MemoryStream();
-            Serializer.Serialize(innerStream, replicated, metaData.typeAccessor, null, ReplicationSurrogateReplacement);
-            ReplicationMessage message = new ReplicationMessage()
-            {
-                id = metaData.id,
-                value = innerStream.ToArray(),
-            };
-            Send(MessageIDs.REPLICATE, message, destination);
-            ReplicateContext.Clear();
+                var metaData = ObjectLookup[replicated];
+                MemoryStream innerStream = new MemoryStream();
+                Serializer.Serialize(innerStream, replicated, metaData.typeAccessor, null, ReplicationSurrogateReplacement);
+                ReplicationMessage message = new ReplicationMessage()
+                {
+                    id = metaData.id,
+                    value = innerStream.ToArray(),
+                };
+                //Send(MessageIDs.REPLICATE, message, destination);
+            }
         }
 
         public virtual void RegisterObject(object replicated)
@@ -181,7 +126,7 @@ namespace Replicate
             var id = new ReplicatedID()
             {
                 objectId = objectId,
-                owner = ID,
+                //creator = ID,
             };
             AddObject(id, replicated);
             var message = new InitMessage()
@@ -189,7 +134,7 @@ namespace Replicate
                 id = id,
                 typeID = typeID
             };
-            Send(MessageIDs.INIT, message);
+            //Send(MessageIDs.INIT, message);
         }
 
         private void AddObject(ReplicatedID id, object replicated)
@@ -200,8 +145,8 @@ namespace Replicate
                 replicated = replicated,
                 typeAccessor = Model.GetTypeAccessor(replicated.GetType()),
             };
-            objectLookup[replicated] = data;
-            idLookup[id] = data;
+            ObjectLookup[replicated] = data;
+            IDLookup[id] = data;
         }
 
         protected uint autoIncrementId = 1;

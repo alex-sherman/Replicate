@@ -25,21 +25,21 @@ namespace Replicate
         public byte[] value;
         public static implicit operator TypedValue(TypedValueSurrogate self)
         {
-            var manager = ReplicateContext.Current.Manager;
-            var model = ReplicateContext.Current.Model;
-            return new TypedValue(manager.Serializer.Deserialize(
+            var serializer = ReplicateContext.Current.Serializer;
+            var model = serializer.Model;
+            return new TypedValue(serializer.Deserialize(
                 null, new MemoryStream(self.value),
                 model.GetTypeAccessor(model.GetType(self.typeID)), null)
             );
         }
         public static implicit operator TypedValueSurrogate(TypedValue value)
         {
-            var manager = ReplicateContext.Current.Manager;
+            var serializer = ReplicateContext.Current.Serializer;
             MemoryStream stream = new MemoryStream();
-            manager.Serializer.Serialize(stream, value.value);
+            serializer.Serialize(stream, value.value);
             return new TypedValueSurrogate()
             {
-                typeID = ReplicateContext.Current.Model.GetID(value.value.GetType()),
+                typeID = serializer.Model.GetID(value.value.GetType()),
                 value = stream.ToArray()
             };
         }

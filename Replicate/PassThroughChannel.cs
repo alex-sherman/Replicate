@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -8,28 +9,38 @@ namespace Replicate
 {
     public class PassThroughChannel
     {
-        class PassThroughChannelEndpoint : ReplicationChannel
+        class PassThroughChannelEndpoint : ReplicationChannel<string>
         {
             public PassThroughChannel channel;
-            public bool IsOpen => true;
 
-            public PassThroughChannelEndpoint(ushort localID)
+            public string GetMessageID(MethodInfo method)
             {
-                this.LocalID = localID;
+                throw new NotImplementedException();
             }
 
-            public override void Send(ushort? destination, byte[] message, ReliabilityMode reliability)
+            public override string GetMessageID(Type type)
             {
-                foreach (var endpoint in channel.endpoints.Where(other => (destination == null || destination == other.LocalID) && other != this))
+                return type.Name;
+            }
+
+            public override Task<TResponse> Publish<TRequest, TResponse>(TRequest request, ReliabilityMode reliability)
+            {
+                foreach (var endpoint in channel.endpoints.Where(other => other != this))
                 {
-                    endpoint.Put(message);
+                    endpoint.Receive<TRequest, TResponse>(request);
                 }
+                return Task.FromResult(default(TResponse));
+            }
+
+            public void Subscribe<TRequest>(string messageID, Action<TRequest> handler)
+            {
+                throw new NotImplementedException();
             }
         }
         List<PassThroughChannelEndpoint> endpoints = new List<PassThroughChannelEndpoint>();
-        public ReplicationChannel CreateEndpoint(ushort id)
+        public IReplicationChannel CreateEndpoint(ushort id)
         {
-            var ep = new PassThroughChannelEndpoint(id) { channel = this };
+            var ep = new PassThroughChannelEndpoint() { channel = this };
             endpoints.Add(ep);
             return ep;
         }

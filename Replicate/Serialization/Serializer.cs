@@ -13,7 +13,7 @@ namespace Replicate.Serialization
 {
     public abstract class Serializer
     {
-        public delegate Type DynamicSurrogate(TypeAccessor typeAccessor, MemberAccessor memberAccessor);
+        public delegate Type DynamicSurrogate(object obj, MemberAccessor memberAccessor);
         public ReplicationModel Model { get; private set; }
         public Serializer(ReplicationModel model)
         {
@@ -44,7 +44,7 @@ namespace Replicate.Serialization
             {
                 case MarshalMethod.Primitive:
                     SerializePrimitive(stream, obj, typeAccessor);
-                    return;
+                    break;
                 case MarshalMethod.Collection:
                     var enumerable = (IEnumerable)obj;
                     var count = 0;
@@ -83,7 +83,7 @@ namespace Replicate.Serialization
         public object Deserialize(object obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor, DynamicSurrogate dynamicSurrogate = null)
         {
             MethodInfo castOp = null;
-            var surType = dynamicSurrogate?.Invoke(typeAccessor, memberAccessor) ?? typeAccessor.TypeData.Surrogate?.Type;
+            var surType = dynamicSurrogate?.Invoke(obj, memberAccessor) ?? typeAccessor.TypeData.Surrogate?.Type;
             if (surType != null)
             {
                 var invCastOp = surType.GetMethod("op_Implicit", new Type[] { typeAccessor.Type });
