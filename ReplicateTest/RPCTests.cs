@@ -5,6 +5,7 @@ using Replicate.Interfaces;
 using System.Linq;
 using Replicate;
 using static ReplicateTest.Util;
+using System.Threading.Tasks;
 
 namespace ReplicateTest
 {
@@ -16,6 +17,8 @@ namespace ReplicateTest
         {
             int Herp(string faff);
             void Derp();
+            Task<int> AsyncHerp(string faff);
+            Task AsyncDerp();
         }
         [Replicate]
         public interface ITestInterface<T>
@@ -27,12 +30,28 @@ namespace ReplicateTest
         {
             MethodInfo derp = typeof(ITestInterface).GetMethod("Derp");
             MethodInfo herp = typeof(ITestInterface).GetMethod("Herp");
-            public object Intercept(MethodInfo method, object[] args)
+
+            public T Intercept<T>(MethodInfo method, object[] args)
             {
                 Assert.IsTrue(method == derp || method == herp);
                 if (method == herp)
-                    return ((string)args[0]).Length;
-                return null;
+                    return (T)(object)((string)args[0]).Length;
+                return default(T);
+            }
+
+            public Task<T> InterceptAsync<T>(MethodInfo method, object[] args)
+            {
+                throw new NotImplementedException();
+            }
+
+            public Task InterceptAsyncVoid(MethodInfo method, object[] args)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void InterceptVoid(MethodInfo method, object[] args)
+            {
+                throw new NotImplementedException();
             }
         }
         [Replicate]
@@ -45,6 +64,11 @@ namespace ReplicateTest
             {
                 DerpCalled = true;
             }
+            public async Task AsyncDerp()
+            {
+                await Task.Delay(100);
+                Derp();
+            }
 
             public int Herp(string faff)
             {
@@ -53,13 +77,16 @@ namespace ReplicateTest
                 HerpValue = faff;
                 return faff.Length;
             }
+            public async Task<int> AsyncHerp(string faff)
+            {
+                return Herp(faff);
+            }
         }
         [TestMethod]
         public void ProxyImplementTest1()
         {
             ITestInterface test = ProxyImplement.HookUp<ITestInterface>(new TestImplementor());
-            test.Derp();
-            var d = test.Herp("faff");
+            Assert.AreEqual(4, test.Herp("faff"));
         }
         [TestMethod]
         [ExpectedException(typeof(InvalidOperationException))]
@@ -67,27 +94,12 @@ namespace ReplicateTest
         {
             Util.MakeClientServer().server.CreateProxy(new TestTarget());
         }
-        [TestMethod]
-        public void ReplicatedInterface1()
-        {
-            var repint = new ReplicatedInterface(typeof(ITestInterface));
-            var methinfo = typeof(ITestInterface).GetMethod("Derp");
-            byte methID = repint.GetMethodID(methinfo);
-            Assert.AreEqual(methinfo, repint.GetMethodFromID(methID));
-        }
-        [TestMethod]
-        [ExpectedException(typeof(InvalidOperationException))]
-        public void ReplicatedInterface2()
-        {
-            var repInt = new ReplicatedInterface(typeof(ITestInterface<>));
-        }
         ClientServer rpcSetup(out TestTarget serverTarget, out TestTarget clientTarget)
         {
             var cs = Util.MakeClientServer();
             serverTarget = new TestTarget();
-            cs.server.RegisterObject(serverTarget);
-            cs.client.PumpMessages();
-            clientTarget = cs.client.objectLookup.Values.First().replicated as TestTarget;
+            cs.server.RegisterObject(serverTarget).Wait();
+            clientTarget = cs.client.ObjectLookup.Values.First().replicated as TestTarget;
             serverTarget.RPC = cs.server.CreateProxy<ITestInterface>(serverTarget);
             clientTarget.RPC = cs.client.CreateProxy<ITestInterface>(clientTarget);
             return cs;
@@ -97,7 +109,6 @@ namespace ReplicateTest
         {
             var cs = rpcSetup(out var serverTarget, out var clientTarget);
             serverTarget.RPC.Derp();
-            cs.client.PumpMessages();
             Assert.IsTrue(clientTarget.DerpCalled);
         }
         [TestMethod]
@@ -105,9 +116,48 @@ namespace ReplicateTest
         {
             var cs = rpcSetup(out var serverTarget, out var clientTarget);
             serverTarget.Herp("derp");
-            cs.client.PumpMessages();
             Assert.AreEqual("derp", clientTarget.HerpValue);
-            Assert.IsFalse(cs.server.Channel.MessageQueue.Any());
+        }
+        [TestMethod]
+        public void TestRPCTargetGetsCalled()
+        {
+            var cs = MakeClientServer();
+            var target = new TestTarget();
+            cs.server.RegisterSingleton<ITestInterface>(target);
+            var proxy = cs.client.CreateProxy<ITestInterface>();
+            proxy.Derp();
+            Assert.IsTrue(target.DerpCalled);
+        }
+        [TestMethod]
+        public void TestRPCTargetGetsCalledAsync()
+        {
+            var cs = MakeClientServer();
+            var target = new TestTarget();
+            cs.server.RegisterSingleton<ITestInterface>(target);
+            var proxy = cs.client.CreateProxy<ITestInterface>();
+            proxy.AsyncDerp().Wait();
+            Assert.IsTrue(target.DerpCalled);
+        }
+        [TestMethod]
+        public void TestRPCReturnValueGetsSent()
+        {
+            var cs = MakeClientServer();
+            var target = new TestTarget();
+            cs.server.RegisterSingleton<ITestInterface>(target);
+            var proxy = cs.client.CreateProxy<ITestInterface>();
+            Assert.AreEqual(4, proxy.Herp("derp"));
+        }
+        [TestMethod]
+        public void TestRPCReturnValueGetsSentAsync()
+        {
+            var cs = MakeClientServer();
+            var target = new TestTarget();
+            cs.server.RegisterSingleton<ITestInterface>(target);
+            var proxy = cs.client.CreateProxy<ITestInterface>();
+            for (int i = 0; i < 1000; i++)
+            {
+                Assert.AreEqual(4, proxy.AsyncHerp("derp").Result);
+            }
         }
     }
 }

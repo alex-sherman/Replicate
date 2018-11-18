@@ -11,12 +11,7 @@ namespace Replicate
     {
         class PassThroughChannelEndpoint : ReplicationChannel<string>
         {
-            public PassThroughChannel channel;
-
-            public string GetMessageID(MethodInfo method)
-            {
-                throw new NotImplementedException();
-            }
+            public PassThroughChannelEndpoint target;
 
             public override string GetMessageID(Type type)
             {
@@ -25,24 +20,19 @@ namespace Replicate
 
             public override Task<TResponse> Publish<TRequest, TResponse>(TRequest request, ReliabilityMode reliability)
             {
-                foreach (var endpoint in channel.endpoints.Where(other => other != this))
-                {
-                    endpoint.Receive<TRequest, TResponse>(request);
-                }
-                return Task.FromResult(default(TResponse));
-            }
-
-            public void Subscribe<TRequest>(string messageID, Action<TRequest> handler)
-            {
-                throw new NotImplementedException();
+                return target.Receive<TRequest, TResponse>(request);
             }
         }
-        List<PassThroughChannelEndpoint> endpoints = new List<PassThroughChannelEndpoint>();
-        public IReplicationChannel CreateEndpoint(ushort id)
+
+        public IReplicationChannel PointA;
+        public IReplicationChannel PointB;
+        public PassThroughChannel()
         {
-            var ep = new PassThroughChannelEndpoint() { channel = this };
-            endpoints.Add(ep);
-            return ep;
+            var pointA = new PassThroughChannelEndpoint();
+            var pointB = new PassThroughChannelEndpoint() { target = pointA };
+            pointA.target = pointB;
+            PointA = pointA;
+            PointB = pointB;
         }
     }
 }

@@ -58,13 +58,12 @@ namespace ReplicateTest
             };
             var cs = Util.MakeClientServer();
             bool called = false;
-            cs.client.RegisterHandler<SimpleMessage>(0, (message) =>
+            cs.client.Channel.Subscribe<SimpleMessage>((message) =>
             {
                 called = true;
                 Assert.AreEqual(message, testMessage);
             });
-            cs.server.Send(0, testMessage);
-            cs.client.PumpMessages();
+            cs.server.Channel.Publish(testMessage).Wait();
             Assert.IsTrue(called);
         }
         [TestMethod]
@@ -86,9 +85,7 @@ namespace ReplicateTest
             ReplicatedType replicated = new ReplicatedType();
             var cs = Util.MakeClientServer();
             cs.server.RegisterObject(replicated);
-            Assert.IsFalse(cs.client.idLookup.Any());
-            cs.client.PumpMessages();
-            Assert.IsInstanceOfType(cs.client.idLookup.Values.First().replicated, typeof(ReplicatedType));
+            Assert.IsInstanceOfType(cs.client.IDLookup.Values.First().replicated, typeof(ReplicatedType));
         }
         [TestMethod]
         public void ReplicateObj()
@@ -101,10 +98,9 @@ namespace ReplicateTest
             var cs = Util.MakeClientServer();
             cs.server.RegisterObject(replicated);
             cs.server.Replicate(replicated);
-            Assert.IsFalse(cs.client.idLookup.Any());
-            cs.client.PumpMessages();
-            Assert.IsInstanceOfType(cs.client.idLookup.Values.First().replicated, typeof(ReplicatedType));
-            ReplicatedType clientValue = (ReplicatedType)cs.client.idLookup.Values.First().replicated;
+            cs.server.RegisterObject(replicated).Wait();
+            Assert.IsInstanceOfType(cs.client.IDLookup.Values.First().replicated, typeof(ReplicatedType));
+            ReplicatedType clientValue = (ReplicatedType)cs.client.IDLookup.Values.First().replicated;
             Assert.AreEqual(replicated.field1, clientValue.field1);
             Assert.AreEqual(replicated.field2, clientValue.field2);
         }
@@ -128,12 +124,10 @@ namespace ReplicateTest
             cs.server.RegisterObject(replicated2);
             cs.server.RegisterObject(child);
             cs.server.Replicate(replicated1);
-            cs.server.Replicate(replicated2);
-            Assert.IsFalse(cs.client.idLookup.Any());
-            cs.client.PumpMessages();
-            Assert.IsInstanceOfType(cs.client.idLookup.Values.First().replicated, typeof(ReplicatedType));
-            ReplicatedType clientValue = (ReplicatedType)cs.client.idLookup.Values.First().replicated;
-            ReplicatedType clientValue2 = (ReplicatedType)cs.client.idLookup.Values.Skip(1).First().replicated;
+            cs.server.Replicate(replicated2).Wait();
+            Assert.IsInstanceOfType(cs.client.IDLookup.Values.First().replicated, typeof(ReplicatedType));
+            ReplicatedType clientValue = (ReplicatedType)cs.client.IDLookup.Values.First().replicated;
+            ReplicatedType clientValue2 = (ReplicatedType)cs.client.IDLookup.Values.Skip(1).First().replicated;
             Assert.AreEqual(clientValue.child1, clientValue2.child1);
         }
         [TestMethod]
@@ -145,10 +139,9 @@ namespace ReplicateTest
             };
             var cs = Util.MakeClientServer();
             cs.server.RegisterObject(faff);
-            cs.server.Replicate(faff);
-            cs.client.PumpMessages();
-            Assert.IsInstanceOfType(cs.client.idLookup.Values.First().replicated, typeof(Dictionary<string, int>));
-            Dictionary<string, int> clientValue = (Dictionary<string, int>)cs.client.idLookup.Values.First().replicated;
+            cs.server.Replicate(faff).Wait();
+            Assert.IsInstanceOfType(cs.client.IDLookup.Values.First().replicated, typeof(Dictionary<string, int>));
+            Dictionary<string, int> clientValue = (Dictionary<string, int>)cs.client.IDLookup.Values.First().replicated;
             Assert.AreEqual("herp", clientValue.Keys.First());
             Assert.AreEqual(3, clientValue["herp"]);
         }

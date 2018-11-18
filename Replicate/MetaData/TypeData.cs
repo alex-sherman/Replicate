@@ -15,7 +15,7 @@ namespace Replicate.MetaData
         public string Name { get; private set; }
         public Type Type { get; private set; }
         public List<MemberInfo> ReplicatedMembers = new List<MemberInfo>();
-        public List<ReplicatedInterface> ReplicatedInterfaces;
+        public List<Type> ReplicatedInterfaces;
         public TypeAccessor Surrogate { get; private set; }
         public ReplicationModel Model { get; private set; }
         private bool isSurrogate = false;
@@ -46,7 +46,6 @@ namespace Replicate.MetaData
             }
             ReplicatedInterfaces = type.GetInterfaces()
                 .Where(interfaceType => interfaceType.GetCustomAttribute<ReplicateAttribute>() != null)
-                .Select(interfaceType => new ReplicatedInterface(interfaceType))
                 .ToList();
         }
 

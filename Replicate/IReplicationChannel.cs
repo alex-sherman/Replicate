@@ -10,13 +10,26 @@ namespace Replicate
     [Flags]
     public enum ReliabilityMode
     {
+        ReliableSequenced = Reliable | Sequenced,
         Reliable = 0b0001,
         Sequenced = 0b0010,
     }
     public interface IReplicationChannel
     {
-        Task<TResponse> Publish<TRequest, TResponse>(TRequest request, ReliabilityMode reliability);
-        void Subscribe<TRequest, TResponse>(Func<TRequest, Task<object>> handler);
+        Task<TResponse> Publish<TRequest, TResponse>(TRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced);
+        void Subscribe<TRequest, TResponse>(Func<TRequest, Task<TResponse>> handler);
+    }
+
+    public static class ReplicationChannelExtensions
+    {
+        public static void Subscribe<TRequest>(this IReplicationChannel @this, Action<TRequest> handler)
+        {
+            @this.Subscribe<TRequest, None>(request => { handler(request); return null; });
+        }
+        public static Task Publish<TRequest>(this IReplicationChannel @this, TRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced)
+        {
+            return @this.Publish<TRequest, None>(request, reliability);
+        }
     }
 
     public abstract class ReplicationChannel<TMessageID> : IReplicationChannel
@@ -33,33 +46,29 @@ namespace Replicate
 
         public abstract Task<TResponse> Publish<TRequest, TResponse>(TRequest request, ReliabilityMode reliability);
 
-        public void Subscribe<TRequest, TResponse>(Func<TRequest, Task<object>> handler)
+        public void Subscribe<TRequest, TResponse>(Func<TRequest, Task<TResponse>> handler)
         {
             var messageID = GetMessageID(typeof(TRequest));
-            if (typeof(TResponse) == typeof(Void))
+            if (typeof(TResponse) == typeof(None))
             {
                 if (!subscribers.TryGetValue(messageID, out var subs))
                     subs = subscribers[messageID] = new List<Action<object>>();
                 subs.Add((obj) => handler((TRequest)obj));
             }
             else
-                responders[messageID] = (obj) => handler((TRequest)obj);
+                responders[messageID] = async (obj) => await handler((TRequest)obj);
         }
 
-        protected virtual void Receive<TRequest, TResponse>(TRequest value)
+        protected virtual async Task<TResponse> Receive<TRequest, TResponse>(TRequest value)
         {
             var messageID = GetMessageID(typeof(TRequest));
             if (subscribers.ContainsKey(messageID))
                 foreach (var sub in subscribers[messageID])
                     sub(value);
             if (responders.ContainsKey(messageID))
-            {
-                responders[messageID](value).ContinueWith(t =>
-                {
-                    Publish<TResponse, Void>((TResponse)t.Result, ReliabilityMode.Reliable | ReliabilityMode.Sequenced);
-                });
-
-            }
+                // TODO: Is this explicit cast dangerous?
+                return (TResponse)(await responders[messageID](value));
+            return default(TResponse);
         }
     }
 }

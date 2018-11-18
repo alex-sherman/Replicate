@@ -10,13 +10,13 @@ namespace Replicate.Messages
     public struct ReplicatedID
     {
         [Replicate]
-        public ushort creator;
+        public ushort Creator;
         [Replicate]
-        public uint objectId;
+        public uint ObjectID;
 
         public override int GetHashCode()
         {
-            return (23 * 31 + creator.GetHashCode()) * 31 + objectId.GetHashCode();
+            return (23 * 31 + Creator.GetHashCode()) * 31 + ObjectID.GetHashCode();
         }
     }
 }

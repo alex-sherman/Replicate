@@ -43,7 +43,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Interfaces\ReplicatedInterface.cs" />
+    <Compile Include="Interfaces\ReplicatedProxy.cs" />
     <Compile Include="IReplicationChannel.cs" />
     <Compile Include="Messages\InitMessage.cs" />
     <Compile Include="Messages\MessageIDs.cs" />

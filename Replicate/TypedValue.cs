@@ -10,37 +10,38 @@ namespace Replicate
 {
     public struct TypedValue
     {
-        public object value;
+        public static TypedValue None { get; }
+        public object Value;
         public TypedValue(object value)
         {
-            this.value = value;
+            Value = value;
         }
     }
     [Replicate]
     public class TypedValueSurrogate
     {
         [Replicate]
-        public TypeID typeID;
+        public TypeID TypeID;
         [Replicate]
-        public byte[] value;
+        public byte[] Value;
         public static implicit operator TypedValue(TypedValueSurrogate self)
         {
             var serializer = ReplicateContext.Current.Serializer;
             var model = serializer.Model;
             return new TypedValue(serializer.Deserialize(
-                null, new MemoryStream(self.value),
-                model.GetTypeAccessor(model.GetType(self.typeID)), null)
+                null, new MemoryStream(self.Value),
+                model.GetTypeAccessor(model.GetType(self.TypeID)), null)
             );
         }
         public static implicit operator TypedValueSurrogate(TypedValue value)
         {
             var serializer = ReplicateContext.Current.Serializer;
             MemoryStream stream = new MemoryStream();
-            serializer.Serialize(stream, value.value);
+            serializer.Serialize(stream, value.Value);
             return new TypedValueSurrogate()
             {
-                typeID = serializer.Model.GetID(value.value.GetType()),
-                value = stream.ToArray()
+                TypeID = serializer.Model.GetID(value.Value.GetType()),
+                Value = stream.ToArray()
             };
         }
     }

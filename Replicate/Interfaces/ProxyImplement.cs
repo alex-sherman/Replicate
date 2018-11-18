@@ -4,18 +4,16 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Replicate.Interfaces
 {
     public interface IImplementor
     {
-        object Intercept(MethodInfo method, object[] args);
-    }
-    public class Implementor : IImplementor
-    {
-        public Func<MethodInfo, object[], object> Target;
-        public Implementor(Func<MethodInfo, object[], object> target) => Target = target;
-        public object Intercept(MethodInfo method, object[] args) => Target(method, args);
+        T Intercept<T>(MethodInfo method, object[] args);
+        Task<T> InterceptAsync<T>(MethodInfo method, object[] args);
+        Task InterceptAsyncVoid(MethodInfo method, object[] args);
+        void InterceptVoid(MethodInfo method, object[] args);
     }
 
     public class ProxyImplement
@@ -23,19 +21,29 @@ namespace Replicate.Interfaces
         private const MethodAttributes ImplicitImplementation =
             MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.HideBySig;
         static MethodInfo interceptInfo = typeof(ProxyImplement).GetMethod("Intercept", BindingFlags.Instance | BindingFlags.NonPublic);
+        static MethodInfo interceptInfoAsync = typeof(ProxyImplement).GetMethod("InterceptAsync", BindingFlags.Instance | BindingFlags.NonPublic);
+        static MethodInfo interceptInfoAsyncVoid = typeof(ProxyImplement).GetMethod("InterceptAsyncVoid", BindingFlags.Instance | BindingFlags.NonPublic);
         static MethodInfo interceptInfoVoid = typeof(ProxyImplement).GetMethod("InterceptVoid", BindingFlags.Instance | BindingFlags.NonPublic);
         MethodInfo[] methods;
         public IImplementor Implementor { get; private set; }
+        protected Task<T> InterceptAsync<T>(int methodIndex, List<object> args)
+        {
+            return Implementor.InterceptAsync<T>(methods[methodIndex], args.ToArray());
+        }
+        protected Task InterceptAsyncVoid(int methodIndex, List<object> args)
+        {
+            return Implementor.InterceptAsyncVoid(methods[methodIndex], args.ToArray());
+        }
         protected T Intercept<T>(int methodIndex, List<object> args)
         {
-            object output = Implementor.Intercept(methods[methodIndex], args.ToArray());
+            object output = Implementor.Intercept<T>(methods[methodIndex], args.ToArray());
             if (output == null)
                 return default(T);
             return (T)output;
         }
         protected void InterceptVoid(int methodIndex, List<object> args)
         {
-            Implementor.Intercept(methods[methodIndex], args.ToArray());
+            Implementor.InterceptVoid(methods[methodIndex], args.ToArray());
         }
 
         public static T HookUp<T>(IImplementor implementor)
@@ -84,6 +92,10 @@ namespace Replicate.Interfaces
             il.Emit(OpCodes.Ldloc_0);
             if (builder.ReturnType == typeof(void))
                 il.Emit(OpCodes.Callvirt, interceptInfoVoid);
+            else if (builder.ReturnType == typeof(Task))
+                il.Emit(OpCodes.Callvirt, interceptInfoAsyncVoid);
+            else if(builder.ReturnType.IsGenericType && builder.ReturnType.GetGenericTypeDefinition() == typeof(Task<>))
+                il.Emit(OpCodes.Callvirt, interceptInfoAsync.MakeGenericMethod(builder.ReturnType.GetGenericArguments()[0]));
             else
                 il.Emit(OpCodes.Callvirt, interceptInfo.MakeGenericMethod(info.ReturnType));
             il.Emit(OpCodes.Ret);

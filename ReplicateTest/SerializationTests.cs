@@ -78,7 +78,7 @@ namespace ReplicateTest
             var stream = new MemoryStream();
             ser.Serialize(stream, new InitMessage()
             {
-                id = new ReplicatedID() { objectId = 0, creator = 1 },
+                id = new ReplicatedID() { ObjectID = 0, Creator = 1 },
                 typeID = new TypeID()
                 {
                     id = 12

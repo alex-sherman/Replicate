@@ -26,17 +26,15 @@ namespace Replicate
         Dictionary<uint, Action<byte[]>> handlerLookup = new Dictionary<uint, Action<byte[]>>();
         public Dictionary<object, ReplicatedObject> ObjectLookup = new Dictionary<object, ReplicatedObject>();
         public Dictionary<ReplicatedID, ReplicatedObject> IDLookup = new Dictionary<ReplicatedID, ReplicatedObject>();
-        List<ReplicatedInterface> rpcInterfaceLookup = new List<ReplicatedInterface>();
+        Dictionary<Type, object> InterfaceLookup = new Dictionary<Type, object>();
         public IReplicationChannel Channel;
-        public Implementor ProxyImplementor;
         public ReplicationManager(Serializer serializer, IReplicationChannel channel)
         {
-            ProxyImplementor = new Implementor(ProxyTarget);
             Channel = channel;
             Serializer = serializer;
-            //RegisterHandler<ReplicationMessage>(MessageIDs.REPLICATE, HandleReplication);
-            //RegisterHandler<InitMessage>(MessageIDs.INIT, HandleInit);
-            //RegisterHandler<RPCMessage>(MessageIDs.RPC, HandleRPC);
+            Channel.Subscribe<ReplicationMessage>(HandleReplication);
+            Channel.Subscribe<InitMessage>(HandleInit);
+            Channel.Subscribe<RPCMessage, TypedValue>(HandleRPC);
         }
 
         ReplicateContext CreateContext()
@@ -48,29 +46,17 @@ namespace Replicate
             };
         }
 
-        public T CreateProxy<T>(T target) where T : class
+        public T CreateProxy<T>(T target = null) where T : class
         {
-            if (!ObjectLookup.ContainsKey(target))
-                throw new InvalidOperationException("Cannot create a proxy for a non-registered object");
+            ReplicatedID? id = null;
+            if (target != null)
+            {
+                if (!ObjectLookup.ContainsKey(target))
+                    throw new InvalidOperationException("Cannot create a proxy for a non-registered object");
 
-            var repObj = ObjectLookup[target];
-            byte interfaceID = (byte)repObj.typeAccessor.TypeData.ReplicatedInterfaces.FindIndex(repInt => repInt.InterfaceType == typeof(T));
-            if (interfaceID == byte.MaxValue)
-                throw new InvalidOperationException(
-                    string.Format("Cannot find a replicated interface definition of {0} for {1}", typeof(T).FullName, repObj.typeAccessor.Name));
-            return ProxyImplement.HookUp<T>(new Implementor(ProxyTarget));
-        }
-        private object ProxyTarget(MethodInfo method, object[] args)
-        {
-            return null;
-            //Channel.Publish
-            //Send(MessageIDs.RPC, new RPCMessage()
-            //{
-            //    ReplicatedID = Target,
-            //    InterfaceID = InterfaceID,
-            //    MethodID = ReplicatedInterface.GetMethodID(method),
-            //    Args = args.Select(arg => new TypedValue(arg)).ToList(),
-            //});
+                id = ObjectLookup[target].id;
+            }
+            return ProxyImplement.HookUp<T>(new ReplicatedProxy(id, this, typeof(T)));
         }
         private void HandleReplication(ReplicationMessage message)
         {
@@ -84,12 +70,27 @@ namespace Replicate
             AddObject(message.id, typeData.Construct());
         }
 
-        private void HandleRPC(RPCMessage message)
+        private async Task<TypedValue> HandleRPC(RPCMessage message)
         {
-            var target = IDLookup[message.ReplicatedID];
-            var targetInterface = target.typeAccessor.TypeData.ReplicatedInterfaces[message.InterfaceID];
+            object target = message.ReplicatedID.HasValue ?
+                IDLookup[message.ReplicatedID.Value].replicated :
+                InterfaceLookup[message.InterfaceType];
+
             using (ReplicateContext.UpdateContext(r => r.Value._isInRPC = true))
-                targetInterface.Invoke(target.replicated, message.MethodID, message.Args.Select(v => v.value).ToArray());
+            {
+                var resType = message.Method.ReturnType;
+                var response = message.Method.Invoke(target, message.Args.Select(v => v.Value).ToArray());
+                if(response is Task task)
+                {
+                    await task;
+                    if (resType == typeof(Task))
+                        return new TypedValue();
+                    if (resType.IsGenericType && resType.GetGenericTypeDefinition() == typeof(Task<>))
+                        // TODO: This takes like 200ms sometimes, could probably use Emit to fix this?
+                        return new TypedValue((object)((dynamic)task).Result);
+                }
+                return new TypedValue(response);
+            }
         }
 
         Type ReplicationSurrogateReplacement(object obj, MemberAccessor ma)
@@ -99,7 +100,7 @@ namespace Replicate
             return null;
         }
 
-        public void Replicate(object replicated, ushort? destination = null)
+        public Task Replicate(object replicated, ushort? destination = null)
         {
             using (ReplicateContext.UsingContext(CreateContext()))
             {
@@ -111,11 +112,11 @@ namespace Replicate
                     id = metaData.id,
                     value = innerStream.ToArray(),
                 };
-                //Send(MessageIDs.REPLICATE, message, destination);
+                return Channel.Publish(message);
             }
         }
 
-        public virtual void RegisterObject(object replicated)
+        public virtual Task RegisterObject(object replicated)
         {
             if (Model.GetTypeAccessor(replicated.GetType()).TypeData.Surrogate != null)
                 throw new InvalidOperationException("Cannot register objects which have surrogates");
@@ -125,7 +126,7 @@ namespace Replicate
             uint objectId = AllocateObjectID(replicated);
             var id = new ReplicatedID()
             {
-                objectId = objectId,
+                ObjectID = objectId,
                 //creator = ID,
             };
             AddObject(id, replicated);
@@ -134,7 +135,12 @@ namespace Replicate
                 id = id,
                 typeID = typeID
             };
-            //Send(MessageIDs.INIT, message);
+            return Channel.Publish(message);
+        }
+
+        public void RegisterSingleton<T>(T implementation)
+        {
+            InterfaceLookup[typeof(T)] = implementation;
         }
 
         private void AddObject(ReplicatedID id, object replicated)
