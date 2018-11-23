@@ -58,12 +58,13 @@ namespace ReplicateTest
             };
             var cs = Util.MakeClientServer();
             bool called = false;
-            cs.client.Channel.Subscribe<SimpleMessage>((message) =>
+            cs.client.Channel.Subscribe("herp", (message) =>
             {
                 called = true;
-                Assert.AreEqual(message, testMessage);
+                Assert.AreEqual(message.Request, testMessage);
+                return null;
             });
-            cs.server.Channel.Publish(testMessage).Wait();
+            cs.server.Channel.Publish("herp", testMessage).Wait();
             Assert.IsTrue(called);
         }
         [TestMethod]

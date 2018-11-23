@@ -99,6 +99,8 @@ namespace ReplicateTest
             var cs = Util.MakeClientServer();
             serverTarget = new TestTarget();
             cs.server.RegisterObject(serverTarget).Wait();
+            cs.server.RegisterInstanceInterface<ITestInterface>();
+            cs.client.RegisterInstanceInterface<ITestInterface>();
             clientTarget = cs.client.ObjectLookup.Values.First().replicated as TestTarget;
             serverTarget.RPC = cs.server.CreateProxy<ITestInterface>(serverTarget);
             clientTarget.RPC = cs.client.CreateProxy<ITestInterface>(clientTarget);
@@ -154,10 +156,7 @@ namespace ReplicateTest
             var target = new TestTarget();
             cs.server.RegisterSingleton<ITestInterface>(target);
             var proxy = cs.client.CreateProxy<ITestInterface>();
-            for (int i = 0; i < 1000; i++)
-            {
-                Assert.AreEqual(4, proxy.AsyncHerp("derp").Result);
-            }
+            Assert.AreEqual(4, proxy.AsyncHerp("derp").Result);
         }
     }
 }

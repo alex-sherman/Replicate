@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Replicate.Messages;
 
 namespace Replicate
 {
@@ -13,19 +14,24 @@ namespace Replicate
         {
             public PassThroughChannelEndpoint target;
 
-            public override string GetMessageID(Type type)
+            public override string GetEndpoint(MethodInfo method)
             {
-                return type.Name;
+                return $"{method.DeclaringType}.{method.Name}";
             }
 
-            public override Task<TResponse> Publish<TRequest, TResponse>(TRequest request, ReliabilityMode reliability)
+            public override ReplicatedID? GetRPCTarget(string endpoint)
             {
-                return target.Receive<TRequest, TResponse>(request);
+                return null;
+            }
+
+            public override Task<object> Publish(string messageID, RPCRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced)
+            {
+                return target.Receive(messageID, request);
             }
         }
 
-        public IReplicationChannel PointA;
-        public IReplicationChannel PointB;
+        public ReplicationChannel<string> PointA;
+        public ReplicationChannel<string> PointB;
         public PassThroughChannel()
         {
             var pointA = new PassThroughChannelEndpoint();

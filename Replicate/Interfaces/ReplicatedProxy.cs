@@ -19,21 +19,23 @@ namespace Replicate.Interfaces
             Interface = replicatedInterface;
         }
 
-        Task<TypedValue> RPC(MethodInfo method, object[] args)
+        Task<object> RPC(MethodInfo method, object[] args)
         {
-            var message = new RPCMessage()
+            var parms = method.GetParameters();
+            bool hasParam = parms.Length == 1;
+            return Manager.Publish(new RPCRequest()
             {
-                ReplicatedID = Target,
-                InterfaceType = Interface,
                 Method = method,
-                Args = args.Select(arg => new TypedValue(arg)).ToList(),
-            };
-            return Manager.Channel.Publish<RPCMessage, TypedValue>(message);
+                Request = hasParam ? args[0] : None.Value,
+                RequestType = hasParam ? parms[0].ParameterType : typeof(None),
+                ResponseType = method.ReturnType,
+                Target = Target,
+            });
         }
 
         public T Intercept<T>(MethodInfo method, object[] args)
         {
-            return (T)RPC(method, args).Result.Value;
+            return (T)RPC(method, args).Result;
         }
 
         public void InterceptVoid(MethodInfo method, object[] args)
@@ -43,7 +45,7 @@ namespace Replicate.Interfaces
 
         public async Task<T> InterceptAsync<T>(MethodInfo method, object[] args)
         {
-            var result = (await RPC(method, args)).Value;
+            var result = (await RPC(method, args));
             return (T)result;
         }
 

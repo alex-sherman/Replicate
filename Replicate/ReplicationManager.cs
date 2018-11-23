@@ -19,22 +19,25 @@ namespace Replicate
         public HashSet<ushort> relevance;
         public TypeAccessor typeAccessor;
     }
-    public class ReplicationManager
+    public abstract class ReplicationManager
     {
         public Serializer Serializer { get; protected set; }
         public ReplicationModel Model { get { return Serializer.Model; } }
-        Dictionary<uint, Action<byte[]>> handlerLookup = new Dictionary<uint, Action<byte[]>>();
+        protected Dictionary<uint, Action<byte[]>> handlerLookup = new Dictionary<uint, Action<byte[]>>();
         public Dictionary<object, ReplicatedObject> ObjectLookup = new Dictionary<object, ReplicatedObject>();
         public Dictionary<ReplicatedID, ReplicatedObject> IDLookup = new Dictionary<ReplicatedID, ReplicatedObject>();
-        Dictionary<Type, object> InterfaceLookup = new Dictionary<Type, object>();
-        public IReplicationChannel Channel;
-        public ReplicationManager(Serializer serializer, IReplicationChannel channel)
+        protected Dictionary<Type, object> InterfaceLookup = new Dictionary<Type, object>();
+        public abstract Task<object> Publish(RPCRequest request);
+    }
+    public class ReplicationManager<TEndpoint> : ReplicationManager
+    {
+        public ReplicationChannel<TEndpoint> Channel;
+        public ReplicationManager(Serializer serializer, ReplicationChannel<TEndpoint> channel)
         {
             Channel = channel;
             Serializer = serializer;
             Channel.Subscribe<ReplicationMessage>(HandleReplication);
             Channel.Subscribe<InitMessage>(HandleInit);
-            Channel.Subscribe<RPCMessage, TypedValue>(HandleRPC);
         }
 
         ReplicateContext CreateContext()
@@ -44,6 +47,10 @@ namespace Replicate
                 Serializer = Serializer,
                 Manager = this,
             };
+        }
+        public override Task<object> Publish(RPCRequest request)
+        {
+            return Channel.Publish(Channel.GetEndpoint(request.Method), request);
         }
 
         public T CreateProxy<T>(T target = null) where T : class
@@ -79,16 +86,7 @@ namespace Replicate
             using (ReplicateContext.UpdateContext(r => r.Value._isInRPC = true))
             {
                 var resType = message.Method.ReturnType;
-                var response = message.Method.Invoke(target, message.Args.Select(v => v.Value).ToArray());
-                if(response is Task task)
-                {
-                    await task;
-                    if (resType == typeof(Task))
-                        return new TypedValue();
-                    if (resType.IsGenericType && resType.GetGenericTypeDefinition() == typeof(Task<>))
-                        // TODO: This takes like 200ms sometimes, could probably use Emit to fix this?
-                        return new TypedValue((object)((dynamic)task).Result);
-                }
+                var response = await TaskUtil.Taskify(resType, message.Method.Invoke(target, message.Args.Select(v => v.Value).ToArray()));
                 return new TypedValue(response);
             }
         }
@@ -112,7 +110,7 @@ namespace Replicate
                     id = metaData.id,
                     value = innerStream.ToArray(),
                 };
-                return Channel.Publish(message);
+                return Channel.Publish(Channel.GetEndpoint(((Action<ReplicationMessage>)HandleReplication).Method), message);
             }
         }
 
@@ -135,12 +133,41 @@ namespace Replicate
                 id = id,
                 typeID = typeID
             };
-            return Channel.Publish(message);
+            return Channel.Publish(Channel.GetEndpoint(((Action<InitMessage>)HandleInit).Method), message);
+        }
+
+        static Task<object> invoke(MethodInfo method, object target, object request)
+        {
+            using (ReplicateContext.UpdateContext(r => r.Value._isInRPC = true))
+            {
+                object[] args = new object[] { };
+                if (method.GetParameters().Length == 1)
+                    args = new[] { request };
+                var result = method.Invoke(target, args);
+                return TaskUtil.Taskify(method.ReturnType, result);
+            }
+        }
+
+        public void RegisterInstanceInterface<T>()
+        {
+            foreach (var method in typeof(T).GetMethods())
+            {
+                // TODO: This could be done with Reflection.Emit I think?
+                Channel.Subscribe(
+                    Channel.GetEndpoint(method),
+                    (request) => invoke(request.Method, IDLookup[request.Target.Value].replicated, request.Request));
+            }
         }
 
         public void RegisterSingleton<T>(T implementation)
         {
-            InterfaceLookup[typeof(T)] = implementation;
+            foreach (var method in typeof(T).GetMethods())
+            {
+                // TODO: This could be done with Reflection.Emit I think?
+                Channel.Subscribe(
+                    Channel.GetEndpoint(method),
+                    (request) => invoke(request.Method, implementation, request.Request));
+            }
         }
 
         private void AddObject(ReplicatedID id, object replicated)

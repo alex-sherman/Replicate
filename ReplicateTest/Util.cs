@@ -17,8 +17,8 @@ namespace ReplicateTest
         {
             public ReplicationModel model;
             public PassThroughChannel channel;
-            public ReplicationManager server;
-            public ReplicationManager client;
+            public ReplicationManager<string> server;
+            public ReplicationManager<string> client;
         }
         public static ClientServer MakeClientServer(Serializer serializer = null)
         {
@@ -29,8 +29,8 @@ namespace ReplicateTest
             {
                 model = model,
                 channel = channel,
-                server = new ReplicationManager(serializer, channel.PointA),
-                client = new ReplicationManager(serializer, channel.PointB)
+                server = new ReplicationManager<string>(serializer, channel.PointA),
+                client = new ReplicationManager<string>(serializer, channel.PointB)
             };
         }
 

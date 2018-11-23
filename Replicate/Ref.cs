@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Replicate
 {
-    public class None { }
+    public class None { public static None Value { get; private set; } = new None(); }
     public class Ref<T> where T : struct
     {
         public Ref(T value) => Value = value;
