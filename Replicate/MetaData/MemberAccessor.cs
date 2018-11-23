@@ -12,16 +12,18 @@ namespace Replicate.MetaData
         private Func<object, object> getter;
         public MemberInfo Info { get; private set; }
         public TypeAccessor TypeAccessor { get; private set; }
+        public TypeAccessor Surrogate { get; private set; }
         public Type Type { get; private set; }
         public Type DeclaringType { get; private set; }
 
         public MemberAccessor(MemberInfo info, TypeAccessor declaringType, ReplicationModel model)
         {
+            Surrogate = info.Surrogate;
             DeclaringType = declaringType.Type;
             Type = info.GetMemberType(declaringType.Type);
             TypeAccessor = model.GetTypeAccessor(Type);
             this.Info = info;
-            if (info.field != null)
+            if (info.Field != null)
             {
                 var meth = new DynamicMethod("getter", typeof(object), new Type[] { typeof(object) });
                 var il = meth.GetILGenerator();
@@ -51,15 +53,15 @@ namespace Replicate.MetaData
         {
             if (DeclaringType.IsGenericType)
             {
-                if (Info.property != null)
-                    obj.GetType().GetProperty(Info.property.Name).SetValue(obj, value);
-                if (Info.field != null)
-                    obj.GetType().GetField(Info.field.Name).SetValue(obj, value);
+                if (Info.Property != null)
+                    obj.GetType().GetProperty(Info.Property.Name).SetValue(obj, value);
+                if (Info.Field != null)
+                    obj.GetType().GetField(Info.Field.Name).SetValue(obj, value);
             }
             else
             {
-                Info.property?.SetValue(obj, value);
-                Info.field?.SetValue(obj, value);
+                Info.Property?.SetValue(obj, value);
+                Info.Field?.SetValue(obj, value);
             }
         }
         public object GetValue(object obj)

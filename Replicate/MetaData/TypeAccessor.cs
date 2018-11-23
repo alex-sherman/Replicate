@@ -15,8 +15,10 @@ namespace Replicate.MetaData
         public Type Type { get; private set; }
         public MemberAccessor[] MemberAccessors;
         public TypeData TypeData { get; private set; }
+        public TypeAccessor Surrogate { get; private set; }
         public TypeAccessor(TypeData typeData, Type type, ReplicationModel model)
         {
+            Surrogate = typeData.Surrogate;
             TypeData = typeData;
             Type = type;
             Name = type.FullName;

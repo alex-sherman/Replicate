@@ -43,7 +43,7 @@ namespace Replicate.MetaData
             kvpTD.MarshalMethod = MarshalMethod.Tuple;
             kvpTD.AddMember("Key");
             kvpTD.AddMember("Value");
-            this[typeof(TypedValue)].SetSurrogate(typeof(TypedValueSurrogate));
+            Add(typeof(TypedValue)).SetSurrogate(typeof(TypedValueSurrogate));
             foreach (var type in Assembly.GetCallingAssembly().GetTypes())
             {
                 var replicate = type.GetCustomAttribute<ReplicateAttribute>();
@@ -107,12 +107,11 @@ namespace Replicate.MetaData
         }
         public TypeData Add(Type type)
         {
-            if (typeLookup.ContainsKey(type))
-                return typeLookup[type];
             if (type.IsGenericType)
                 type = type.GetGenericTypeDefinition();
+            if (typeLookup.TryGetValue(type, out TypeData typeData))
+                return typeData;
             var output = new TypeData(type, this);
-            Compile(output);
             typeLookup.Add(type, output);
             stringLookup.Add(type.FullName, output);
             return output;
@@ -123,13 +122,6 @@ namespace Replicate.MetaData
             foreach (var type in AppDomain.CurrentDomain.GetAssemblies().SelectMany(asm => asm.GetTypes().Where(asmType => asmType.GetCustomAttribute<ReplicateAttribute>() != null)))
             {
                 Add(type);
-            }
-        }
-        private void Compile(TypeData typeData)
-        {
-            foreach (var member in typeData.ReplicatedMembers)
-            {
-                member.TypeData = GetTypeData(member.MemberType, member.MemberType.GetCustomAttribute<ReplicateAttribute>() != null);
             }
         }
     }

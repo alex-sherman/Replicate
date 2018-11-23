@@ -18,7 +18,7 @@ namespace Replicate.MetaData
         public List<Type> ReplicatedInterfaces;
         public TypeAccessor Surrogate { get; private set; }
         public ReplicationModel Model { get; private set; }
-        private bool isSurrogate = false;
+        private bool IsSurrogate = false;
         public TypeData(Type type, ReplicationModel model)
         {
             Type = type;
@@ -63,22 +63,20 @@ namespace Replicate.MetaData
         }
         private void AddMember(FieldInfo field)
         {
-            ReplicatedMembers.Add(new MemberInfo(field, (byte)ReplicatedMembers.Count));
+            ReplicatedMembers.Add(new MemberInfo(Model, field, (byte)ReplicatedMembers.Count));
         }
         private void AddMember(PropertyInfo property)
         {
-            ReplicatedMembers.Add(new MemberInfo(property, (byte)ReplicatedMembers.Count));
+            ReplicatedMembers.Add(new MemberInfo(Model, property, (byte)ReplicatedMembers.Count));
         }
-        public TypeData SetSurrogate(Type surrogate)
+        public void SetSurrogate(Type surrogate)
         {
-            if (isSurrogate)
+            if (IsSurrogate)
                 throw new InvalidOperationException("Cannot set the surrogate of a surrogate type");
             if (surrogate.IsGenericTypeDefinition)
                 throw new InvalidOperationException("Cannot set a surrogate type that is generic");
-            var _surrogate = Model.GetTypeData(surrogate);
-            _surrogate.isSurrogate = true;
+            Model.Add(surrogate).IsSurrogate = true;
             Surrogate = Model.GetTypeAccessor(surrogate);
-            return _surrogate;
         }
     }
 }

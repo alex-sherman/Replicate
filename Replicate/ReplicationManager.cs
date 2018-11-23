@@ -68,7 +68,7 @@ namespace Replicate
         private void HandleReplication(ReplicationMessage message)
         {
             var metaData = IDLookup[message.id];
-            Serializer.Deserialize(metaData.replicated, new MemoryStream(message.value), metaData.typeAccessor, null, ReplicationSurrogateReplacement);
+            Serializer.Deserialize(metaData.replicated, new MemoryStream(message.value), metaData.typeAccessor, null);
         }
 
         private void HandleInit(InitMessage message)
@@ -91,20 +91,13 @@ namespace Replicate
             }
         }
 
-        Type ReplicationSurrogateReplacement(object obj, MemberAccessor ma)
-        {
-            if (ma?.Info.GetAttribute<ReplicatePolicyAttribute>()?.AsReference == true)
-                return typeof(ReplicatedReference<>).MakeGenericType(ma.Type);
-            return null;
-        }
-
         public Task Replicate(object replicated, ushort? destination = null)
         {
             using (ReplicateContext.UsingContext(CreateContext()))
             {
                 var metaData = ObjectLookup[replicated];
                 MemoryStream innerStream = new MemoryStream();
-                Serializer.Serialize(innerStream, replicated, metaData.typeAccessor, null, ReplicationSurrogateReplacement);
+                Serializer.Serialize(innerStream, replicated, metaData.typeAccessor, null);
                 ReplicationMessage message = new ReplicationMessage()
                 {
                     id = metaData.id,
