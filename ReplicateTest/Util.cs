@@ -37,7 +37,7 @@ namespace ReplicateTest
         public static T SerializeDeserialize<T>(T data, ReplicationModel model = null)
         {
             model = model ?? new ReplicationModel();
-            var ser = new Replicate.Serialization.BinarySerializer(model);
+            var ser = new BinarySerializer(model);
             var stream = new MemoryStream();
             ser.Serialize(stream, data);
             stream.Seek(0, SeekOrigin.Begin);

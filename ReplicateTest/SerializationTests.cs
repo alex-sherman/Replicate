@@ -71,6 +71,12 @@ namespace ReplicateTest
             Assert.AreEqual(4, output["herp"].Property);
         }
         [TestMethod]
+        public void TestNullObject()
+        {
+            var output = Util.SerializeDeserialize<PropClass>(null);
+            Assert.IsNull(output);
+        }
+        [TestMethod]
         public void TestInitMessage()
         {
             var model = new ReplicationModel();

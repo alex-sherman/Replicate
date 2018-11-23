@@ -20,13 +20,16 @@ namespace Replicate.Serialization
             Model = model;
         }
         private Serializer() { }
-        public void Serialize(Stream stream, object obj)
+        public void Serialize<T>(Stream stream, T obj)
         {
-            Serialize(stream, obj, Model.GetTypeAccessor(obj.GetType()), null);
+            Serialize(stream, typeof(T), obj);
+        }
+        public void Serialize(Stream stream, Type type, object obj)
+        {
+            Serialize(stream, obj, Model.GetTypeAccessor(type), null);
         }
         public void Serialize(Stream stream, object obj, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
-            MarshalMethod marshalMethod = MarshalMethod.Null;
             if (obj != null && typeAccessor == null)
                 throw new InvalidOperationException(string.Format("Cannot serialize {0}", obj.GetType().Name));
 
@@ -38,43 +41,28 @@ namespace Replicate.Serialization
                 var surrogate = castOp.Invoke(null, new object[] { obj });
                 obj = surrogate;
             }
-            marshalMethod = obj == null ? MarshalMethod.Null : typeAccessor.TypeData.MarshalMethod;
-            stream.WriteByte((byte)marshalMethod);
+            var marshalMethod = typeAccessor.TypeData.MarshalMethod;
             switch (marshalMethod)
             {
                 case MarshalMethod.Primitive:
-                    SerializePrimitive(stream, obj, typeAccessor);
+                    SerializePrimitive(stream, obj, typeAccessor.Type);
                     break;
                 case MarshalMethod.Collection:
-                    var enumerable = (IEnumerable)obj;
-                    var count = 0;
-                    foreach (var item in enumerable)
-                        count++;
-                    stream.WriteInt32(count);
-                    foreach (var item in (IEnumerable)obj)
-                        Serialize(stream, item);
+                    var collectionValueType = Model.GetCollectionValueAccessor(typeAccessor.Type);
+                    SerializeCollection(stream, obj, collectionValueType);
                     break;
                 case MarshalMethod.Tuple:
-                    foreach (var member in typeAccessor.MemberAccessors)
-                    {
-                        Serialize(stream, member.GetValue(obj), member.TypeAccessor, member);
-                    }
+                    SerializeTuple(stream, obj, typeAccessor);
                     break;
                 case MarshalMethod.Object:
-                    stream.Write(BitConverter.GetBytes(typeAccessor.MemberAccessors.Length), 0, 4);
-                    for (int id = 0; id < typeAccessor.MemberAccessors.Length; id++)
-                    {
-                        var member = typeAccessor.MemberAccessors[id];
-                        stream.WriteByte((byte)id);
-                        Serialize(stream, member.GetValue(obj), member.TypeAccessor, member);
-                    }
-                    break;
-                case MarshalMethod.Null:
-                default:
+                    SerializeObject(stream, obj, typeAccessor);
                     break;
             }
         }
-        public abstract void SerializePrimitive(Stream stream, object obj, TypeAccessor typeData);
+        public abstract void SerializePrimitive(Stream stream, object obj, Type type);
+        public abstract void SerializeCollection(Stream stream, object obj, TypeAccessor collectionValueType);
+        public abstract void SerializeObject(Stream stream, object obj, TypeAccessor typeAccessor);
+        public abstract void SerializeTuple(Stream stream, object obj, TypeAccessor typeAccessor);
         public T Deserialize<T>(Stream stream)
         {
             Type type = typeof(T);
@@ -98,70 +86,54 @@ namespace Replicate.Serialization
         private object DeserializeRaw(object obj, Stream stream, TypeAccessor typeAccessor)
         {
             var type = typeAccessor.Type;
-            var marshalMethod = (MarshalMethod)stream.ReadByte();
-            switch (marshalMethod)
+            switch (typeAccessor.TypeData.MarshalMethod)
             {
                 case MarshalMethod.Primitive:
-                    return DeserializePrimitive(stream, type, typeAccessor);
+                    return DeserializePrimitive(stream, type);
                 case MarshalMethod.Collection:
-                    {
-                        int count = stream.ReadInt32();
-                        if (obj == null)
-                            obj = type.GetConstructor(new Type[] { typeof(int) }).Invoke(new object[] { count });
-                        else
-                        {
-                            var clearMeth = type.GetInterface("ICollection`1").GetMethod("Clear");
-                            clearMeth.Invoke(obj, new object[] { });
-                        }
-                        var collectionType = type.GetInterface("ICollection`1").GetGenericArguments()[0];
-                        var collectionTypeAccessor = Model.GetTypeAccessor(collectionType);
-                        if (obj is Array)
-                        {
-                            var arr = obj as Array;
-                            for (int i = 0; i < count; i++)
-                            {
-                                arr.SetValue(Deserialize(null, stream, collectionTypeAccessor, null), i);
-                            }
-                        }
-                        else
-                        {
-                            var addMeth = type.GetInterface("ICollection`1").GetMethod("Add");
-                            for (int i = 0; i < count; i++)
-                            {
-                                addMeth.Invoke(obj, new object[] { Deserialize(null, stream, collectionTypeAccessor, null) });
-                            }
-                        }
-                        return obj;
-                    }
+                    var collectionValueType = Model.GetCollectionValueAccessor(type);
+                    return DeserializeCollection(obj, stream, type, collectionValueType);
                 case MarshalMethod.Tuple:
-                    List<object> parameters = new List<object>();
-                    List<Type> paramTypes = new List<Type>();
-                    foreach (var member in typeAccessor.MemberAccessors)
-                    {
-                        paramTypes.Add(member.Type);
-                        parameters.Add(Deserialize(null, stream, member.TypeAccessor, member));
-                    }
-                    return type.GetConstructor(paramTypes.ToArray()).Invoke(parameters.ToArray());
+                    return DeserializeTuple(stream, type, typeAccessor);
                 case MarshalMethod.Object:
-                    {
-                        if (obj == null)
-                            obj = Activator.CreateInstance(type);
-                        int count = stream.ReadInt32();
-                        for (int i = 0; i < count; i++)
-                        {
-                            int id = stream.ReadByte();
-                            var member = typeAccessor.MemberAccessors[id];
-                            member.SetValue(obj, Deserialize(member.GetValue(obj), stream, member.TypeAccessor, member));
-                        }
-                        return obj;
-                    }
-                case MarshalMethod.Null:
+                    return DeserializeObject(obj, stream, type, typeAccessor);
                 default:
-                    if (type.IsValueType)
-                        return Activator.CreateInstance(type);
-                    return null;
+                    return Default(type);
             }
         }
-        public abstract object DeserializePrimitive(Stream stream, Type type, TypeAccessor typeData);
+        protected static object Default(Type type)
+        {
+            if (type.IsValueType)
+                return Activator.CreateInstance(type);
+            return null;
+        }
+        protected static object FillCollection(object obj, Type type, List<object> values)
+        {
+            var count = values.Count;
+            if (obj == null)
+                obj = type.GetConstructor(new Type[] { typeof(int) }).Invoke(new object[] { count });
+            else
+            {
+                var clearMeth = type.GetInterface("ICollection`1").GetMethod("Clear");
+                clearMeth.Invoke(obj, new object[] { });
+            }
+            if (obj is Array)
+            {
+                var arr = obj as Array;
+                for (int i = 0; i < count; i++)
+                    arr.SetValue(values[i], i);
+            }
+            else
+            {
+                var addMeth = type.GetInterface("ICollection`1").GetMethod("Add");
+                foreach(var value in values)
+                    addMeth.Invoke(obj, new object[] { value });
+            }
+            return obj;
+        }
+        public abstract object DeserializePrimitive(Stream stream, Type type);
+        public abstract object DeserializeObject(object obj, Stream stream, Type type, TypeAccessor typeAccessor);
+        public abstract object DeserializeCollection(object obj, Stream stream, Type type, TypeAccessor typeAccessor);
+        public abstract object DeserializeTuple(Stream stream, Type type, TypeAccessor typeAccessor);
     }
 }

@@ -12,11 +12,10 @@ namespace Replicate.MetaData
 {
     public enum MarshalMethod
     {
-        Null = 0,
-        Primitive = 1,
-        Object = 2,
-        Collection = 3,
-        Tuple = 4,
+        Primitive = 0,
+        Object = 1,
+        Collection = 2,
+        Tuple = 3,
     }
     public class ReplicationModel
     {
@@ -88,6 +87,11 @@ namespace Replicate.MetaData
                 typeAcessor = typeAccessorLookup[type] = new TypeAccessor(typeData, type, this);
             }
             return typeAcessor;
+        }
+        public TypeAccessor GetCollectionValueAccessor(Type collectionType)
+        {
+            var valueType = collectionType.GetInterface("ICollection`1").GetGenericArguments()[0];
+            return GetTypeAccessor(valueType);
         }
         public TypeData GetTypeData(Type type, bool autoAddType = true)
         {

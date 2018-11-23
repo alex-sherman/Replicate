@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Replicate.Serialization
 {
-    static class StreamExtensions
+    public static class StreamExtensions
     {
         public static void WriteInt32(this Stream stream, int value)
         {
@@ -35,10 +35,66 @@ namespace Replicate.Serialization
         public static void WriteString(this Stream stream, string value)
         {
             byte[] bytes = Encoding.UTF8.GetBytes(value);
+            stream.Write(bytes, 0, bytes.Length);
+        }
+        public static string ReadChars(this Stream stream, int number)
+        {
+            var output = "";
+            for(int i = 0; i<number; i++)
+            {
+                output += stream.ReadChar();
+            }
+            return output;
+        }
+        public static char ReadChar(this Stream stream, bool peak = false)
+        {
+            var result = stream.ReadChar(out var count);
+            if (peak) stream.Position -= count;
+            return result;
+        }
+        private static char ReadChar(this Stream stream, out int readBytes)
+        {
+            readBytes = 0;
+            var first = stream.ReadByte();
+            if (first == -1)
+                return char.MinValue;
+            byte[] buffer = new byte[] { (byte)first, 0, 0, 0 };
+            var count = 0;
+            if ((first & 0x80) != 0)
+            {
+                if ((first & 0xE0) == 0xC0)
+                    count = 1;
+                else if ((first & 0xF0) == 0xE0)
+                    count = 2;
+                else if ((first & 0xF8) == 0xF0)
+                    count = 3;
+            }
+            stream.Read(buffer, 1, count);
+            readBytes = (count + 1);
+            return Encoding.UTF8.GetChars(buffer)[0];
+        }
+        public static string ReadAllString(this Stream stream, Func<char, bool> predicate = null)
+        {
+            StringBuilder output = new StringBuilder();
+            char current;
+            while ((current = stream.ReadChar(out var count)) != char.MinValue)
+            {
+                if (!(predicate?.Invoke(current) ?? true))
+                {
+                    stream.Position -= count;
+                    break;
+                }
+                output.Append(current);
+            }
+            return output.ToString();
+        }
+        public static void WriteNString(this Stream stream, string value)
+        {
+            byte[] bytes = Encoding.UTF8.GetBytes(value);
             stream.WriteInt32(bytes.Length);
             stream.Write(bytes, 0, bytes.Length);
         }
-        public static string ReadString(this Stream stream)
+        public static string ReadNString(this Stream stream)
         {
             int count = stream.ReadInt32();
             byte[] buffer = new byte[count];

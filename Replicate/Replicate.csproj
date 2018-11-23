@@ -68,6 +68,8 @@
     <Compile Include="ReplicationPolicy.cs" />
     <Compile Include="Serialization\BinarySerializer.cs" />
     <Compile Include="Serialization\IReplicateSerializer.cs" />
+    <Compile Include="Serialization\JSONSerializer.cs" />
+    <Compile Include="Serialization\SerializationExceptions.cs" />
     <Compile Include="Serialization\Serializer.cs" />
     <Compile Include="Serialization\StreamExtensions.cs" />
     <Compile Include="TaskUtil.cs" />
