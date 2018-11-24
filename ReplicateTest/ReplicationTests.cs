@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Collections.Generic;
 using NUnit.Framework;
+using System.Threading.Tasks;
 
 namespace ReplicateTest
 {
@@ -55,13 +56,13 @@ namespace ReplicateTest
             };
             var cs = Util.MakeClientServer();
             bool called = false;
-            cs.client.Channel.Subscribe("herp", (message) =>
+            cs.client.Channel.Subscribe<SimpleMessage, bool>((message) =>
             {
                 called = true;
-                Assert.AreEqual(message.Request, testMessage);
-                return null;
-            });
-            cs.server.Channel.Publish("herp", testMessage).Wait();
+                Assert.AreEqual(message, testMessage);
+                return Task.FromResult(false);
+            }, "herp");
+            cs.server.Channel.Publish("herp", testMessage).Await();
             Assert.IsTrue(called);
         }
         [Test]

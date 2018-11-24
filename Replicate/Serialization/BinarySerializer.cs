@@ -15,25 +15,28 @@ namespace Replicate.Serialization
     {
         public TypeID TypeID;
         public byte[] Value;
+        // TODO: Fix to get a reference of the current binary serializer
         public static implicit operator TypedValue(BinaryTypedValueSurrogate self)
         {
-            var serializer = ReplicateContext.Current.Serializer;
-            var model = serializer.Model;
-            return new TypedValue(serializer.Deserialize(
-                null, new MemoryStream(self.Value),
-                model.GetTypeAccessor(model.GetType(self.TypeID)), null)
-            );
+            //var serializer = ReplicateContext.Current.Serializer;
+            //var model = serializer.Model;
+            //return new TypedValue(serializer.Deserialize(
+            //    null, new MemoryStream(self.Value),
+            //    model.GetTypeAccessor(model.GetType(self.TypeID)), null)
+            //);
+            return default(TypedValue);
         }
         public static implicit operator BinaryTypedValueSurrogate(TypedValue value)
         {
-            var serializer = ReplicateContext.Current.Serializer;
-            MemoryStream stream = new MemoryStream();
-            serializer.Serialize(stream, value.Value);
-            return new BinaryTypedValueSurrogate()
-            {
-                TypeID = serializer.Model.GetID(value.Value.GetType()),
-                Value = stream.ToArray()
-            };
+            //var serializer = ReplicateContext.Current.Serializer;
+            //MemoryStream stream = new MemoryStream();
+            //serializer.Serialize(stream, value.Value);
+            //return new BinaryTypedValueSurrogate()
+            //{
+            //    TypeID = serializer.Model.GetID(value.Value.GetType()),
+            //    Value = stream.ToArray()
+            //};
+            return null;
         }
     }
     class BinaryIntSerializer : IReplicateSerializer

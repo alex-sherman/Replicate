@@ -20,5 +20,13 @@ namespace Replicate
             }
             return obj;
         }
+        public static void Await(this Task task)
+        {
+            task.GetAwaiter().GetResult();
+        }
+        public static T Output<T>(this Task<T> task)
+        {
+            return task.GetAwaiter().GetResult();
+        }
     }
 }

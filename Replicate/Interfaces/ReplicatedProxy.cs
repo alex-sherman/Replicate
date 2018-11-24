@@ -21,21 +21,17 @@ namespace Replicate.Interfaces
 
         Task<object> RPC(MethodInfo method, object[] args)
         {
-            var parms = method.GetParameters();
-            bool hasParam = parms.Length == 1;
-            return Manager.Publish(new RPCRequest()
+            return Manager.Publish(method, new RPCRequest()
             {
-                Method = method,
-                Request = hasParam ? args[0] : None.Value,
-                RequestType = hasParam ? parms[0].ParameterType : typeof(None),
-                ResponseType = method.ReturnType,
+                Contract = new RPCContract(method),
                 Target = Target,
+                Request = args.Length == 1 ? args[0] : null,
             });
         }
 
         public T Intercept<T>(MethodInfo method, object[] args)
         {
-            return (T)RPC(method, args).Result;
+            return (T)RPC(method, args).GetAwaiter().GetResult();
         }
 
         public void InterceptVoid(MethodInfo method, object[] args)

@@ -50,7 +50,7 @@ namespace Replicate.Interfaces
         {
             Type target = typeof(T);
             AssemblyName assemblyName = new AssemblyName("DataBuilderAssembly");
-            AssemblyBuilder assemBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+            AssemblyBuilder assemBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
             ModuleBuilder moduleBuilder = assemBuilder.DefineDynamicModule("DataBuilderModule");
             TypeBuilder typeBuilder = moduleBuilder.DefineType(target.Name + "_Proxy", TypeAttributes.Class, typeof(ProxyImplement));
             typeBuilder.AddInterfaceImplementation(target);

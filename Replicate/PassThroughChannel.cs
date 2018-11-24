@@ -19,11 +19,6 @@ namespace Replicate
                 return $"{method.DeclaringType}.{method.Name}";
             }
 
-            public override ReplicatedID? GetRPCTarget(string endpoint)
-            {
-                return null;
-            }
-
             public override Task<object> Publish(string messageID, RPCRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced)
             {
                 return target.Receive(messageID, request);
