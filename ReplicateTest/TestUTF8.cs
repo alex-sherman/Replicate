@@ -1,16 +1,16 @@
 ﻿using System;
 using System.Text;
 using System.Collections.Generic;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
 using Replicate.Serialization;
+using NUnit.Framework;
 
 namespace ReplicateTest
 {
-    [TestClass]
+    [TestFixture]
     public class TestUTF8
     {
-        [TestMethod]
+        [Test]
         public void TestVariableLength()
         {
             var stream = new MemoryStream();

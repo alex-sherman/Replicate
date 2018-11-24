@@ -1,7 +1,7 @@
 ﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Replicate.MetaData;
 using Replicate;
+using NUnit.Framework;
 
 namespace ReplicateTest
 {
@@ -41,19 +41,19 @@ namespace ReplicateTest
             return new GenericSurrogate<T>() { id = go.id };
         }
     }
-    [TestClass]
+    [TestFixture]
     public class SurrogateTests
     {
 
-        [TestMethod]
-        [ExpectedException(typeof(InvalidOperationException))]
+        [Test]
         public void CircularSurrogateTest()
         {
             var model = new ReplicationModel();
             model[typeof(GameObject)].SetSurrogate(typeof(GameObjectSurrogate));
-            model[typeof(GameObjectSurrogate)].SetSurrogate(typeof(GameObject));
+            Assert.Throws<InvalidOperationException>(() =>
+                model[typeof(GameObjectSurrogate)].SetSurrogate(typeof(GameObject)));
         }
-        [TestMethod]
+        [Test]
         public void SurrogateTest1()
         {
             var model = new ReplicationModel();
@@ -62,7 +62,7 @@ namespace ReplicateTest
             Assert.AreEqual((ulong)124, result.id);
             Assert.AreEqual("Surrogated", result.data);
         }
-        [TestMethod]
+        [Test]
         public void GenericSurrogateTest1()
         {
             var model = new ReplicationModel();

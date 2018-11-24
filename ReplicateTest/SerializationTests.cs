@@ -1,5 +1,4 @@
 ﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Replicate;
 using System.Diagnostics;
 using Replicate.MetaData;
@@ -7,10 +6,11 @@ using System.Reflection;
 using System.IO;
 using System.Collections.Generic;
 using Replicate.Messages;
+using NUnit.Framework;
 
 namespace ReplicateTest
 {
-    [TestClass]
+    [TestFixture]
     public class SerializationTests
     {
         [ReplicateType]
@@ -34,27 +34,27 @@ namespace ReplicateTest
         {
             public V OtherValue;
         }
-        [TestMethod]
+        [Test]
         public void TestProperty()
         {
             var output = Util.SerializeDeserialize(new PropClass() { Property = 3 });
             Assert.AreEqual(3, output.Property);
         }
-        [TestMethod]
+        [Test]
         public void TestGeneric()
         {
             var output = Util.SerializeDeserialize(new GenericClass<string>() { Value = "herp", Prop = "derp" });
             Assert.AreEqual("herp", output.Value);
             Assert.AreEqual("derp", output.Prop);
         }
-        [TestMethod]
+        [Test]
         public void TestList()
         {
             var output = Util.SerializeDeserialize(new List<PropClass>() { new PropClass() { Property = 3 }, new PropClass() { Property = 4 } });
             Assert.AreEqual(3, output[0].Property);
             Assert.AreEqual(4, output[1].Property);
         }
-        [TestMethod]
+        [Test]
         public void TestDictionary()
         {
             var output = Util.SerializeDeserialize(new Dictionary<string, PropClass>()
@@ -65,13 +65,13 @@ namespace ReplicateTest
             Assert.AreEqual(3, output["faff"].Property);
             Assert.AreEqual(4, output["herp"].Property);
         }
-        [TestMethod]
+        [Test]
         public void TestNullObject()
         {
             var output = Util.SerializeDeserialize<PropClass>(null);
             Assert.IsNull(output);
         }
-        [TestMethod]
+        [Test]
         public void TestInitMessage()
         {
             var model = new ReplicationModel();
@@ -89,7 +89,7 @@ namespace ReplicateTest
             var output = ser.Deserialize<InitMessage>(stream);
             Assert.AreEqual(12, output.typeID.id);
         }
-        [TestMethod]
+        [Test]
         public void TestInheritedType()
         {
             var value = Util.SerializeDeserialize(new SubClass()
@@ -100,7 +100,7 @@ namespace ReplicateTest
             Assert.AreEqual(value.Field, "test");
             Assert.AreEqual(value.Property, 5);
         }
-        [TestMethod]
+        [Test]
         public void TestNestedGeneric()
         {
             var value = Util.SerializeDeserialize(new GenericSubClass<GenericClass<int>, GenericClass<string>>()

@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 using Replicate;
 using Replicate.MetaData;
 using Replicate.Serialization;
 
 namespace ReplicateTest
 {
-    [TestClass]
+    [TestFixture]
     public class JSONSerializationTests
     {
         #region Types
@@ -40,7 +40,7 @@ namespace ReplicateTest
         }
         #endregion
 
-        [TestMethod]
+        [Test]
         public void TestSerializeProperty()
         {
             var ser = new JSONSerializer(new ReplicationModel());
@@ -50,7 +50,7 @@ namespace ReplicateTest
             var str = stream.ReadAllString();
             Assert.AreEqual("{\"Property\": 3}", str);
         }
-        [TestMethod]
+        [Test]
         public void TestSerializeList()
         {
             var ser = new JSONSerializer(new ReplicationModel());
@@ -60,7 +60,7 @@ namespace ReplicateTest
             var str = stream.ReadAllString();
             Assert.AreEqual("[1, 2, 3, 4]", str);
         }
-        [TestMethod]
+        [Test]
         public void TestDeserializeList()
         {
             var ser = new JSONSerializer(new ReplicationModel());
@@ -70,7 +70,7 @@ namespace ReplicateTest
             var output = ser.Deserialize<int[]>(stream);
             CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 }, output);
         }
-        [TestMethod]
+        [Test]
         public void TestSerializeGeneric()
         {
             var ser = new JSONSerializer(new ReplicationModel());
@@ -80,7 +80,7 @@ namespace ReplicateTest
             var str = stream.ReadAllString();
             Assert.AreEqual("{\"Value\": \"herp\", \"Prop\": \"derp\"}", str);
         }
-        [TestMethod]
+        [Test]
         public void TestDeserializeGeneric()
         {
             var ser = new JSONSerializer(new ReplicationModel());
@@ -91,7 +91,7 @@ namespace ReplicateTest
             Assert.AreEqual("herp", output.Value);
             Assert.AreEqual("derp", output.Prop);
         }
-        [TestMethod]
+        [Test]
         public void TestSerializeNullObject()
         {
             var ser = new JSONSerializer(new ReplicationModel());
@@ -101,7 +101,7 @@ namespace ReplicateTest
             var str = stream.ReadAllString();
             Assert.AreEqual("null", str);
         }
-        [TestMethod]
+        [Test]
         public void TestDictionary()
         {
             var output = Util.SerializeDeserialize(new Dictionary<string, PropClass>()

@@ -1,10 +1,10 @@
 ﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Replicate;
 using Replicate.MetaData;
 using System.Linq;
 using System.Reflection;
 using System.Collections.Generic;
+using NUnit.Framework;
 
 namespace ReplicateTest
 {
@@ -23,16 +23,16 @@ namespace ReplicateTest
         public ReplicatedType2 child1;
     }
 
-    [TestClass]
+    [TestFixture]
     public class ReplicationTests
     {
         static TypeAccessor typeAccessor;
-        [ClassInitialize]
-        public static void InitTypes(TestContext testContext)
+        [OneTimeSetUp]
+        public static void InitTypes()
         {
             typeAccessor = ReplicationModel.Default.GetTypeAccessor(typeof(ReplicatedType));
         }
-        [TestMethod]
+        [Test]
         public void TypeDataTest()
         {
             Assert.AreEqual(ReplicationModel.Default[typeof(ReplicatedType)].ReplicatedMembers[0].Name, "field1");
@@ -45,7 +45,7 @@ namespace ReplicateTest
             [Replicate]
             public string faff;
         }
-        [TestMethod, Timeout(100)]
+        [Test, Timeout(100)]
         public void TestSendRecv()
         {
             var testMessage = new SimpleMessage()
@@ -64,7 +64,7 @@ namespace ReplicateTest
             cs.server.Channel.Publish("herp", testMessage).Wait();
             Assert.IsTrue(called);
         }
-        [TestMethod]
+        [Test]
         public void GetSetTest()
         {
             ReplicatedType replicated = new ReplicatedType()
@@ -77,15 +77,15 @@ namespace ReplicateTest
             typeAccessor.MemberAccessors[1].SetValue(replicated, "FAFF");
             Assert.AreEqual(typeAccessor.MemberAccessors[1].GetValue(replicated), "FAFF");
         }
-        [TestMethod]
+        [Test]
         public void RegisterObj()
         {
             ReplicatedType replicated = new ReplicatedType();
             var cs = Util.MakeClientServer();
             cs.server.RegisterObject(replicated);
-            Assert.IsInstanceOfType(cs.client.IDLookup.Values.First().replicated, typeof(ReplicatedType));
+            Assert.IsInstanceOf<ReplicatedType>(cs.client.IDLookup.Values.First().replicated);
         }
-        [TestMethod]
+        [Test]
         public void ReplicateObj()
         {
             ReplicatedType replicated = new ReplicatedType()
@@ -97,12 +97,12 @@ namespace ReplicateTest
             cs.server.RegisterObject(replicated);
             cs.server.Replicate(replicated);
             cs.server.RegisterObject(replicated).Wait();
-            Assert.IsInstanceOfType(cs.client.IDLookup.Values.First().replicated, typeof(ReplicatedType));
+            Assert.IsInstanceOf<ReplicatedType>(cs.client.IDLookup.Values.First().replicated);
             ReplicatedType clientValue = (ReplicatedType)cs.client.IDLookup.Values.First().replicated;
             Assert.AreEqual(replicated.field1, clientValue.field1);
             Assert.AreEqual(replicated.field2, clientValue.field2);
         }
-        [TestMethod]
+        [Test]
         public void ReplicateObjReference()
         {
             ReplicatedType2 child = new ReplicatedType2()
@@ -123,13 +123,13 @@ namespace ReplicateTest
             cs.server.RegisterObject(child);
             cs.server.Replicate(replicated1);
             cs.server.Replicate(replicated2).Wait();
-            Assert.IsInstanceOfType(cs.client.IDLookup.Values.First().replicated, typeof(ReplicatedType));
+            Assert.IsInstanceOf<ReplicatedType>(cs.client.IDLookup.Values.First().replicated);
             ReplicatedType clientValue = (ReplicatedType)cs.client.IDLookup.Values.First().replicated;
             ReplicatedType clientValue2 = (ReplicatedType)cs.client.IDLookup.Values.Skip(1).First().replicated;
             Assert.AreEqual(clientValue.child1, clientValue2.child1);
         }
         // Not implemented any more, but maybe again in the future?
-        //[TestMethod]
+        //[Test]
         //public void ReplicateDictionary()
         //{
         //    Dictionary<string, int> faff = new Dictionary<string, int>
@@ -148,21 +148,19 @@ namespace ReplicateTest
         public class ClassSurrogate { }
         [ReplicateType(surrogate: typeof(ClassSurrogate))]
         public class ClassWithSurrogate { }
-        [TestMethod]
-        [ExpectedException(typeof(InvalidOperationException))]
+        [Test]
         public void RegisterSurrogatedType()
         {
             var v = new ClassWithSurrogate();
             var cs = Util.MakeClientServer();
-            cs.server.RegisterObject(v);
+            Assert.Throws<InvalidOperationException>(() => cs.server.RegisterObject(v));
         }
         class Unknown { }
-        [TestMethod]
-        [ExpectedException(typeof(InvalidOperationException))]
+        [Test]
         public void RegisterUnknownType()
         {
             var cs = Util.MakeClientServer();
-            cs.server.RegisterObject(new Unknown());
+            Assert.Throws<InvalidOperationException>(() => cs.server.RegisterObject(new Unknown()));
         }
     }
 }

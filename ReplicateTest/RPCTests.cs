@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Reflection;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Replicate.Interfaces;
 using System.Linq;
 using Replicate;
 using static ReplicateTest.Util;
 using System.Threading.Tasks;
+using NUnit.Framework;
 
 namespace ReplicateTest
 {
-    [TestClass]
+    [TestFixture]
     public class RPCTests
     {
         public interface ITestInterface
@@ -80,17 +80,17 @@ namespace ReplicateTest
                 return Herp(faff);
             }
         }
-        [TestMethod]
+        [Test]
         public void ProxyImplementTest1()
         {
             ITestInterface test = ProxyImplement.HookUp<ITestInterface>(new TestImplementor());
             Assert.AreEqual(4, test.Herp("faff"));
         }
-        [TestMethod]
-        [ExpectedException(typeof(InvalidOperationException))]
+        [Test]
         public void ProxyOnUnregisteredObject()
         {
-            Util.MakeClientServer().server.CreateProxy(new TestTarget());
+            Assert.Throws<InvalidOperationException>(
+                () => Util.MakeClientServer().server.CreateProxy(new TestTarget()));
         }
         ClientServer rpcSetup(out TestTarget serverTarget, out TestTarget clientTarget)
         {
@@ -104,21 +104,21 @@ namespace ReplicateTest
             clientTarget.RPC = cs.client.CreateProxy<ITestInterface>(clientTarget);
             return cs;
         }
-        [TestMethod]
+        [Test]
         public void RPCProxyTest1()
         {
             var cs = rpcSetup(out var serverTarget, out var clientTarget);
             serverTarget.RPC.Derp();
             Assert.IsTrue(clientTarget.DerpCalled);
         }
-        [TestMethod]
+        [Test]
         public void RPCProxyTest2()
         {
             var cs = rpcSetup(out var serverTarget, out var clientTarget);
             serverTarget.Herp("derp");
             Assert.AreEqual("derp", clientTarget.HerpValue);
         }
-        [TestMethod]
+        [Test]
         public void TestRPCTargetGetsCalled()
         {
             var cs = MakeClientServer();
@@ -128,7 +128,7 @@ namespace ReplicateTest
             proxy.Derp();
             Assert.IsTrue(target.DerpCalled);
         }
-        [TestMethod]
+        [Test]
         public void TestRPCTargetGetsCalledAsync()
         {
             var cs = MakeClientServer();
@@ -138,7 +138,7 @@ namespace ReplicateTest
             proxy.AsyncDerp().Wait();
             Assert.IsTrue(target.DerpCalled);
         }
-        [TestMethod]
+        [Test]
         public void TestRPCReturnValueGetsSent()
         {
             var cs = MakeClientServer();
@@ -147,7 +147,7 @@ namespace ReplicateTest
             var proxy = cs.client.CreateProxy<ITestInterface>();
             Assert.AreEqual(4, proxy.Herp("derp"));
         }
-        [TestMethod]
+        [Test]
         public void TestRPCReturnValueGetsSentAsync()
         {
             var cs = MakeClientServer();
