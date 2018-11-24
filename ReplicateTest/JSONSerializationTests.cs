@@ -12,7 +12,7 @@ namespace ReplicateTest
     public class JSONSerializationTests
     {
         #region Types
-        [Replicate]
+        [ReplicateType]
         public class GenericClass<T>
         {
             [Replicate]
@@ -20,19 +20,19 @@ namespace ReplicateTest
             [Replicate]
             public T Prop { get; set; }
         }
-        [Replicate]
+        [ReplicateType]
         public class PropClass
         {
             [Replicate]
             public int Property { get; set; }
         }
-        [Replicate]
+        [ReplicateType]
         public class SubClass : PropClass
         {
             [Replicate]
             public string Field;
         }
-        [Replicate]
+        [ReplicateType]
         public class GenericSubClass<T, V> : GenericClass<T>
         {
             [Replicate]

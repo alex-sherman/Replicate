@@ -12,7 +12,6 @@ namespace ReplicateTest
     [TestClass]
     public class RPCTests
     {
-        [Replicate]
         public interface ITestInterface
         {
             int Herp(string faff);
@@ -20,7 +19,6 @@ namespace ReplicateTest
             Task<int> AsyncHerp(string faff);
             Task AsyncDerp();
         }
-        [Replicate]
         public interface ITestInterface<T>
         {
             int Herp(T faff);
@@ -54,7 +52,7 @@ namespace ReplicateTest
                 throw new NotImplementedException();
             }
         }
-        [Replicate]
+        [ReplicateType]
         public class TestTarget : ITestInterface
         {
             public ITestInterface RPC;

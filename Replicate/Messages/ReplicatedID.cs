@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Replicate.Messages
 {
-    [Replicate]
+    [ReplicateType]
     public struct ReplicatedID
     {
         [Replicate]

@@ -33,15 +33,21 @@ namespace Replicate.MetaData
                 else
                     MarshalMethod = MarshalMethod.Object;
             }
-
-            foreach (var field in type.GetFields(BindingFlags.Instance | BindingFlags.Public))
+            var replicateAttr = type.GetCustomAttribute<ReplicateTypeAttribute>();
+            var surrogateType = replicateAttr?.SurrogateType;
+            if (surrogateType != null) SetSurrogate(surrogateType);
+            var autoMembers = replicateAttr?.AutoMembers ?? AutoMembers.None;
+            var bindingFlags = BindingFlags.Instance | BindingFlags.Public;
+            if (autoMembers != AutoMembers.AllPublic)
+                bindingFlags |= BindingFlags.NonPublic;
+            foreach (var field in type.GetFields(bindingFlags))
             {
-                if (field.GetCustomAttribute<ReplicateAttribute>() != null)
+                if (autoMembers != AutoMembers.None || field.GetCustomAttribute<ReplicateAttribute>() != null)
                     AddMember(field);
             }
-            foreach (var property in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+            foreach (var property in type.GetProperties(bindingFlags))
             {
-                if (property.GetCustomAttribute<ReplicateAttribute>() != null)
+                if (autoMembers != AutoMembers.None || property.GetCustomAttribute<ReplicateAttribute>() != null)
                     AddMember(property);
             }
             ReplicatedInterfaces = type.GetInterfaces()

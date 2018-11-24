@@ -6,12 +6,10 @@ using System.Threading.Tasks;
 
 namespace Replicate.Messages
 {
-    [Replicate]
+    [ReplicateType]
     public struct TypeID
     {
-        [Replicate]
         public ushort id;
-        [Replicate]
         public TypeID[] subtypes;
     }
 }

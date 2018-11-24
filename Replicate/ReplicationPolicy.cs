@@ -20,7 +20,5 @@ namespace Replicate
     public class ReplicatePolicyAttribute : Attribute 
     {
         public bool AsReference;
-        /// TODO: Implement
-        public bool Singleton;
     }
 }

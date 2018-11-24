@@ -37,6 +37,7 @@ namespace Replicate.MetaData
         private void Initialize(ReplicationModel model, byte id)
         {
             Model = model;
+            ID = id;
             if (GetAttribute<ReplicatePolicyAttribute>()?.AsReference ?? false)
                 SetSurrogate(typeof(ReplicatedReference<>).MakeGenericType(MemberType));
         }

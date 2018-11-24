@@ -6,12 +6,10 @@ using System.Threading.Tasks;
 
 namespace Replicate.Messages
 {
-    [Replicate]
+    [ReplicateType]
     public struct InitMessage
     {
-        [Replicate]
         public ReplicatedID id;
-        [Replicate]
         public TypeID typeID;
     }
 }

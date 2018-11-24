@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Replicate
 {
-    [Replicate]
+    [ReplicateType]
     public class ReplicatedReference<T> where T : class
     {
         [Replicate]

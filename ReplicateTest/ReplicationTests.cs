@@ -8,20 +8,17 @@ using System.Collections.Generic;
 
 namespace ReplicateTest
 {
-    [Replicate]
+    [ReplicateType]
     public class ReplicatedType2
     {
         [Replicate]
         public float field3;
     }
-    [Replicate]
+    [ReplicateType]
     public class ReplicatedType
     {
-        [Replicate]
         public int field1;
-        [Replicate]
         public string field2;
-        [Replicate]
         [ReplicatePolicy(AsReference = true)]
         public ReplicatedType2 child1;
     }
@@ -40,7 +37,7 @@ namespace ReplicateTest
         {
             Assert.AreEqual(ReplicationModel.Default[typeof(ReplicatedType)].ReplicatedMembers[0].Name, "field1");
         }
-        [Replicate]
+        [ReplicateType]
         public struct SimpleMessage
         {
             [Replicate]
@@ -131,26 +128,31 @@ namespace ReplicateTest
             ReplicatedType clientValue2 = (ReplicatedType)cs.client.IDLookup.Values.Skip(1).First().replicated;
             Assert.AreEqual(clientValue.child1, clientValue2.child1);
         }
-        [TestMethod]
-        public void ReplicateDictionary()
-        {
-            Dictionary<string, int> faff = new Dictionary<string, int>
-            {
-                ["herp"] = 3
-            };
-            var cs = Util.MakeClientServer();
-            cs.server.RegisterObject(faff);
-            cs.server.Replicate(faff).Wait();
-            Assert.IsInstanceOfType(cs.client.IDLookup.Values.First().replicated, typeof(Dictionary<string, int>));
-            Dictionary<string, int> clientValue = (Dictionary<string, int>)cs.client.IDLookup.Values.First().replicated;
-            Assert.AreEqual("herp", clientValue.Keys.First());
-            Assert.AreEqual(3, clientValue["herp"]);
-        }
+        // Not implemented any more, but maybe again in the future?
+        //[TestMethod]
+        //public void ReplicateDictionary()
+        //{
+        //    Dictionary<string, int> faff = new Dictionary<string, int>
+        //    {
+        //        ["herp"] = 3
+        //    };
+        //    var cs = Util.MakeClientServer();
+        //    cs.server.RegisterObject(faff);
+        //    cs.server.Replicate(faff).Wait();
+        //    Assert.IsInstanceOfType(cs.client.IDLookup.Values.First().replicated, typeof(Dictionary<string, int>));
+        //    Dictionary<string, int> clientValue = (Dictionary<string, int>)cs.client.IDLookup.Values.First().replicated;
+        //    Assert.AreEqual("herp", clientValue.Keys.First());
+        //    Assert.AreEqual(3, clientValue["herp"]);
+        //}
+        [ReplicateType]
+        public class ClassSurrogate { }
+        [ReplicateType(surrogate: typeof(ClassSurrogate))]
+        public class ClassWithSurrogate { }
         [TestMethod]
         [ExpectedException(typeof(InvalidOperationException))]
         public void RegisterSurrogatedType()
         {
-            TypedValue v = new TypedValue("faff");
+            var v = new ClassWithSurrogate();
             var cs = Util.MakeClientServer();
             cs.server.RegisterObject(v);
         }

@@ -5,7 +5,7 @@ using Replicate;
 
 namespace ReplicateTest
 {
-    [Replicate]
+    [ReplicateType]
     public class GameObject
     {
         [Replicate]
@@ -13,7 +13,7 @@ namespace ReplicateTest
         [Replicate]
         public string data { get; set; }
     }
-    [Replicate]
+    [ReplicateType]
     public class GameObjectSurrogate
     {
         [Replicate]
@@ -27,7 +27,7 @@ namespace ReplicateTest
             return new GameObjectSurrogate() { id = go.id };
         }
     }
-    [Replicate]
+    [ReplicateType]
     public class GenericSurrogate<T> where T : class
     {
         [Replicate]

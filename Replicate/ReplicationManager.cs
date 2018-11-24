@@ -68,27 +68,14 @@ namespace Replicate
         private void HandleReplication(ReplicationMessage message)
         {
             var metaData = IDLookup[message.id];
-            Serializer.Deserialize(metaData.replicated, new MemoryStream(message.value), metaData.typeAccessor, null);
+            foreach (var data in message.Data)
+                metaData.typeAccessor.MemberAccessors[data.MemberID].SetValue(metaData.replicated, data.Value);
         }
 
         private void HandleInit(InitMessage message)
         {
             var typeData = Model.GetTypeAccessor(Model.GetType(message.typeID));
             AddObject(message.id, typeData.Construct());
-        }
-
-        private async Task<TypedValue> HandleRPC(RPCMessage message)
-        {
-            object target = message.ReplicatedID.HasValue ?
-                IDLookup[message.ReplicatedID.Value].replicated :
-                InterfaceLookup[message.InterfaceType];
-
-            using (ReplicateContext.UpdateContext(r => r.Value._isInRPC = true))
-            {
-                var resType = message.Method.ReturnType;
-                var response = await TaskUtil.Taskify(resType, message.Method.Invoke(target, message.Args.Select(v => v.Value).ToArray()));
-                return new TypedValue(response);
-            }
         }
 
         public Task Replicate(object replicated, ushort? destination = null)
@@ -101,7 +88,11 @@ namespace Replicate
                 ReplicationMessage message = new ReplicationMessage()
                 {
                     id = metaData.id,
-                    value = innerStream.ToArray(),
+                    Data = metaData.typeAccessor.MemberAccessors.Select(member => new ReplicationData()
+                    {
+                        MemberID = member.Info.ID,
+                        Value = member.GetValue(replicated),
+                    }).ToList()
                 };
                 return Channel.Publish(Channel.GetEndpoint(((Action<ReplicationMessage>)HandleReplication).Method), message);
             }
@@ -113,7 +104,7 @@ namespace Replicate
                 throw new InvalidOperationException("Cannot register objects which have surrogates");
             var typeID = Model.GetID(replicated.GetType());
             if (typeID.id == ushort.MaxValue)
-                throw new InvalidOperationException("Cannot register non [Replicate] objects");
+                throw new InvalidOperationException("Cannot register non [ReplicateType] objects");
             uint objectId = AllocateObjectID(replicated);
             var id = new ReplicatedID()
             {

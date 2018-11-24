@@ -42,15 +42,8 @@ namespace Replicate.MetaData
             kvpTD.MarshalMethod = MarshalMethod.Tuple;
             kvpTD.AddMember("Key");
             kvpTD.AddMember("Value");
-            Add(typeof(TypedValue)).SetSurrogate(typeof(TypedValueSurrogate));
-            foreach (var type in Assembly.GetCallingAssembly().GetTypes())
-            {
-                var replicate = type.GetCustomAttribute<ReplicateAttribute>();
-                if (replicate != null)
-                {
-                    Add(type);
-                }
-            }
+            Add(typeof(TypedValue));
+            LoadTypes(Assembly.GetCallingAssembly());
             typeIndex = typeLookup.Values.OrderBy(td => td.Name).Select(td => td.Type).ToList();
         }
 
@@ -123,7 +116,7 @@ namespace Replicate.MetaData
         public void LoadTypes(Assembly assembly = null)
         {
             assembly = assembly ?? Assembly.GetExecutingAssembly();
-            foreach (var type in AppDomain.CurrentDomain.GetAssemblies().SelectMany(asm => asm.GetTypes().Where(asmType => asmType.GetCustomAttribute<ReplicateAttribute>() != null)))
+            foreach (var type in assembly.GetTypes().Where(asmType => asmType.GetCustomAttribute<ReplicateTypeAttribute>() != null))
             {
                 Add(type);
             }

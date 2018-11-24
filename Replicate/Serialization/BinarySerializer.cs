@@ -5,10 +5,37 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Replicate.Messages;
 using Replicate.MetaData;
 
 namespace Replicate.Serialization
 {
+    [ReplicateType]
+    public class BinaryTypedValueSurrogate
+    {
+        public TypeID TypeID;
+        public byte[] Value;
+        public static implicit operator TypedValue(BinaryTypedValueSurrogate self)
+        {
+            var serializer = ReplicateContext.Current.Serializer;
+            var model = serializer.Model;
+            return new TypedValue(serializer.Deserialize(
+                null, new MemoryStream(self.Value),
+                model.GetTypeAccessor(model.GetType(self.TypeID)), null)
+            );
+        }
+        public static implicit operator BinaryTypedValueSurrogate(TypedValue value)
+        {
+            var serializer = ReplicateContext.Current.Serializer;
+            MemoryStream stream = new MemoryStream();
+            serializer.Serialize(stream, value.Value);
+            return new BinaryTypedValueSurrogate()
+            {
+                TypeID = serializer.Model.GetID(value.Value.GetType()),
+                Value = stream.ToArray()
+            };
+        }
+    }
     class BinaryIntSerializer : IReplicateSerializer
     {
         public object Read(Stream stream)

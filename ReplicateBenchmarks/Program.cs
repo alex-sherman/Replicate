@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace ReplicateBenchmarks
 {
     [ProtoBuf.ProtoContract]
-    [Replicate]
+    [ReplicateType]
     public struct Derp
     {
         [ProtoBuf.ProtoMember(1)]
@@ -20,7 +20,7 @@ namespace ReplicateBenchmarks
         public string faff;
     }
     [ProtoBuf.ProtoContract]
-    [Replicate]
+    [ReplicateType]
     public struct GenericDerp<T>
     {
         [ProtoBuf.ProtoMember(1)]

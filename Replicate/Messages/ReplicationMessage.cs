@@ -7,12 +7,15 @@ using System.Threading.Tasks;
 
 namespace Replicate.Messages
 {
-    [Replicate]
+    [ReplicateType(AutoMembers.AllPublic)]
     public struct ReplicationMessage
     {
-        [Replicate]
         public ReplicatedID id;
-        [Replicate]
-        public byte[] value;
+        public List<ReplicationData> Data;
+    }
+    public struct ReplicationData
+    {
+        public byte MemberID;
+        public object Value;
     }
 }

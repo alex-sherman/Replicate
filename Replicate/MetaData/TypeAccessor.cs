@@ -14,6 +14,7 @@ namespace Replicate.MetaData
         public string Name { get; private set; }
         public Type Type { get; private set; }
         public MemberAccessor[] MemberAccessors;
+        public Dictionary<string, MemberAccessor> Members;
         public TypeData TypeData { get; private set; }
         public TypeAccessor Surrogate { get; private set; }
         public TypeAccessor(TypeData typeData, Type type, ReplicationModel model)
@@ -25,6 +26,7 @@ namespace Replicate.MetaData
             MemberAccessors = typeData.ReplicatedMembers
                 .Select(member => new MemberAccessor(member, this, model))
                 .ToArray();
+            Members = MemberAccessors.ToDictionary(member => member.Info.Name);
         }
         public object Construct()
         {
