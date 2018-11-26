@@ -19,52 +19,15 @@ namespace Replicate
         public HashSet<ushort> relevance;
         public TypeAccessor typeAccessor;
     }
-    public abstract class ReplicationManager
+    public class ReplicationManager
     {
         public ReplicationModel Model { get; protected set; }
         protected Dictionary<uint, Action<byte[]>> handlerLookup = new Dictionary<uint, Action<byte[]>>();
         public Dictionary<object, ReplicatedObject> ObjectLookup = new Dictionary<object, ReplicatedObject>();
         public Dictionary<ReplicatedID, ReplicatedObject> IDLookup = new Dictionary<ReplicatedID, ReplicatedObject>();
         protected Dictionary<Type, object> InterfaceLookup = new Dictionary<Type, object>();
-        public abstract Task<object> Publish(MethodInfo method, RPCRequest request);
-        public abstract void Subscribe(MethodInfo method, HandlerDelegate handler);
-
-        #region RPC Interfaces
-        static Task<object> invoke(MethodInfo method, object target, object request)
-        {
-            using (ReplicateContext.UpdateContext(r => r.Value._isInRPC = true))
-            {
-                object[] args = new object[] { };
-                if (method.GetParameters().Length == 1)
-                    args = new[] { request };
-                var result = method.Invoke(target, args);
-                return TaskUtil.Taskify(method.ReturnType, result);
-            }
-        }
-
-        public void RegisterInstanceInterface<T>()
-        {
-            foreach (var method in typeof(T).GetMethods())
-            {
-                // TODO: This could be done with Reflection.Emit I think?
-                Subscribe(method, (request) => invoke(method, IDLookup[request.Target.Value].replicated, request.Request));
-            }
-        }
-
-        public void RegisterSingleton<T>(T implementation)
-        {
-            foreach (var method in typeof(T).GetMethods())
-            {
-                // TODO: This could be done with Reflection.Emit I think?
-                Subscribe(method, (request) => invoke(method, implementation, request.Request));
-            }
-        }
-        #endregion
-    }
-    public class ReplicationManager<TEndpoint> : ReplicationManager where TEndpoint : class
-    {
-        public ReplicationChannel<TEndpoint> Channel;
-        public ReplicationManager(ReplicationChannel<TEndpoint> channel, ReplicationModel model = null)
+        public IReplicationChannel Channel;
+        public ReplicationManager(IReplicationChannel channel, ReplicationModel model = null)
         {
             Model = model ?? ReplicationModel.Default;
             Channel = channel;
@@ -79,14 +42,30 @@ namespace Replicate
                 Manager = this,
             };
         }
-        public override Task<object> Publish(MethodInfo method, RPCRequest request)
+
+        static Task<object> invoke(MethodInfo method, object target, object request)
         {
-            return Channel.Publish(Channel.GetEndpoint(method), request);
+            using (ReplicateContext.UpdateContext(r => r.Value._isInRPC = true))
+            {
+                object[] args = new object[] { };
+                if (method.GetParameters().Length == 1)
+                    args = new[] { request };
+                var result = method.Invoke(target, args);
+                // TODO: This could be done with Reflection.Emit I think?
+                return TaskUtil.Taskify(method.ReturnType, result);
+            }
         }
 
-        public override void Subscribe(MethodInfo method, HandlerDelegate handler)
+        public void RegisterInstanceInterface<T>()
         {
-            Channel.Subscribe(method, handler);
+            foreach (var method in typeof(T).GetMethods())
+                Channel.Subscribe(method, (request) => invoke(method, IDLookup[request.Target.Value].replicated, request.Request));
+        }
+
+        public void RegisterSingleton<T>(T implementation)
+        {
+            foreach (var method in typeof(T).GetMethods())
+                Channel.Subscribe(method, (request) => invoke(method, implementation, request.Request));
         }
 
         public T CreateProxy<T>(T target = null) where T : class
@@ -128,7 +107,7 @@ namespace Replicate
                         Value = member.GetValue(replicated),
                     }).ToList()
                 };
-                return Channel.Publish(Channel.GetEndpoint(((Action<ReplicationMessage>)HandleReplication).Method), message);
+                return Channel.Publish(((Action<ReplicationMessage>)HandleReplication).Method, message);
             }
         }
 
@@ -151,7 +130,7 @@ namespace Replicate
                 id = id,
                 typeID = typeID
             };
-            return Channel.Publish(Channel.GetEndpoint(((Action<InitMessage>)HandleInit).Method), message);
+            return Channel.Publish(((Action<InitMessage>)HandleInit).Method, message);
         }
 
         private void AddObject(ReplicatedID id, object replicated)

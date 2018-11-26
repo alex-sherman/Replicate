@@ -10,18 +10,16 @@ namespace Replicate.Interfaces
     {
         ReplicatedID? Target;
         ReplicationManager Manager;
-        Type Interface;
 
         public ReplicatedProxy(ReplicatedID? target, ReplicationManager manager, Type replicatedInterface)
         {
             Target = target;
             Manager = manager;
-            Interface = replicatedInterface;
         }
 
         Task<object> RPC(MethodInfo method, object[] args)
         {
-            return Manager.Publish(method, new RPCRequest()
+            return Manager.Channel.Publish(method, new RPCRequest()
             {
                 Contract = new RPCContract(method),
                 Target = Target,

@@ -56,13 +56,14 @@ namespace ReplicateTest
             };
             var cs = Util.MakeClientServer();
             bool called = false;
-            cs.client.Channel.Subscribe<SimpleMessage, bool>((message) =>
+            var method = new Func<SimpleMessage, Task<bool>>((message) =>
             {
                 called = true;
                 Assert.AreEqual(message, testMessage);
                 return Task.FromResult(false);
-            }, "herp");
-            cs.server.Channel.Publish("herp", testMessage).Await();
+            });
+            cs.client.Channel.Subscribe(method);
+            cs.server.Channel.Publish(method.Method, testMessage).Await();
             Assert.IsTrue(called);
         }
         [Test]

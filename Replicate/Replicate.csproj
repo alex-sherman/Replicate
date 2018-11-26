@@ -4,6 +4,10 @@
     <Title>Replicate</Title>
     <Description></Description>
     <TargetFrameworks>net46;netcoreapp20</TargetFrameworks>
+    <Version>0.1.2</Version>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <Authors>Alex Sherman</Authors>
+    <Company>0xFAFF Games</Company>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net46|AnyCPU'">
     <DebugType>full</DebugType>
