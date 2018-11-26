@@ -39,7 +39,7 @@ namespace Replicate.Serialization
             return null;
         }
     }
-    class BinaryIntSerializer : IReplicateSerializer
+    class BinaryIntSerializer : ITypedSerializer
     {
         public object Read(Stream stream)
         {
@@ -51,7 +51,7 @@ namespace Replicate.Serialization
             stream.WriteInt32(Convert.ToInt32(obj));
         }
     }
-    class BinaryFloatSerializer : IReplicateSerializer
+    class BinaryFloatSerializer : ITypedSerializer
     {
         public object Read(Stream stream)
         {
@@ -63,7 +63,7 @@ namespace Replicate.Serialization
             stream.WriteSingle((float)obj);
         }
     }
-    class BinaryStringSerializer : IReplicateSerializer
+    class BinaryStringSerializer : ITypedSerializer
     {
         public object Read(Stream stream)
         {
@@ -79,7 +79,7 @@ namespace Replicate.Serialization
     {
         public BinarySerializer(ReplicationModel model) : base(model) { }
         static BinaryIntSerializer intSer = new BinaryIntSerializer();
-        Dictionary<Type, IReplicateSerializer> serializers = new Dictionary<Type, IReplicateSerializer>()
+        Dictionary<Type, ITypedSerializer> serializers = new Dictionary<Type, ITypedSerializer>()
         {
             {typeof(byte), intSer },
             {typeof(short), intSer },

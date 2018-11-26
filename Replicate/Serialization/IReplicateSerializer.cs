@@ -7,7 +7,12 @@ using System.Threading.Tasks;
 
 namespace Replicate.Serialization
 {
-    public interface IReplicateSerializer
+    public interface IReplicateSerializer<TWireType>
+    {
+        TWireType Serialize(Type type, object obj);
+        object Deserialize(Type type, TWireType message);
+    }
+    public interface ITypedSerializer
     {
         void Write(object obj, Stream stream);
         object Read(Stream stream);

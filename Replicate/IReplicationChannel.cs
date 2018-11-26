@@ -1,4 +1,5 @@
 ﻿using Replicate.Messages;
+using Replicate.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -106,7 +107,8 @@ namespace Replicate
         public bool TryGetContract(TEndpoint endpoint, out RPCContract contract)
         {
             contract = default(RPCContract);
-            if (responders.TryGetValue(endpoint, out var handler)){
+            if (responders.TryGetValue(endpoint, out var handler))
+            {
                 contract = handler.Contract;
                 return true;
             }
@@ -123,6 +125,19 @@ namespace Replicate
                     return await task;
             }
             return None.Value;
+        }
+        public virtual async Task<TWireType> Receive<TWireType>(TEndpoint endpoint, TWireType request,
+            IReplicateSerializer<TWireType> serializer, ReplicatedID? target = null)
+        {
+            if (!TryGetContract(endpoint, out var contract))
+                throw new ContractNotFoundError(endpoint.ToString());
+            var rpcRequest = new RPCRequest()
+            {
+                Contract = contract,
+                Request = serializer.Deserialize(contract.RequestType, request),
+                Target = target,
+            };
+            return serializer.Serialize(contract.ResponseType, (await Receive(endpoint, rpcRequest)));
         }
     }
 }

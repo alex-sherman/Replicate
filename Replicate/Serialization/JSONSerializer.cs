@@ -10,15 +10,15 @@ using Replicate.MetaData;
 
 namespace Replicate.Serialization
 {
-    public class JSONSerializer : Serializer
+    public class JSONSerializer : Serializer, IReplicateSerializer<string>
     {
-        class JSONIntSerializer : IReplicateSerializer
+        class JSONIntSerializer : ITypedSerializer
         {
             Regex rx = new Regex(@"[1-9\.\+\-eE]");
             public object Read(Stream stream) => long.Parse(stream.ReadAllString(c => rx.IsMatch("" + c)));
             public void Write(object obj, Stream stream) => stream.WriteString(obj.ToString());
         }
-        class JSONBoolSerializer : IReplicateSerializer
+        class JSONBoolSerializer : ITypedSerializer
         {
             public object Read(Stream stream)
             {
@@ -37,20 +37,40 @@ namespace Replicate.Serialization
             }
             public void Write(object obj, Stream stream) => stream.WriteString(obj.ToString());
         }
-        class JSONFloatSerializer : IReplicateSerializer
+        class JSONFloatSerializer : ITypedSerializer
         {
             Regex rx = new Regex(@"[1-9\.\+\-eE]");
             public object Read(Stream stream) => double.Parse(stream.ReadAllString(c => rx.IsMatch("" + c)));
             public void Write(object obj, Stream stream) => stream.WriteString(obj.ToString());
         }
-        class JSONStringSerializer : IReplicateSerializer
+
+        class JSONStringSerializer : ITypedSerializer
         {
-            public object Read(Stream stream) => parseString(stream);
-            public void Write(object obj, Stream stream) => stream.WriteString($"\"{(string)obj}\"");
+            public static List<Tuple<string, string>> replacements = new List<Tuple<string, string>>()
+            {
+                new Tuple<string, string>("\\\\", "\\"),
+                new Tuple<string, string>("\\\"", "\""),
+                new Tuple<string, string>("\\n", "\n"),
+                new Tuple<string, string>("\\t", "\t"),
+            };
+            static string Escape(string str)
+            {
+                foreach (var replacement in replacements)
+                    str = str.Replace(replacement.Item2, replacement.Item1);
+                return str;
+            }
+            static string Unescape(string str)
+            {
+                foreach (var replacement in replacements)
+                    str = str.Replace(replacement.Item1, replacement.Item2);
+                return str;
+            }
+            public object Read(Stream stream) => Unescape(parseString(stream));
+            public void Write(object obj, Stream stream) => stream.WriteString($"\"{Escape((string)obj)}\"");
         }
         public JSONSerializer(ReplicationModel model) : base(model) { }
         static JSONIntSerializer intSer = new JSONIntSerializer();
-        Dictionary<Type, IReplicateSerializer> serializers = new Dictionary<Type, IReplicateSerializer>()
+        Dictionary<Type, ITypedSerializer> serializers = new Dictionary<Type, ITypedSerializer>()
         {
             {typeof(bool), new JSONBoolSerializer() },
             {typeof(byte), intSer },
@@ -195,6 +215,24 @@ namespace Replicate.Serialization
         public override void SerializeTuple(Stream stream, object obj, TypeAccessor typeAccessor)
         {
             throw new NotImplementedException();
+        }
+
+        public string Serialize(Type type, object obj)
+        {
+            var stream = new MemoryStream();
+            Serialize(stream, type, obj);
+            stream.Position = 0;
+            return new StreamReader(stream).ReadToEnd();
+        }
+
+        public object Deserialize(Type type, string message)
+        {
+            var stream = new MemoryStream();
+            var sw = new StreamWriter(stream);
+            sw.Write(message);
+            sw.Flush();
+            stream.Position = 0;
+            return Deserialize(stream, type);
         }
     }
 }

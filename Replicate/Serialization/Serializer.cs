@@ -65,8 +65,11 @@ namespace Replicate.Serialization
         public abstract void SerializeTuple(Stream stream, object obj, TypeAccessor typeAccessor);
         public T Deserialize<T>(Stream stream)
         {
-            Type type = typeof(T);
-            return (T)Deserialize(null, stream, Model.GetTypeAccessor(type), null);
+            return (T)Deserialize(null, stream, Model.GetTypeAccessor(typeof(T)), null);
+        }
+        public object Deserialize(Stream stream, Type type)
+        {
+            return Deserialize(null, stream, Model.GetTypeAccessor(type), null);
         }
         public object Deserialize(object obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
