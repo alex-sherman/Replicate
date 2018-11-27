@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -27,6 +28,19 @@ namespace Replicate
         public static T Output<T>(this Task<T> task)
         {
             return task.GetAwaiter().GetResult();
+        }
+
+        public static Task<object> RPCInvoke(MethodInfo method, object target, object request)
+        {
+            using (ReplicateContext.UpdateContext(r => r.Value._isInRPC = true))
+            {
+                object[] args = new object[] { };
+                if (method.GetParameters().Length == 1)
+                    args = new[] { request };
+                var result = method.Invoke(target, args);
+                // TODO: This could be done with Reflection.Emit I think?
+                return TaskUtil.Taskify(method.ReturnType, result);
+            }
         }
     }
 }

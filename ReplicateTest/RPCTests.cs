@@ -77,6 +77,7 @@ namespace ReplicateTest
             }
             public async Task<int> AsyncHerp(string faff)
             {
+                await Task.Delay(100);
                 return Herp(faff);
             }
         }
@@ -90,11 +91,11 @@ namespace ReplicateTest
         public void ProxyOnUnregisteredObject()
         {
             Assert.Throws<InvalidOperationException>(
-                () => Util.MakeClientServer().server.CreateProxy(new TestTarget()));
+                () => MakeClientServer().server.CreateProxy(new TestTarget()));
         }
         ClientServer rpcSetup(out TestTarget serverTarget, out TestTarget clientTarget)
         {
-            var cs = Util.MakeClientServer();
+            var cs = MakeClientServer();
             serverTarget = new TestTarget();
             cs.server.RegisterObject(serverTarget).Wait();
             cs.server.RegisterInstanceInterface<ITestInterface>();
@@ -123,7 +124,7 @@ namespace ReplicateTest
         {
             var cs = MakeClientServer();
             var target = new TestTarget();
-            cs.server.RegisterSingleton<ITestInterface>(target);
+            cs.server.Channel.RegisterSingleton<ITestInterface>(target);
             var proxy = cs.client.CreateProxy<ITestInterface>();
             proxy.Derp();
             Assert.IsTrue(target.DerpCalled);
@@ -133,7 +134,7 @@ namespace ReplicateTest
         {
             var cs = MakeClientServer();
             var target = new TestTarget();
-            cs.server.RegisterSingleton<ITestInterface>(target);
+            cs.server.Channel.RegisterSingleton<ITestInterface>(target);
             var proxy = cs.client.CreateProxy<ITestInterface>();
             proxy.AsyncDerp().Wait();
             Assert.IsTrue(target.DerpCalled);
@@ -143,7 +144,7 @@ namespace ReplicateTest
         {
             var cs = MakeClientServer();
             var target = new TestTarget();
-            cs.server.RegisterSingleton<ITestInterface>(target);
+            cs.server.Channel.RegisterSingleton<ITestInterface>(target);
             var proxy = cs.client.CreateProxy<ITestInterface>();
             Assert.AreEqual(4, proxy.Herp("derp"));
         }
@@ -152,7 +153,7 @@ namespace ReplicateTest
         {
             var cs = MakeClientServer();
             var target = new TestTarget();
-            cs.server.RegisterSingleton<ITestInterface>(target);
+            cs.server.Channel.RegisterSingleton<ITestInterface>(target);
             var proxy = cs.client.CreateProxy<ITestInterface>();
             Assert.AreEqual(4, proxy.AsyncHerp("derp").Result);
         }

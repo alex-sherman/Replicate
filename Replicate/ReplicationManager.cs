@@ -43,29 +43,10 @@ namespace Replicate
             };
         }
 
-        static Task<object> invoke(MethodInfo method, object target, object request)
-        {
-            using (ReplicateContext.UpdateContext(r => r.Value._isInRPC = true))
-            {
-                object[] args = new object[] { };
-                if (method.GetParameters().Length == 1)
-                    args = new[] { request };
-                var result = method.Invoke(target, args);
-                // TODO: This could be done with Reflection.Emit I think?
-                return TaskUtil.Taskify(method.ReturnType, result);
-            }
-        }
-
         public void RegisterInstanceInterface<T>()
         {
             foreach (var method in typeof(T).GetMethods())
-                Channel.Subscribe(method, (request) => invoke(method, IDLookup[request.Target.Value].replicated, request.Request));
-        }
-
-        public void RegisterSingleton<T>(T implementation)
-        {
-            foreach (var method in typeof(T).GetMethods())
-                Channel.Subscribe(method, (request) => invoke(method, implementation, request.Request));
+                Channel.Subscribe(method, (request) => TaskUtil.RPCInvoke(method, IDLookup[request.Target.Value].replicated, request.Request));
         }
 
         public T CreateProxy<T>(T target = null) where T : class

@@ -80,6 +80,12 @@ namespace Replicate
                 Request = request
             }, reliability);
         }
+
+        public static void RegisterSingleton<T>(this IReplicationChannel channel, T implementation)
+        {
+            foreach (var method in typeof(T).GetMethods())
+                channel.Subscribe(method, (request) => TaskUtil.RPCInvoke(method, implementation, request.Request));
+        }
     }
 
     public abstract class ReplicationChannel<TEndpoint> : IReplicationChannel where TEndpoint : class
