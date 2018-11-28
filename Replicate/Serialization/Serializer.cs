@@ -113,11 +113,18 @@ namespace Replicate.Serialization
         protected static object FillCollection(object obj, Type type, List<object> values)
         {
             var count = values.Count;
+
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+            {
+                type = typeof(List<>).MakeGenericType(type.GetGenericArguments());
+                obj = null;
+            }
+            var collectionType = type.GetInterface("ICollection`1");
             if (obj == null)
                 obj = type.GetConstructor(new Type[] { typeof(int) }).Invoke(new object[] { count });
             else
             {
-                var clearMeth = type.GetInterface("ICollection`1").GetMethod("Clear");
+                var clearMeth = collectionType.GetMethod("Clear");
                 clearMeth.Invoke(obj, new object[] { });
             }
             if (obj is Array)
@@ -128,7 +135,7 @@ namespace Replicate.Serialization
             }
             else
             {
-                var addMeth = type.GetInterface("ICollection`1").GetMethod("Add");
+                var addMeth = collectionType.GetMethod("Add");
                 foreach(var value in values)
                     addMeth.Invoke(obj, new object[] { value });
             }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -37,9 +38,17 @@ namespace Replicate
                 object[] args = new object[] { };
                 if (method.GetParameters().Length == 1)
                     args = new[] { request };
-                var result = method.Invoke(target, args);
-                // TODO: This could be done with Reflection.Emit I think?
-                return TaskUtil.Taskify(method.ReturnType, result);
+                try
+                {
+                    var result = method.Invoke(target, args);
+                    // TODO: This could be done with Reflection.Emit I think?
+                    return Taskify(method.ReturnType, result);
+                }
+                catch(TargetInvocationException e)
+                {
+                    ExceptionDispatchInfo.Capture(e.InnerException).Throw();
+                    throw e.InnerException;
+                }
             }
         }
     }

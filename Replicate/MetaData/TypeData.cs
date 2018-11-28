@@ -16,7 +16,7 @@ namespace Replicate.MetaData
         public Type Type { get; private set; }
         public List<MemberInfo> ReplicatedMembers = new List<MemberInfo>();
         public List<Type> ReplicatedInterfaces;
-        public TypeAccessor Surrogate { get; private set; }
+        public Type Surrogate { get; private set; }
         public ReplicationModel Model { get; private set; }
         private bool IsSurrogate = false;
         public TypeData(Type type, ReplicationModel model)
@@ -28,7 +28,7 @@ namespace Replicate.MetaData
                 MarshalMethod = MarshalMethod.Primitive;
             else
             {
-                if (type.GetInterface("ICollection`1") != null)
+                if (type.GetInterface("ICollection`1") != null || type == typeof(IEnumerable<>))
                     MarshalMethod = MarshalMethod.Collection;
                 else
                     MarshalMethod = MarshalMethod.Object;
@@ -79,10 +79,8 @@ namespace Replicate.MetaData
         {
             if (IsSurrogate)
                 throw new InvalidOperationException("Cannot set the surrogate of a surrogate type");
-            if (surrogate.IsGenericTypeDefinition)
-                throw new InvalidOperationException("Cannot set a surrogate type that is generic");
             Model.Add(surrogate).IsSurrogate = true;
-            Surrogate = Model.GetTypeAccessor(surrogate);
+            Surrogate = surrogate;
         }
     }
 }

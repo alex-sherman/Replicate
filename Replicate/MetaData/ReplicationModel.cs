@@ -37,7 +37,8 @@ namespace Replicate.MetaData
             Add(typeof(string));
             Add(typeof(Dictionary<,>));
             Add(typeof(List<>));
-            Add(typeof(ICollection<>)).MarshalMethod = MarshalMethod.Collection;
+            Add(typeof(ICollection<>));
+            Add(typeof(IEnumerable<>));
             var kvpTD = Add(typeof(KeyValuePair<,>));
             kvpTD.MarshalMethod = MarshalMethod.Tuple;
             kvpTD.AddMember("Key");
@@ -83,8 +84,9 @@ namespace Replicate.MetaData
         }
         public TypeAccessor GetCollectionValueAccessor(Type collectionType)
         {
-            var valueType = collectionType.GetInterface("ICollection`1").GetGenericArguments()[0];
-            return GetTypeAccessor(valueType);
+            if (!collectionType.IsGenericType || collectionType.GetGenericTypeDefinition() != typeof(IEnumerable<>))
+                collectionType = collectionType.GetInterface("ICollection`1");
+            return GetTypeAccessor(collectionType.GetGenericArguments()[0]);
         }
         public TypeData GetTypeData(Type type, bool autoAddType = true)
         {
@@ -96,6 +98,8 @@ namespace Replicate.MetaData
                 return Add(type);
             if (type.GetInterface("ICollection`1") != null)
                 return typeLookup[typeof(ICollection<>)];
+            if (type.GetInterface("IEnumerable`1") != null)
+                return typeLookup[typeof(IEnumerable<>)];
             return null;
         }
         public TypeData this[Type type]

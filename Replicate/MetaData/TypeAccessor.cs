@@ -19,7 +19,15 @@ namespace Replicate.MetaData
         public TypeAccessor Surrogate { get; private set; }
         public TypeAccessor(TypeData typeData, Type type, ReplicationModel model)
         {
-            Surrogate = typeData.Surrogate;
+            if (typeData.Surrogate != null)
+            {
+                var surrogateType = typeData.Surrogate;
+                if (surrogateType.IsGenericTypeDefinition)
+                {
+                    surrogateType = surrogateType.MakeGenericType(type.GetGenericArguments());
+                }
+                Surrogate = model.GetTypeAccessor(surrogateType);
+            }
             TypeData = typeData;
             Type = type;
             Name = type.FullName;

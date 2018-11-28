@@ -170,7 +170,7 @@ namespace Replicate
             var rpcRequest = new RPCRequest()
             {
                 Contract = contract,
-                Request = serializer.Deserialize(contract.RequestType, request),
+                Request = request == null ? null : serializer.Deserialize(contract.RequestType, request),
                 Target = target,
             };
             return serializer.Serialize(contract.ResponseType, (await Receive(endpoint, rpcRequest)));

@@ -114,6 +114,9 @@ namespace Replicate.Serialization
             if (stream.ReadChar() != '{') throw new SerializationError();
             do
             {
+                stream.ReadAllString(IsW);
+                if (stream.ReadChar(true) == '}')
+                    break;
                 var name = parseString(stream);
                 stream.ReadAllString(IsW);
                 CheckAndThrow(stream.ReadChar() == ':');
@@ -147,7 +150,16 @@ namespace Replicate.Serialization
         {
             if (ReadNull(stream)) return null;
             if (serializers.ContainsKey(type))
-                return Convert.ChangeType(serializers[type].Read(stream), type);
+            {
+                try
+                {
+                    return Convert.ChangeType(serializers[type].Read(stream), type);
+                }
+                catch
+                {
+                    throw new SerializationError();
+                }
+            }
             return null;
         }
 

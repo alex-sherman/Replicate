@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using NUnit.Framework;
 using Replicate;
 using Replicate.MetaData;
@@ -69,6 +70,26 @@ namespace ReplicateTest
             stream.Position = 0;
             var output = ser.Deserialize<int[]>(stream);
             CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 }, output);
+        }
+        [Test]
+        public void TestSerializeIEnumerable()
+        {
+            var ser = new JSONSerializer(new ReplicationModel());
+            var stream = new MemoryStream();
+            ser.Serialize<IEnumerable<int>>(stream, new[] { 1, 2, 3, 4 });
+            stream.Position = 0;
+            var str = stream.ReadAllString();
+            CollectionAssert.AreEqual("[1, 2, 3, 4]", str);
+        }
+        [Test]
+        public void TestDeserializeIEnumerable()
+        {
+            var ser = new JSONSerializer(new ReplicationModel());
+            var stream = new MemoryStream();
+            stream.WriteString("[1, 2, 3, 4]");
+            stream.Position = 0;
+            var output = ser.Deserialize<IEnumerable<int>>(stream);
+            CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 }, output.ToArray());
         }
         [Test]
         public void TestSerializeGeneric()
