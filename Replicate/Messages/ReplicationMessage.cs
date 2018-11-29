@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Replicate.Messages
 {
-    [ReplicateType(AutoMembers.AllPublic)]
+    [ReplicateType]
     public struct ReplicationMessage
     {
         public ReplicatedID id;

@@ -12,12 +12,20 @@ namespace ReplicateTest
     [TestFixture]
     public class RPCTests
     {
+        [ReplicateType(AutoMethods = AutoAdd.AllPublic, IsInstanceRPC = true)]
         public interface ITestInterface
         {
             int Herp(string faff);
             void Derp();
             Task<int> AsyncHerp(string faff);
             Task AsyncDerp();
+        }
+        [ReplicateType(IsInstanceRPC = true)]
+        public interface ITestInterface2
+        {
+            [ReplicateRPC]
+            int Herp(string faff);
+            void Derp();
         }
         public interface ITestInterface<T>
         {
@@ -53,7 +61,7 @@ namespace ReplicateTest
             }
         }
         [ReplicateType]
-        public class TestTarget : ITestInterface
+        public class TestTarget : ITestInterface, ITestInterface2
         {
             public ITestInterface RPC;
             public bool DerpCalled = false;
@@ -67,7 +75,6 @@ namespace ReplicateTest
                 await Task.Delay(100);
                 Derp();
             }
-
             public int Herp(string faff)
             {
                 if (!ReplicateContext.IsInRPC)
@@ -90,16 +97,13 @@ namespace ReplicateTest
         [Test]
         public void ProxyOnUnregisteredObject()
         {
-            Assert.Throws<InvalidOperationException>(
-                () => MakeClientServer().server.CreateProxy(new TestTarget()));
+            Assert.Throws<ReplicateError>(() => MakeClientServer().server.CreateProxy(new TestTarget()));
         }
         ClientServer rpcSetup(out TestTarget serverTarget, out TestTarget clientTarget)
         {
             var cs = MakeClientServer();
             serverTarget = new TestTarget();
-            cs.server.RegisterObject(serverTarget).Wait();
-            cs.server.RegisterInstanceInterface<ITestInterface>();
-            cs.client.RegisterInstanceInterface<ITestInterface>();
+            cs.server.RegisterObject(serverTarget).Await();
             clientTarget = cs.client.ObjectLookup.Values.First().replicated as TestTarget;
             serverTarget.RPC = cs.server.CreateProxy<ITestInterface>(serverTarget);
             clientTarget.RPC = cs.client.CreateProxy<ITestInterface>(clientTarget);
@@ -117,6 +121,28 @@ namespace ReplicateTest
         {
             var cs = rpcSetup(out var serverTarget, out var clientTarget);
             serverTarget.Herp("derp");
+            Assert.AreEqual("derp", clientTarget.HerpValue);
+        }
+        [Test]
+        public void TestRPCDoesntAddMethod()
+        {
+            var cs = MakeClientServer();
+            var serverTarget = new TestTarget();
+            cs.server.RegisterObject(serverTarget).Await();
+            var clientTarget = cs.client.ObjectLookup.Values.First().replicated as TestTarget;
+            var proxy = cs.server.CreateProxy<ITestInterface2>(serverTarget);
+            proxy.Derp();
+            Assert.AreEqual(false, clientTarget.DerpCalled);
+        }
+        [Test]
+        public void TestRPCDoesAddMethod()
+        {
+            var cs = MakeClientServer();
+            var serverTarget = new TestTarget();
+            cs.server.RegisterObject(serverTarget).Await();
+            var clientTarget = cs.client.ObjectLookup.Values.First().replicated as TestTarget;
+            var proxy = cs.server.CreateProxy<ITestInterface2>(serverTarget);
+            proxy.Herp("derp");
             Assert.AreEqual("derp", clientTarget.HerpValue);
         }
         [Test]

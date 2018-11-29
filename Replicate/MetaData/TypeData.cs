@@ -15,6 +15,8 @@ namespace Replicate.MetaData
         public string Name { get; private set; }
         public Type Type { get; private set; }
         public List<MemberInfo> ReplicatedMembers = new List<MemberInfo>();
+        public List<MethodInfo> RPCMethods = new List<MethodInfo>();
+        public readonly bool IsInstanceRPC;
         public List<Type> ReplicatedInterfaces;
         public Type Surrogate { get; private set; }
         public ReplicationModel Model { get; private set; }
@@ -34,22 +36,31 @@ namespace Replicate.MetaData
                     MarshalMethod = MarshalMethod.Object;
             }
             var replicateAttr = type.GetCustomAttribute<ReplicateTypeAttribute>();
+            IsInstanceRPC = replicateAttr?.IsInstanceRPC ?? false;
             var surrogateType = replicateAttr?.SurrogateType;
             if (surrogateType != null) SetSurrogate(surrogateType);
-            var autoMembers = replicateAttr?.AutoMembers ?? AutoMembers.None;
+            var autoMembers = replicateAttr?.AutoMembers ?? AutoAdd.None;
             var bindingFlags = BindingFlags.Instance | BindingFlags.Public;
-            if (autoMembers != AutoMembers.AllPublic)
+            if (autoMembers != AutoAdd.AllPublic)
                 bindingFlags |= BindingFlags.NonPublic;
             foreach (var field in type.GetFields(bindingFlags))
             {
-                if (autoMembers != AutoMembers.None || field.GetCustomAttribute<ReplicateAttribute>() != null)
+                if (autoMembers != AutoAdd.None || field.GetCustomAttribute<ReplicateAttribute>() != null)
                     AddMember(field);
             }
             foreach (var property in type.GetProperties(bindingFlags))
             {
-                if (autoMembers != AutoMembers.None || property.GetCustomAttribute<ReplicateAttribute>() != null)
+                if (autoMembers != AutoAdd.None || property.GetCustomAttribute<ReplicateAttribute>() != null)
                     AddMember(property);
             }
+
+            bindingFlags = BindingFlags.Instance | BindingFlags.Public;
+            var autoMethods = replicateAttr?.AutoMethods ?? AutoAdd.None;
+            if (autoMethods != AutoAdd.AllPublic)
+                bindingFlags |= BindingFlags.NonPublic;
+            RPCMethods = type.GetMethods(bindingFlags)
+                .Where(meth => autoMethods != AutoAdd.None || meth.GetCustomAttribute<ReplicateRPCAttribute>() != null)
+                .ToList();
             ReplicatedInterfaces = type.GetInterfaces()
                 .Where(interfaceType => interfaceType.GetCustomAttribute<ReplicateAttribute>() != null)
                 .ToList();

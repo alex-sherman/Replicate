@@ -19,7 +19,7 @@ namespace Replicate
                 return $"{method.DeclaringType}.{method.Name}";
             }
 
-            public override Task<object> Publish(string messageID, RPCRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced)
+            public override Task<object> Request(string messageID, RPCRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced)
             {
                 return target.Receive(messageID, request);
             }

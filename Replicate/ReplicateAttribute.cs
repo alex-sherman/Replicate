@@ -8,21 +8,18 @@ namespace Replicate
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
     public class ReplicateAttribute : Attribute { }
 
-    public enum AutoMembers
+    public enum AutoAdd
     {
         None,
         AllPublic,
         All,
     }
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface)]
     public class ReplicateTypeAttribute : Attribute
     {
         public Type SurrogateType;
-        public AutoMembers AutoMembers;
-        public ReplicateTypeAttribute(AutoMembers autoMembers = AutoMembers.AllPublic, Type surrogate = null)
-        {
-            AutoMembers = autoMembers;
-            SurrogateType = surrogate;
-        }
+        public AutoAdd AutoMembers = AutoAdd.AllPublic;
+        public AutoAdd AutoMethods = AutoAdd.None;
+        public bool IsInstanceRPC = false;
     }
 }

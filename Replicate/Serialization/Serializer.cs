@@ -121,7 +121,7 @@ namespace Replicate.Serialization
             }
             var collectionType = type.GetInterface("ICollection`1");
             if (obj == null)
-                obj = type.GetConstructor(new Type[] { typeof(int) }).Invoke(new object[] { count });
+                obj = Activator.CreateInstance(type, count);
             else
             {
                 var clearMeth = collectionType.GetMethod("Clear");

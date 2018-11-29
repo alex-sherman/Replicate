@@ -6,9 +6,8 @@ using System.Threading.Tasks;
 
 namespace Replicate
 {
-    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
+    [AttributeUsage(AttributeTargets.Method)]
     public class ReplicateRPCAttribute : Attribute
     {
-
     }
 }

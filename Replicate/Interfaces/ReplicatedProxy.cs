@@ -19,7 +19,7 @@ namespace Replicate.Interfaces
 
         Task<object> RPC(MethodInfo method, object[] args)
         {
-            return Manager.Channel.Publish(method, new RPCRequest()
+            return Manager.Channel.Request(method, new RPCRequest()
             {
                 Contract = new RPCContract(method),
                 Target = Target,

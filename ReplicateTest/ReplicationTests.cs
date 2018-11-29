@@ -62,8 +62,8 @@ namespace ReplicateTest
                 Assert.AreEqual(message, testMessage);
                 return Task.FromResult(false);
             });
-            cs.client.Channel.Subscribe(method);
-            cs.server.Channel.Publish(method.Method, testMessage).Await();
+            cs.client.Channel.Respond(method);
+            cs.server.Channel.Request(method.Method, testMessage).Await();
             Assert.IsTrue(called);
         }
         [Test]
@@ -148,7 +148,7 @@ namespace ReplicateTest
         //}
         [ReplicateType]
         public class ClassSurrogate { }
-        [ReplicateType(surrogate: typeof(ClassSurrogate))]
+        [ReplicateType(SurrogateType = typeof(ClassSurrogate))]
         public class ClassWithSurrogate { }
         [Test]
         public void RegisterSurrogatedType()

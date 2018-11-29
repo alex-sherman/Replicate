@@ -92,6 +92,26 @@ namespace ReplicateTest
             CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 }, output.ToArray());
         }
         [Test]
+        public void TestSerializeHashset()
+        {
+            var ser = new JSONSerializer(new ReplicationModel());
+            var stream = new MemoryStream();
+            ser.Serialize(stream, new HashSet<int>(new[] { 1, 2, 3, 4 }));
+            stream.Position = 0;
+            var str = stream.ReadAllString();
+            CollectionAssert.AreEqual("[1, 2, 3, 4]", str);
+        }
+        [Test]
+        public void TestDeserializeHashset()
+        {
+            var ser = new JSONSerializer(new ReplicationModel());
+            var stream = new MemoryStream();
+            stream.WriteString("[1, 2, 3, 4]");
+            stream.Position = 0;
+            var output = ser.Deserialize<HashSet<int>>(stream);
+            CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 }, output.ToArray());
+        }
+        [Test]
         public void TestSerializeGeneric()
         {
             var ser = new JSONSerializer(new ReplicationModel());

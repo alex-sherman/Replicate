@@ -1,6 +1,7 @@
 ﻿using Replicate.Messages;
 using Replicate.Serialization;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -17,7 +18,7 @@ namespace Replicate.MetaData
         Collection = 2,
         Tuple = 3,
     }
-    public class ReplicationModel
+    public class ReplicationModel : IEnumerable<TypeData>
     {
         public static ReplicationModel Default { get; } = new ReplicationModel();
         Dictionary<Type, TypeAccessor> typeAccessorLookup = new Dictionary<Type, TypeAccessor>();
@@ -117,13 +118,18 @@ namespace Replicate.MetaData
             stringLookup.Add(type.FullName, output);
             return output;
         }
+        static bool IsReplicateType(Type type)
+        {
+            return type.GetCustomAttribute<ReplicateTypeAttribute>() != null;
+        }
         public void LoadTypes(Assembly assembly = null)
         {
             assembly = assembly ?? Assembly.GetExecutingAssembly();
-            foreach (var type in assembly.GetTypes().Where(asmType => asmType.GetCustomAttribute<ReplicateTypeAttribute>() != null))
-            {
+            foreach (var type in assembly.GetTypes().Where(IsReplicateType))
                 Add(type);
-            }
         }
+
+        public IEnumerator<TypeData> GetEnumerator() => typeLookup.Values.GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }

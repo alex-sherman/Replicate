@@ -52,29 +52,29 @@ namespace Replicate
     }
     public interface IReplicationChannel
     {
-        Task<object> Publish(MethodInfo method, RPCRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced);
-        void Subscribe(MethodInfo method, HandlerDelegate handler);
+        Task<object> Request(MethodInfo method, RPCRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced);
+        void Respond(MethodInfo method, HandlerDelegate handler);
     }
     public static class ChannelExtensions
     {
-        public static void Subscribe(this IReplicationChannel channel, HandlerDelegate handler)
+        public static void Respond(this IReplicationChannel channel, HandlerDelegate handler)
         {
-            channel.Subscribe(handler.Method, handler);
+            channel.Respond(handler.Method, handler);
         }
-        public static void Subscribe<TRequest, TResponse>(this IReplicationChannel channel, Func<TRequest, Task<TResponse>> handler)
+        public static void Respond<TRequest, TResponse>(this IReplicationChannel channel, Func<TRequest, Task<TResponse>> handler)
         {
-            channel.Subscribe(handler.Method, async (req) => { return await handler((TRequest)req.Request); });
+            channel.Respond(handler.Method, async (req) => { return await handler((TRequest)req.Request); });
         }
-        public static void Subscribe<TRequest>(this IReplicationChannel channel, Action<TRequest> handler)
+        public static void Respond<TRequest>(this IReplicationChannel channel, Action<TRequest> handler)
         {
-            channel.Subscribe(handler.Method, (req) => { handler((TRequest)req.Request); return null; });
+            channel.Respond(handler.Method, (req) => { handler((TRequest)req.Request); return null; });
         }
         /// <summary>
         /// Avoid using this since there is no type checking on request/response
         /// </summary>
-        public static Task<object> Publish(this IReplicationChannel channel, MethodInfo method, object request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced)
+        public static Task<object> Request(this IReplicationChannel channel, MethodInfo method, object request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced)
         {
-            return channel.Publish(method, new RPCRequest()
+            return channel.Request(method, new RPCRequest()
             {
                 Contract = new RPCContract(method),
                 Request = request
@@ -84,7 +84,7 @@ namespace Replicate
         public static void RegisterSingleton<T>(this IReplicationChannel channel, T implementation)
         {
             foreach (var method in typeof(T).GetMethods())
-                channel.Subscribe(method, (request) => TaskUtil.RPCInvoke(method, implementation, request.Request));
+                channel.Respond(method, (request) => TaskUtil.RPCInvoke(method, implementation, request.Request));
         }
     }
 
@@ -99,14 +99,14 @@ namespace Replicate
 
         public abstract TEndpoint GetEndpoint(MethodInfo endpoint);
 
-        public abstract Task<object> Publish(TEndpoint messageID, RPCRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced);
-        public Task<object> Publish(MethodInfo method, RPCRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced)
+        public abstract Task<object> Request(TEndpoint messageID, RPCRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced);
+        public Task<object> Request(MethodInfo method, RPCRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced)
         {
-            return Publish(GetEndpoint(method), request, reliability);
+            return Request(GetEndpoint(method), request, reliability);
         }
-        public async Task<TResponse> Publish<TRequest, TResponse>(TEndpoint messageID, TRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced)
+        public async Task<TResponse> Request<TRequest, TResponse>(TEndpoint messageID, TRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced)
         {
-            var result = await Publish(messageID, new RPCRequest()
+            var result = await Request(messageID, new RPCRequest()
             {
                 Contract = new RPCContract(typeof(TRequest), typeof(TResponse)),
                 Request = request,
@@ -115,23 +115,23 @@ namespace Replicate
                 return default(TResponse);
             return (TResponse)result;
         }
-        public void Subscribe<TRequest, TResponse>(Func<TRequest, Task<TResponse>> handler, TEndpoint endpoint = null)
+        public void Respond<TRequest, TResponse>(Func<TRequest, Task<TResponse>> handler, TEndpoint endpoint = null)
         {
-            Subscribe(endpoint ?? GetEndpoint(handler.Method),
+            Respond(endpoint ?? GetEndpoint(handler.Method),
                 async (req) => { return await handler((TRequest)req.Request); },
                 new RPCContract(typeof(TRequest), typeof(TResponse)));
         }
-        public void Subscribe<TRequest>(Action<TRequest> handler, TEndpoint endpoint = null)
+        public void Respond<TRequest>(Action<TRequest> handler, TEndpoint endpoint = null)
         {
-            Subscribe(endpoint ?? GetEndpoint(handler.Method),
+            Respond(endpoint ?? GetEndpoint(handler.Method),
                 (req) => { handler((TRequest)req.Request); return null; },
                 new RPCContract(typeof(TRequest), typeof(None)));
         }
-        public void Subscribe(MethodInfo method, HandlerDelegate handler)
+        public void Respond(MethodInfo method, HandlerDelegate handler)
         {
-            Subscribe(GetEndpoint(method), handler, new RPCContract(method));
+            Respond(GetEndpoint(method), handler, new RPCContract(method));
         }
-        public void Subscribe(TEndpoint messageID, HandlerDelegate handler, RPCContract contract)
+        public void Respond(TEndpoint messageID, HandlerDelegate handler, RPCContract contract)
         {
             responders[messageID] = new HandlerInfo()
             {

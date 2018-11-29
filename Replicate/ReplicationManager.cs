@@ -31,8 +31,10 @@ namespace Replicate
         {
             Model = model ?? ReplicationModel.Default;
             Channel = channel;
-            Channel.Subscribe<ReplicationMessage>(HandleReplication);
-            Channel.Subscribe<InitMessage>(HandleInit);
+            Channel.Respond<ReplicationMessage>(HandleReplication);
+            Channel.Respond<InitMessage>(HandleInit);
+            foreach (var method in Model.Where(typeData => typeData.IsInstanceRPC).SelectMany(typeData => typeData.RPCMethods))
+                Channel.Respond(method, (request) => TaskUtil.RPCInvoke(method, IDLookup[request.Target.Value].replicated, request.Request));
         }
 
         ReplicateContext CreateContext()
@@ -43,19 +45,13 @@ namespace Replicate
             };
         }
 
-        public void RegisterInstanceInterface<T>()
-        {
-            foreach (var method in typeof(T).GetMethods())
-                Channel.Subscribe(method, (request) => TaskUtil.RPCInvoke(method, IDLookup[request.Target.Value].replicated, request.Request));
-        }
-
         public T CreateProxy<T>(T target = null) where T : class
         {
             ReplicatedID? id = null;
             if (target != null)
             {
                 if (!ObjectLookup.ContainsKey(target))
-                    throw new InvalidOperationException("Cannot create a proxy for a non-registered object");
+                    throw new ReplicateError("Cannot create a proxy for a non-registered object");
 
                 id = ObjectLookup[target].id;
             }
@@ -88,7 +84,7 @@ namespace Replicate
                         Value = member.GetValue(replicated),
                     }).ToList()
                 };
-                return Channel.Publish(((Action<ReplicationMessage>)HandleReplication).Method, message);
+                return Channel.Request(((Action<ReplicationMessage>)HandleReplication).Method, message);
             }
         }
 
@@ -111,7 +107,7 @@ namespace Replicate
                 id = id,
                 typeID = typeID
             };
-            return Channel.Publish(((Action<InitMessage>)HandleInit).Method, message);
+            return Channel.Request(((Action<InitMessage>)HandleInit).Method, message);
         }
 
         private void AddObject(ReplicatedID id, object replicated)
