@@ -143,6 +143,16 @@ namespace ReplicateTest
             Assert.AreEqual("null", str);
         }
         [Test]
+        public void TestDeserializeNullObject()
+        {
+            var ser = new JSONSerializer(new ReplicationModel());
+            var stream = new MemoryStream();
+            stream.WriteString("null");
+            stream.Position = 0;
+            var output = ser.Deserialize<PropClass>(stream);
+            Assert.AreEqual(null, output);
+        }
+        [Test]
         public void TestDictionary()
         {
             var output = Util.SerializeDeserialize(new Dictionary<string, PropClass>()
@@ -152,6 +162,46 @@ namespace ReplicateTest
             });
             Assert.AreEqual(3, output["faff"].Property);
             Assert.AreEqual(4, output["herp"].Property);
+        }
+        [Test]
+        public void TestSerializeNullableInt()
+        {
+            var ser = new JSONSerializer(new ReplicationModel());
+            var stream = new MemoryStream();
+            ser.Serialize<int?>(stream, 1);
+            stream.Position = 0;
+            var str = stream.ReadAllString();
+            Assert.AreEqual("1", str);
+        }
+        [Test]
+        public void TestDeserializeNullableInt()
+        {
+            var ser = new JSONSerializer(new ReplicationModel());
+            var stream = new MemoryStream();
+            stream.WriteString("1");
+            stream.Position = 0;
+            var output = ser.Deserialize<int?>(stream);
+            Assert.AreEqual(1, output);
+        }
+        [Test]
+        public void TestNullableNullInt()
+        {
+            var ser = new JSONSerializer(new ReplicationModel());
+            var stream = new MemoryStream();
+            ser.Serialize<int?>(stream, null);
+            stream.Position = 0;
+            var str = stream.ReadAllString();
+            Assert.AreEqual("null", str);
+        }
+        [Test]
+        public void TestDeserializeNullableNullInt()
+        {
+            var ser = new JSONSerializer(new ReplicationModel());
+            var stream = new MemoryStream();
+            stream.WriteString("null");
+            stream.Position = 0;
+            var output = ser.Deserialize<int?>(stream);
+            Assert.AreEqual(null, output);
         }
     }
 }
