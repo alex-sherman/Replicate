@@ -20,6 +20,11 @@ namespace ReplicateTest
             Task<int> AsyncHerp(string faff);
             Task AsyncDerp();
         }
+        [ReplicateType(AutoMethods = AutoAdd.AllPublic)]
+        public interface ITestGenericInterface
+        {
+            T Generic<T>(T value);
+        }
         [ReplicateType(IsInstanceRPC = true)]
         public interface ITestInterface2
         {
@@ -39,6 +44,8 @@ namespace ReplicateTest
 
             public T Intercept<T>(MethodInfo method, object[] args)
             {
+                if (method.Name == "Generic")
+                    return (T)args[0];
                 Assert.IsTrue(method == derp || method == herp);
                 if (method == herp)
                     return (T)(object)((string)args[0]).Length;
@@ -93,6 +100,16 @@ namespace ReplicateTest
         {
             ITestInterface test = ProxyImplement.HookUp<ITestInterface>(new TestImplementor());
             Assert.AreEqual(4, test.Herp("faff"));
+        }
+        [Test]
+        public void ProxyImplementGeneric()
+        {
+            // TODO: Implement probably
+            Assert.Throws<ReplicateError>(() =>
+            {
+                ITestGenericInterface test = ProxyImplement.HookUp<ITestGenericInterface>(new TestImplementor());
+            });
+            //Assert.AreEqual("faff", test.Generic("faff"));
         }
         [Test]
         public void ProxyOnUnregisteredObject()

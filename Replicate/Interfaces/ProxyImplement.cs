@@ -58,6 +58,8 @@ namespace Replicate.Interfaces
             for (int i = 0; i < methods.Length; i++)
             {
                 var info = methods[i];
+                if (info.ContainsGenericParameters)
+                    throw new ReplicateError("Generic parameters in RPC interfaces are not supported");
                 var builder = typeBuilder.DefineMethod(info.Name, ImplicitImplementation,
                     info.ReturnType, info.GetParameters().Select(pinfo => pinfo.ParameterType).ToArray());
                 Implement(i, builder, info);

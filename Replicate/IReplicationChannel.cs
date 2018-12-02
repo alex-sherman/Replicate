@@ -1,4 +1,5 @@
-﻿using Replicate.Messages;
+﻿using Replicate.Interfaces;
+using Replicate.Messages;
 using Replicate.Serialization;
 using System;
 using System.Collections.Generic;
@@ -84,12 +85,18 @@ namespace Replicate
         public static void RegisterSingleton<T>(this IReplicationChannel channel, T implementation)
         {
             foreach (var method in typeof(T).GetMethods())
-                channel.Respond(method, (request) => TaskUtil.RPCInvoke(method, implementation, request.Request));
+                channel.Respond(method, (request) => Util.RPCInvoke(method, implementation, request.Request));
+        }
+
+        public static T CreateProxy<T>(this IReplicationChannel channel, ReplicatedID? target = null) where T : class
+        {
+            return ProxyImplement.HookUp<T>(new ReplicatedProxy(target, channel, typeof(T)));
         }
     }
 
-    public abstract class ReplicationChannel<TEndpoint> : IReplicationChannel where TEndpoint : class
+    public abstract class ReplicationChannel<TEndpoint, TWireType> : IReplicationChannel where TEndpoint : class
     {
+        public abstract IReplicateSerializer<TWireType> Serializer { get; }
         Dictionary<TEndpoint, HandlerInfo> responders = new Dictionary<TEndpoint, HandlerInfo>();
         /// <summary>
         /// Specifies whether or not the channel is allowed to send/receive messages.
@@ -162,18 +169,17 @@ namespace Replicate
             }
             return None.Value;
         }
-        public virtual async Task<TWireType> Receive<TWireType>(TEndpoint endpoint, TWireType request,
-            IReplicateSerializer<TWireType> serializer, ReplicatedID? target = null)
+        public virtual async Task<TWireType> Receive(TEndpoint endpoint, TWireType request, ReplicatedID? target = null)
         {
             if (!TryGetContract(endpoint, out var contract))
                 throw new ContractNotFoundError(endpoint.ToString());
             var rpcRequest = new RPCRequest()
             {
                 Contract = contract,
-                Request = request == null ? null : serializer.Deserialize(contract.RequestType, request),
+                Request = request == null ? null : Serializer.Deserialize(contract.RequestType, request),
                 Target = target,
             };
-            return serializer.Serialize(contract.ResponseType, (await Receive(endpoint, rpcRequest)));
+            return Serializer.Serialize(contract.ResponseType.GetTaskReturnType(), (await Receive(endpoint, rpcRequest)));
         }
     }
 }

@@ -34,7 +34,7 @@ namespace Replicate
             Channel.Respond<ReplicationMessage>(HandleReplication);
             Channel.Respond<InitMessage>(HandleInit);
             foreach (var method in Model.Where(typeData => typeData.IsInstanceRPC).SelectMany(typeData => typeData.RPCMethods))
-                Channel.Respond(method, (request) => TaskUtil.RPCInvoke(method, IDLookup[request.Target.Value].replicated, request.Request));
+                Channel.Respond(method, (request) => Util.RPCInvoke(method, IDLookup[request.Target.Value].replicated, request.Request));
         }
 
         ReplicateContext CreateContext()
@@ -55,7 +55,7 @@ namespace Replicate
 
                 id = ObjectLookup[target].id;
             }
-            return ProxyImplement.HookUp<T>(new ReplicatedProxy(id, this, typeof(T)));
+            return Channel.CreateProxy<T>(id);
         }
         private void HandleReplication(ReplicationMessage message)
         {

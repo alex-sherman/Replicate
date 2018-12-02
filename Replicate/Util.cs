@@ -8,8 +8,13 @@ using System.Threading.Tasks;
 
 namespace Replicate
 {
-    public static class TaskUtil
+    public static class Util
     {
+        public static bool IsSameGeneric(this Type compare, Type target)
+        {
+            return (compare.IsGenericTypeDefinition && compare == target) ||
+                (compare.IsGenericType && compare.GetGenericTypeDefinition() == target);
+        }
         public static async Task<object> Taskify(Type type, object obj)
         {
             if (obj is Task task)
@@ -17,10 +22,19 @@ namespace Replicate
                 await task;
                 if (type == typeof(Task))
                     return None.Value;
-                if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Task<>))
+                if (type.IsSameGeneric(typeof(Task<>)))
                     return (object)((dynamic)task).Result;
             }
             return obj;
+        }
+
+        public static Type GetTaskReturnType(this Type type)
+        {
+            if (type == typeof(Task))
+                return typeof(None);
+            if (type.IsSameGeneric(typeof(Task<>)))
+                return type.GetGenericArguments()[0];
+            return type;
         }
         public static void Await(this Task task)
         {

@@ -9,17 +9,17 @@ namespace Replicate.Interfaces
     public class ReplicatedProxy : IImplementor
     {
         ReplicatedID? Target;
-        ReplicationManager Manager;
+        IReplicationChannel Channel;
 
-        public ReplicatedProxy(ReplicatedID? target, ReplicationManager manager, Type replicatedInterface)
+        public ReplicatedProxy(ReplicatedID? target, IReplicationChannel channel, Type replicatedInterface)
         {
             Target = target;
-            Manager = manager;
+            Channel = channel;
         }
 
         Task<object> RPC(MethodInfo method, object[] args)
         {
-            return Manager.Channel.Request(method, new RPCRequest()
+            return Channel.Request(method, new RPCRequest()
             {
                 Contract = new RPCContract(method),
                 Target = Target,
