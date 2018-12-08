@@ -68,6 +68,8 @@ namespace Replicate.Serialization
             public object Read(Stream stream) => Unescape(parseString(stream));
             public void Write(object obj, Stream stream) => stream.WriteString($"\"{Escape((string)obj)}\"");
         }
+
+        public bool ToLowerFieldNames = false;
         public JSONSerializer(ReplicationModel model) : base(model) { }
         static JSONIntSerializer intSer = new JSONIntSerializer();
         Dictionary<Type, ITypedSerializer> serializers = new Dictionary<Type, ITypedSerializer>()
@@ -97,15 +99,25 @@ namespace Replicate.Serialization
             if (ReadNull(stream)) return null;
             List<object> values = new List<object>();
             if (stream.ReadChar() != '[') throw new SerializationError();
-            do
+            stream.ReadAllString(IsW);
+            while(stream.ReadChar(true) != ']')
             {
                 stream.ReadAllString(IsW);
                 values.Add(Deserialize(null, stream, collectionValueAccessor, null));
                 stream.ReadAllString(IsW);
-            } while (stream.ReadChar() == ',');
+                var nextChar = stream.ReadChar();
+                if (nextChar == ']')
+                    break;
+                CheckAndThrow(nextChar == ',');
+            }
             return FillCollection(obj, type, values);
         }
-
+        string MapName(string fieldName)
+        {
+            if (ToLowerFieldNames)
+                return fieldName.ToLower();
+            return fieldName;
+        }
         public override object DeserializeObject(object obj, Stream stream, Type type, TypeAccessor typeAccessor)
         {
             if (ReadNull(stream)) return null;
@@ -121,7 +133,7 @@ namespace Replicate.Serialization
                 stream.ReadAllString(IsW);
                 CheckAndThrow(stream.ReadChar() == ':');
                 stream.ReadAllString(IsW);
-                var memberAccessor = typeAccessor.MemberAccessors.FirstOrDefault(m => m.Info.Name == name);
+                var memberAccessor = typeAccessor.MemberAccessors.FirstOrDefault(m => MapName(m.Info.Name) == name);
                 CheckAndThrow(memberAccessor != null);
                 var value = Deserialize(memberAccessor.GetValue(obj), stream, memberAccessor.TypeAccessor, memberAccessor);
                 memberAccessor.SetValue(obj, value);
@@ -209,7 +221,7 @@ namespace Replicate.Serialization
                 {
                     if (!first) stream.WriteString(", ");
                     else first = false;
-                    stream.WriteString($"\"{member.Info.Name}\": ");
+                    stream.WriteString($"\"{MapName(member.Info.Name)}\": ");
                     Serialize(stream, member.GetValue(obj), member.TypeAccessor, member);
                 }
                 stream.WriteString("}");

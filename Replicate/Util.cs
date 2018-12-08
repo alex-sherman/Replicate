@@ -30,7 +30,7 @@ namespace Replicate
 
         public static Type GetTaskReturnType(this Type type)
         {
-            if (type == typeof(Task))
+            if (type == typeof(Task) || type == typeof(void))
                 return typeof(None);
             if (type.IsSameGeneric(typeof(Task<>)))
                 return type.GetGenericArguments()[0];

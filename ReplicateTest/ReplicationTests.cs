@@ -39,11 +39,23 @@ namespace ReplicateTest
             Assert.AreEqual(ReplicationModel.Default[typeof(ReplicatedType)].ReplicatedMembers[0].Name, "field1");
         }
         [ReplicateType]
+        public struct IgnoredFields
+        {
+            public float exist;
+            [ReplicateIgnore]
+            public float ignored;
+        }
+        [Test]
+        public void TestReplicateIgnore()
+        {
+            var members = ReplicationModel.Default[typeof(IgnoredFields)].ReplicatedMembers;
+            Assert.AreEqual(1, members.Count);
+            Assert.AreEqual("exist", members[0].Name);
+        }
+        [ReplicateType]
         public struct SimpleMessage
         {
-            [Replicate]
             public float time;
-            [Replicate]
             public string faff;
         }
         [Test, Timeout(100)]

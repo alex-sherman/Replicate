@@ -114,19 +114,19 @@ namespace ReplicateTest
         [Test]
         public void TestSerializeGeneric()
         {
-            var ser = new JSONSerializer(new ReplicationModel());
+            var ser = new JSONSerializer(new ReplicationModel()) { ToLowerFieldNames = true };
             var stream = new MemoryStream();
             ser.Serialize(stream, new GenericClass<string>() { Value = "herp", Prop = "derp" });
             stream.Position = 0;
             var str = stream.ReadAllString();
-            Assert.AreEqual("{\"Value\": \"herp\", \"Prop\": \"derp\"}", str);
+            Assert.AreEqual("{\"value\": \"herp\", \"prop\": \"derp\"}", str);
         }
         [Test]
         public void TestDeserializeGeneric()
         {
-            var ser = new JSONSerializer(new ReplicationModel());
+            var ser = new JSONSerializer(new ReplicationModel()) { ToLowerFieldNames = true };
             var stream = new MemoryStream();
-            stream.WriteString("{\"Value\": \"herp\", \"Prop\": \"derp\"}");
+            stream.WriteString("{\"value\": \"herp\", \"prop\": \"derp\"}");
             stream.Position = 0;
             var output = ser.Deserialize< GenericClass<string>>(stream);
             Assert.AreEqual("herp", output.Value);

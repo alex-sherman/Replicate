@@ -40,7 +40,14 @@ namespace Replicate.Interfaces
         public async Task<T> InterceptAsync<T>(MethodInfo method, object[] args)
         {
             var result = (await RPC(method, args));
-            return (T)result;
+            try
+            {
+                return (T)result;
+            }
+            catch(InvalidCastException)
+            {
+                throw;
+            }
         }
 
         public async Task InterceptAsyncVoid(MethodInfo method, object[] args)

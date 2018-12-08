@@ -45,12 +45,12 @@ namespace Replicate.MetaData
                 bindingFlags |= BindingFlags.NonPublic;
             foreach (var field in type.GetFields(bindingFlags))
             {
-                if (autoMembers != AutoAdd.None || field.GetCustomAttribute<ReplicateAttribute>() != null)
+                if (Include(autoMembers, field))
                     AddMember(field);
             }
             foreach (var property in type.GetProperties(bindingFlags))
             {
-                if (autoMembers != AutoAdd.None || property.GetCustomAttribute<ReplicateAttribute>() != null)
+                if (Include(autoMembers, property))
                     AddMember(property);
             }
 
@@ -64,6 +64,13 @@ namespace Replicate.MetaData
             ReplicatedInterfaces = type.GetInterfaces()
                 .Where(interfaceType => interfaceType.GetCustomAttribute<ReplicateAttribute>() != null)
                 .ToList();
+        }
+
+        public bool Include(AutoAdd autoMembers, System.Reflection.MemberInfo member)
+        {
+            if (member.GetCustomAttribute<ReplicateIgnoreAttribute>() != null)
+                return false;
+            return autoMembers != AutoAdd.None || member.GetCustomAttribute<ReplicateAttribute>() != null;
         }
 
         public TypeData AddMember(string name)
