@@ -4,8 +4,8 @@
     <Title>Replicate</Title>
     <Description></Description>
     <TargetFrameworks>net46;netcoreapp20</TargetFrameworks>
-    <Version>0.1.3</Version>
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <Version>0.1.3.2</Version>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>Alex Sherman</Authors>
     <Company>0xFAFF Games</Company>
   </PropertyGroup>

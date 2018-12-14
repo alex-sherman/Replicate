@@ -20,11 +20,11 @@ namespace ReplicateTest
             public ReplicationManager server;
             public ReplicationManager client;
         }
-        public static ClientServer MakeClientServer(Serializer serializer = null)
+        public static ClientServer MakeClientServer()
         {
             ReplicationModel model = new ReplicationModel();
-            serializer = serializer ?? new BinarySerializer(model);
             PassThroughChannel channel = new PassThroughChannel();
+            channel.SetSerializer(new BinarySerializer(model));
             return new ClientServer()
             {
                 model = model,

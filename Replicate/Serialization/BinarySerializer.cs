@@ -75,12 +75,13 @@ namespace Replicate.Serialization
             stream.WriteNString((string)obj);
         }
     }
-    public class BinarySerializer : Serializer
+    public class BinarySerializer : Serializer, IReplicateSerializer<byte[]>
     {
         public BinarySerializer(ReplicationModel model) : base(model) { }
         static BinaryIntSerializer intSer = new BinaryIntSerializer();
         Dictionary<Type, ITypedSerializer> serializers = new Dictionary<Type, ITypedSerializer>()
         {
+            {typeof(bool), intSer },
             {typeof(byte), intSer },
             {typeof(short), intSer },
             {typeof(ushort), intSer },
@@ -99,7 +100,10 @@ namespace Replicate.Serialization
             else
             {
                 stream.WriteByte(1);
-                serializers[type].Write(obj, stream);
+                if (serializers.TryGetValue(type, out var ser))
+                    ser.Write(obj, stream);
+                else
+                    throw new SerializationError();
             }
         }
 
@@ -185,6 +189,19 @@ namespace Replicate.Serialization
                 parameters.Add(Deserialize(null, stream, member.TypeAccessor, member));
             }
             return type.GetConstructor(paramTypes.ToArray()).Invoke(parameters.ToArray());
+        }
+
+        public byte[] Serialize(Type type, object obj)
+        {
+            var stream = new MemoryStream();
+            Serialize(stream, type, obj);
+            return stream.ToArray();
+        }
+
+        public object Deserialize(Type type, byte[] message)
+        {
+            var stream = new MemoryStream(message);
+            return Deserialize(stream, type);
         }
     }
 }

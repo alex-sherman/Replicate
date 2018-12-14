@@ -37,13 +37,13 @@ namespace Replicate
         public RPCContract(Type requestType, Type responseType)
         {
             RequestType = requestType;
-            ResponseType = responseType;
+            ResponseType = responseType.GetTaskReturnType();
         }
         public RPCContract(MethodInfo method)
         {
             var parameters = method.GetParameters();
             RequestType = parameters.Length == 1 ? parameters[0].ParameterType : typeof(None);
-            ResponseType = method.ReturnType;
+            ResponseType = method.ReturnType.GetTaskReturnType();
         }
     }
     struct HandlerInfo
@@ -106,47 +106,19 @@ namespace Replicate
 
         public abstract TEndpoint GetEndpoint(MethodInfo endpoint);
 
-        public abstract Task<object> Request(TEndpoint messageID, RPCRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced);
-        public Task<object> Request(MethodInfo method, RPCRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced)
+        public abstract Task<TWireType> Request(TEndpoint messageId, RPCRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced);
+        public async Task<object> Request(MethodInfo method, RPCRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced)
         {
-            return Request(GetEndpoint(method), request, reliability);
-        }
-        public async Task<TResponse> Request<TRequest, TResponse>(TEndpoint messageID, TRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced)
-        {
-            var result = await Request(messageID, new RPCRequest()
-            {
-                Contract = new RPCContract(typeof(TRequest), typeof(TResponse)),
-                Request = request,
-            }, reliability);
-            if (typeof(TResponse) == typeof(None))
-                return default(TResponse);
-            return (TResponse)result;
-        }
-        public void Respond<TRequest, TResponse>(Func<TRequest, Task<TResponse>> handler, TEndpoint endpoint = null)
-        {
-            Respond(endpoint ?? GetEndpoint(handler.Method),
-                async (req) => { return await handler((TRequest)req.Request); },
-                new RPCContract(typeof(TRequest), typeof(TResponse)));
-        }
-        public void Respond<TRequest>(Action<TRequest> handler, TEndpoint endpoint = null)
-        {
-            Respond(endpoint ?? GetEndpoint(handler.Method),
-                (req) => { handler((TRequest)req.Request); return null; },
-                new RPCContract(typeof(TRequest), typeof(None)));
+            return Serializer.Deserialize(request.Contract.ResponseType, await Request(GetEndpoint(method), request, reliability));
         }
         public void Respond(MethodInfo method, HandlerDelegate handler)
         {
-            Respond(GetEndpoint(method), handler, new RPCContract(method));
-        }
-        public void Respond(TEndpoint messageID, HandlerDelegate handler, RPCContract contract)
-        {
-            responders[messageID] = new HandlerInfo()
+            responders[GetEndpoint(method)] = new HandlerInfo()
             {
                 Handler = handler,
-                Contract = contract,
+                Contract = new RPCContract(method),
             };
         }
-
         public bool TryGetContract(TEndpoint endpoint, out RPCContract contract)
         {
             contract = default(RPCContract);
@@ -158,11 +130,10 @@ namespace Replicate
             return false;
         }
 
-        public virtual async Task<object> Receive(TEndpoint endpoint, RPCRequest request)
+        protected virtual async Task<object> Receive(TEndpoint endpoint, RPCRequest request)
         {
             if (responders.TryGetValue(endpoint, out var handlerInfo))
             {
-                // TODO: Is this explicit cast dangerous? Yes, yes it is.
                 var task = handlerInfo.Handler(request);
                 if (task != null)
                     return await task;
@@ -179,7 +150,7 @@ namespace Replicate
                 Request = request == null ? null : Serializer.Deserialize(contract.RequestType, request),
                 Target = target,
             };
-            return Serializer.Serialize(contract.ResponseType.GetTaskReturnType(), (await Receive(endpoint, rpcRequest)));
+            return Serializer.Serialize(contract.ResponseType, (await Receive(endpoint, rpcRequest)));
         }
     }
 }

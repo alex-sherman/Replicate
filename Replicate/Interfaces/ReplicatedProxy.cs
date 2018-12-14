@@ -29,7 +29,8 @@ namespace Replicate.Interfaces
 
         public T Intercept<T>(MethodInfo method, object[] args)
         {
-            return (T)RPC(method, args).GetAwaiter().GetResult();
+            var result = RPC(method, args).GetAwaiter().GetResult();
+            return (T)result;
         }
 
         public void InterceptVoid(MethodInfo method, object[] args)
@@ -39,20 +40,12 @@ namespace Replicate.Interfaces
 
         public async Task<T> InterceptAsync<T>(MethodInfo method, object[] args)
         {
-            var result = (await RPC(method, args));
-            try
-            {
-                return (T)result;
-            }
-            catch(InvalidCastException)
-            {
-                throw;
-            }
+            return (T)(await RPC(method, args));
         }
 
-        public async Task InterceptAsyncVoid(MethodInfo method, object[] args)
+        public Task InterceptAsyncVoid(MethodInfo method, object[] args)
         {
-            await RPC(method, args);
+            return RPC(method, args);
         }
     }
 }
