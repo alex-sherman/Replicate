@@ -153,6 +153,16 @@ namespace ReplicateTest
             Assert.AreEqual(null, output);
         }
         [Test]
+        public void TestDeserializeNullable0IntObject()
+        {
+            var ser = new JSONSerializer(new ReplicationModel());
+            var stream = new MemoryStream();
+            stream.WriteString("0");
+            stream.Position = 0;
+            var output = ser.Deserialize<int?>(stream);
+            Assert.AreEqual(0, output);
+        }
+        [Test]
         public void TestDictionary()
         {
             var output = Util.SerializeDeserialize(new Dictionary<string, PropClass>()

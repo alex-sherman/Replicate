@@ -14,7 +14,7 @@ namespace Replicate.Serialization
     {
         class JSONIntSerializer : ITypedSerializer
         {
-            Regex rx = new Regex(@"[1-9\.\+\-eE]");
+            Regex rx = new Regex(@"[0-9\.\+\-eE]");
             public object Read(Stream stream) => long.Parse(stream.ReadAllString(c => rx.IsMatch("" + c)));
             public void Write(object obj, Stream stream) => stream.WriteString(obj.ToString());
         }
@@ -167,9 +167,9 @@ namespace Replicate.Serialization
                 {
                     return Convert.ChangeType(serializers[type].Read(stream), type);
                 }
-                catch
+                catch(Exception e)
                 {
-                    throw new SerializationError();
+                    throw new SerializationError(null, e);
                 }
             }
             return null;

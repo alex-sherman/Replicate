@@ -9,16 +9,19 @@ namespace Replicate
     public class ReplicateError : Exception
     {
         public ReplicateError(string message) : base(message) { }
+        public ReplicateError(string message, Exception exception) : base(message, exception) { }
         public ReplicateError() { }
     }
     public class ContractNotFoundError : ReplicateError
     {
         public ContractNotFoundError(string message) : base(message) { }
+        public ContractNotFoundError(string message, Exception exception) : base(message, exception) { }
         public ContractNotFoundError() { }
     }
     public class SerializationError : ReplicateError
     {
         public SerializationError(string message) : base(message) { }
+        public SerializationError(string message, Exception exception) : base(message, exception) { }
         public SerializationError() { }
     }
 }
