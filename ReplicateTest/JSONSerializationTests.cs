@@ -91,6 +91,8 @@ namespace ReplicateTest
             var output = ser.Deserialize<IEnumerable<int>>(stream);
             CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 }, output.ToArray());
         }
+
+
         [Test]
         public void TestSerializeHashset()
         {
@@ -132,65 +134,34 @@ namespace ReplicateTest
             Assert.AreEqual("herp", output.Value);
             Assert.AreEqual("derp", output.Prop);
         }
-        [Test]
-        public void TestSerializeNullObject()
+        [TestCase(null, typeof(object), "null")]
+        [TestCase(0, typeof(int?), "0")]
+        [TestCase(1, typeof(int?), "1")]
+        [TestCase(null, typeof(int?), "null")]
+        [TestCase(0.5, typeof(float), "0.5")]
+        [TestCase(0, typeof(float?), "0")]
+        [TestCase(1, typeof(float?), "1")]
+        [TestCase(null, typeof(float?), "null")]
+        [TestCase("", typeof(string), "\"\"")]
+        [TestCase("😈", typeof(string), "\"😈\"")]
+        public void TestSerializeDeserialize(object obj, Type type, string serialized)
         {
             var ser = new JSONSerializer(new ReplicationModel());
             var stream = new MemoryStream();
-            ser.Serialize<PropClass>(stream, null);
-            stream.Position = 0;
-            var str = stream.ReadAllString();
-            Assert.AreEqual("null", str);
+            var str = ser.Serialize(type, obj);
+            CollectionAssert.AreEqual(serialized, str);
+            var output = ser.Deserialize(type, str);
+            Assert.AreEqual(obj, output);
         }
         [Test]
-        public void TestDeserializeNullObject()
+        public void TestFieldEmptyString()
         {
             var ser = new JSONSerializer(new ReplicationModel());
             var stream = new MemoryStream();
-            stream.WriteString("null");
-            stream.Position = 0;
-            var output = ser.Deserialize<PropClass>(stream);
-            Assert.AreEqual(null, output);
-        }
-        [Test]
-        public void TestSerializeNullable0IntObject()
-        {
-            var ser = new JSONSerializer(new ReplicationModel());
-            var stream = new MemoryStream();
-            ser.Serialize<int?>(stream, 0);
-            stream.Position = 0;
-            var str = stream.ReadAllString();
-            Assert.AreEqual("0", str);
-        }
-        [Test]
-        public void TestDeserializeNullable0IntObject()
-        {
-            var ser = new JSONSerializer(new ReplicationModel());
-            var stream = new MemoryStream();
-            stream.WriteString("0");
-            stream.Position = 0;
-            var output = ser.Deserialize<int?>(stream);
-            Assert.AreEqual(0, output);
-        }
-        [Test]
-        public void TestSerializeEmptyString()
-        {
-            var ser = new JSONSerializer(new ReplicationModel());
-            var stream = new MemoryStream();
-            ser.Serialize(stream, "");
-            stream.Position = 0;
-            var str = stream.ReadAllString();
-            Assert.AreEqual("\"\"", str);
-        }
-        [Test]
-        public void TestDeserializeEmptyString()
-        {
-            var ser = new JSONSerializer(new ReplicationModel());
-            var stream = new MemoryStream();
-            stream.WriteString("\"\"");
-            stream.Position = 0;
-            var output = ser.Deserialize<string>(stream);
-            Assert.AreEqual("", output);
+            var str = ser.Serialize(new SubClass() { Field = "" });
+            CollectionAssert.AreEqual("{\"Field\": \"\", \"Property\": 0}", str);
+            var output = ser.Deserialize<string, SubClass>("{\"Field\": \"\"}");
+            Assert.AreEqual("", output.Field);
         }
         [Test]
         public void TestDictionary()
@@ -202,26 +173,6 @@ namespace ReplicateTest
             });
             Assert.AreEqual(3, output["faff"].Property);
             Assert.AreEqual(4, output["herp"].Property);
-        }
-        [Test]
-        public void TestSerializeNullableInt()
-        {
-            var ser = new JSONSerializer(new ReplicationModel());
-            var stream = new MemoryStream();
-            ser.Serialize<int?>(stream, 1);
-            stream.Position = 0;
-            var str = stream.ReadAllString();
-            Assert.AreEqual("1", str);
-        }
-        [Test]
-        public void TestDeserializeNullableInt()
-        {
-            var ser = new JSONSerializer(new ReplicationModel());
-            var stream = new MemoryStream();
-            stream.WriteString("1");
-            stream.Position = 0;
-            var output = ser.Deserialize<int?>(stream);
-            Assert.AreEqual(1, output);
         }
         [Test]
         public void TestNullableNullInt()

@@ -39,25 +39,24 @@ namespace Replicate.Serialization
         }
         public static string ReadChars(this Stream stream, int number)
         {
-            var output = "";
-            for(int i = 0; i<number; i++)
+            var output = new StringBuilder();
+            for (int i = 0; i < number; i++)
             {
-                output += stream.ReadChar();
+                output.Append(stream.ReadChar(out var _));
             }
-            return output;
+            return output.ToString();
         }
-        public static char ReadChar(this Stream stream, bool peak = false)
+        public static char ReadCharOne(this Stream stream, bool peak = false)
         {
             var result = stream.ReadChar(out var count);
             if (peak) stream.Position -= count;
-            return result;
+            return result[0];
         }
-        private static char ReadChar(this Stream stream, out int readBytes)
+        private static char[] ReadChar(this Stream stream, out int readBytes)
         {
             readBytes = 0;
             var first = stream.ReadByte();
-            if (first == -1)
-                return char.MinValue;
+            if (first == -1) return null;
             byte[] buffer = new byte[] { (byte)first, 0, 0, 0 };
             var count = 0;
             if ((first & 0x80) != 0)
@@ -71,15 +70,16 @@ namespace Replicate.Serialization
             }
             stream.Read(buffer, 1, count);
             readBytes = (count + 1);
-            return Encoding.UTF8.GetChars(buffer)[0];
+            // TODO: This might cause a lot of garbage collection
+            return Encoding.UTF8.GetChars(buffer, 0, count + 1);
         }
         public static string ReadAllString(this Stream stream, Func<char, bool> predicate = null)
         {
             StringBuilder output = new StringBuilder();
-            char current;
-            while ((current = stream.ReadChar(out var count)) != char.MinValue)
+            char[] current;
+            while ((current = stream.ReadChar(out var count)) != null)
             {
-                if (!(predicate?.Invoke(current) ?? true))
+                if (!(predicate?.Invoke(current[0]) ?? true))
                 {
                     stream.Position -= count;
                     break;

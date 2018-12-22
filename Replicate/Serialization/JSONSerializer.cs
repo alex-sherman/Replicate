@@ -22,7 +22,7 @@ namespace Replicate.Serialization
         {
             public object Read(Stream stream)
             {
-                var firstChar = stream.ReadChar();
+                var firstChar = stream.ReadCharOne();
                 if (firstChar == 'f')
                 {
                     CheckAndThrow(stream.ReadChars(4) == "alse");
@@ -39,7 +39,7 @@ namespace Replicate.Serialization
         }
         class JSONFloatSerializer : ITypedSerializer
         {
-            Regex rx = new Regex(@"[1-9\.\+\-eE]");
+            Regex rx = new Regex(@"[0-9\.\+\-eE]");
             public object Read(Stream stream) => double.Parse(stream.ReadAllString(c => rx.IsMatch("" + c)));
             public void Write(object obj, Stream stream) => stream.WriteString(obj.ToString());
         }
@@ -98,14 +98,14 @@ namespace Replicate.Serialization
         {
             if (ReadNull(stream)) return null;
             List<object> values = new List<object>();
-            if (stream.ReadChar() != '[') throw new SerializationError();
+            if (stream.ReadCharOne() != '[') throw new SerializationError();
             stream.ReadAllString(IsW);
-            while(stream.ReadChar(true) != ']')
+            while(stream.ReadCharOne(true) != ']')
             {
                 stream.ReadAllString(IsW);
                 values.Add(Deserialize(null, stream, collectionValueAccessor, null));
                 stream.ReadAllString(IsW);
-                var nextChar = stream.ReadChar();
+                var nextChar = stream.ReadCharOne();
                 if (nextChar == ']')
                     break;
                 CheckAndThrow(nextChar == ',');
@@ -123,22 +123,22 @@ namespace Replicate.Serialization
             if (ReadNull(stream)) return null;
             if (obj == null)
                 obj = Activator.CreateInstance(type);
-            if (stream.ReadChar() != '{') throw new SerializationError();
+            if (stream.ReadCharOne() != '{') throw new SerializationError();
             do
             {
                 stream.ReadAllString(IsW);
-                if (stream.ReadChar(true) == '}')
+                if (stream.ReadCharOne(true) == '}')
                     break;
                 var name = parseString(stream);
                 stream.ReadAllString(IsW);
-                CheckAndThrow(stream.ReadChar() == ':');
+                CheckAndThrow(stream.ReadCharOne() == ':');
                 stream.ReadAllString(IsW);
                 var memberAccessor = typeAccessor.MemberAccessors.FirstOrDefault(m => MapName(m.Info.Name) == name);
                 CheckAndThrow(memberAccessor != null);
                 var value = Deserialize(memberAccessor.GetValue(obj), stream, memberAccessor.TypeAccessor, memberAccessor);
                 memberAccessor.SetValue(obj, value);
                 stream.ReadAllString(IsW);
-            } while (stream.ReadChar() == ',');
+            } while (stream.ReadCharOne() == ',');
             return obj;
         }
 
@@ -147,14 +147,14 @@ namespace Replicate.Serialization
         {
             char last = char.MinValue;
             stream.ReadAllString(IsW);
-            CheckAndThrow(stream.ReadChar() == '"');
+            CheckAndThrow(stream.ReadCharOne() == '"');
             var result = stream.ReadAllString(c =>
             {
                 var res = c != '"' || last == '\\';
                 last = c;
                 return res;
             });
-            CheckAndThrow(stream.ReadChar() == '"');
+            CheckAndThrow(stream.ReadCharOne() == '"');
             return result;
         }
 
@@ -178,7 +178,7 @@ namespace Replicate.Serialization
         bool ReadNull(Stream stream)
         {
             stream.ReadAllString(IsW);
-            if (stream.ReadChar(true) == 'n')
+            if (stream.ReadCharOne(true) == 'n')
             {
                 CheckAndThrow(stream.ReadChars(4) == "null");
                 return true;

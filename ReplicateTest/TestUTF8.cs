@@ -14,12 +14,13 @@ namespace ReplicateTest
         public void TestVariableLength()
         {
             var stream = new MemoryStream();
-            stream.WriteString("ᚢᚱ᛫ᚠ");
+            stream.WriteString("ᚢᚱ᛫ᚠ😈");
             stream.Position = 0;
-            Assert.AreEqual('ᚢ', stream.ReadChar());
-            Assert.AreEqual('ᚱ', stream.ReadChar());
-            Assert.AreEqual('᛫', stream.ReadChar());
-            Assert.AreEqual('ᚠ', stream.ReadChar());
+            Assert.AreEqual('ᚢ', stream.ReadCharOne());
+            Assert.AreEqual('ᚱ', stream.ReadCharOne());
+            Assert.AreEqual('᛫', stream.ReadCharOne());
+            Assert.AreEqual('ᚠ', stream.ReadCharOne());
+            Assert.AreEqual("😈", stream.ReadChars(1));
         }
     }
 }
