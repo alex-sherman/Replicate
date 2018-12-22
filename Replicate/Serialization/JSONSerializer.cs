@@ -150,7 +150,7 @@ namespace Replicate.Serialization
             CheckAndThrow(stream.ReadChar() == '"');
             var result = stream.ReadAllString(c =>
             {
-                var res = c != '"' || last == char.MinValue || last == '\\';
+                var res = c != '"' || last == '\\';
                 last = c;
                 return res;
             });

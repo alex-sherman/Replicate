@@ -153,6 +153,16 @@ namespace ReplicateTest
             Assert.AreEqual(null, output);
         }
         [Test]
+        public void TestSerializeNullable0IntObject()
+        {
+            var ser = new JSONSerializer(new ReplicationModel());
+            var stream = new MemoryStream();
+            ser.Serialize<int?>(stream, 0);
+            stream.Position = 0;
+            var str = stream.ReadAllString();
+            Assert.AreEqual("0", str);
+        }
+        [Test]
         public void TestDeserializeNullable0IntObject()
         {
             var ser = new JSONSerializer(new ReplicationModel());
@@ -161,6 +171,26 @@ namespace ReplicateTest
             stream.Position = 0;
             var output = ser.Deserialize<int?>(stream);
             Assert.AreEqual(0, output);
+        }
+        [Test]
+        public void TestSerializeEmptyString()
+        {
+            var ser = new JSONSerializer(new ReplicationModel());
+            var stream = new MemoryStream();
+            ser.Serialize(stream, "");
+            stream.Position = 0;
+            var str = stream.ReadAllString();
+            Assert.AreEqual("\"\"", str);
+        }
+        [Test]
+        public void TestDeserializeEmptyString()
+        {
+            var ser = new JSONSerializer(new ReplicationModel());
+            var stream = new MemoryStream();
+            stream.WriteString("\"\"");
+            stream.Position = 0;
+            var output = ser.Deserialize<string>(stream);
+            Assert.AreEqual("", output);
         }
         [Test]
         public void TestDictionary()
