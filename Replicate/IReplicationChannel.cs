@@ -27,7 +27,7 @@ namespace Replicate
         /// <summary>
         /// Target may be null if not in an instance RPC
         /// </summary>
-        public ReplicatedID? Target;
+        public ReplicatedId? Target;
     }
     public struct RPCContract
     {
@@ -88,7 +88,7 @@ namespace Replicate
                 channel.Respond(method, (request) => Util.RPCInvoke(method, implementation, request.Request));
         }
 
-        public static T CreateProxy<T>(this IReplicationChannel channel, ReplicatedID? target = null) where T : class
+        public static T CreateProxy<T>(this IReplicationChannel channel, ReplicatedId? target = null) where T : class
         {
             return ProxyImplement.HookUp<T>(new ReplicatedProxy(target, channel, typeof(T)));
         }
@@ -140,7 +140,7 @@ namespace Replicate
             }
             return None.Value;
         }
-        public virtual async Task<TWireType> Receive(TEndpoint endpoint, TWireType request, ReplicatedID? target = null)
+        public virtual async Task<TWireType> Receive(TEndpoint endpoint, TWireType request, ReplicatedId? target = null)
         {
             if (!TryGetContract(endpoint, out var contract))
                 throw new ContractNotFoundError(endpoint.ToString());

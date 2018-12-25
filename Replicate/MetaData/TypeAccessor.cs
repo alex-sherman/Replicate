@@ -17,15 +17,17 @@ namespace Replicate.MetaData
         public Dictionary<string, MemberAccessor> Members;
         public TypeData TypeData { get; private set; }
         public TypeAccessor Surrogate { get; private set; }
+        public Func<object, object> ConvertToSurrogate;
+        public Func<object, object> ConvertFromSurrogate;
         public TypeAccessor(TypeData typeData, Type type)
         {
             if (typeData.Surrogate != null)
             {
                 var surrogateType = typeData.Surrogate;
+                // TODO: This is untested and maybe confusing?
                 if (surrogateType.IsGenericTypeDefinition)
-                {
                     surrogateType = surrogateType.MakeGenericType(type.GetGenericArguments());
-                }
+
                 Surrogate = typeData.Model.GetTypeAccessor(surrogateType);
             }
             TypeData = typeData;

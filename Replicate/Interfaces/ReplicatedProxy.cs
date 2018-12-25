@@ -8,10 +8,10 @@ namespace Replicate.Interfaces
 {
     public class ReplicatedProxy : IImplementor
     {
-        ReplicatedID? Target;
+        ReplicatedId? Target;
         IReplicationChannel Channel;
 
-        public ReplicatedProxy(ReplicatedID? target, IReplicationChannel channel, Type replicatedInterface)
+        public ReplicatedProxy(ReplicatedId? target, IReplicationChannel channel, Type replicatedInterface)
         {
             Target = target;
             Channel = channel;

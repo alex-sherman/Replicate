@@ -9,7 +9,7 @@ namespace Replicate.Messages
     [ReplicateType]
     public struct InitMessage
     {
-        public ReplicatedID id;
+        public ReplicatedId id;
         public TypeID typeID;
     }
 }

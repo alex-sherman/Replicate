@@ -12,6 +12,12 @@ namespace Replicate
         public ReplicateError(string message, Exception exception) : base(message, exception) { }
         public ReplicateError() { }
     }
+    public class ReplicatedReferenceError : ReplicateError
+    {
+        public ReplicatedReferenceError(string message) : base(message) { }
+        public ReplicatedReferenceError(string message, Exception exception) : base(message, exception) { }
+        public ReplicatedReferenceError() { }
+    }
     public class ContractNotFoundError : ReplicateError
     {
         public ContractNotFoundError(string message) : base(message) { }

@@ -12,23 +12,30 @@ namespace Replicate.Serialization
     {
         object Backing;
         public ReplicationModel Model { get; private set; }
-        public TypeAccessor TypeAccessor { get; private set; }
-        private MemberAccessor member;
+        public TypeAccessor TypeAccessor;
+        public TypeAccessor SurrogateAccessor;
+        public MemberAccessor MemberAccessor;
+        public Func<object, object> ConvertToSurrogate;
+        public Func<object, object> ConvertFromSurrogate;
         // TODO: Account for surrogate
         // TODO: Throw errors if trying to set value on a primitive that is not a child maybe? (The member == null case)
         public object Value
         {
             get
             {
-                if (member != null)
-                    return member.GetValue(Backing);
-                else
-                    return Backing;
+                var output = Backing;
+                if (MemberAccessor != null)
+                    output = MemberAccessor.GetValue(Backing);
+                if (ConvertToSurrogate != null)
+                    output = ConvertToSurrogate(output);
+                return output;
             }
             set
             {
-                if (member != null)
-                    member.SetValue(Backing, value);
+                if (ConvertFromSurrogate != null)
+                    value = ConvertFromSurrogate(value);
+                if (MemberAccessor != null)
+                    MemberAccessor.SetValue(Backing, value);
                 else
                     Backing = value;
             }
@@ -37,13 +44,23 @@ namespace Replicate.Serialization
         public RepBackedNode(object backing, TypeAccessor typeAccessor = null,
             MemberAccessor memberAccessor = null, ReplicationModel model = null)
         {
-            member = memberAccessor;
+            MemberAccessor = memberAccessor;
             Backing = backing;
             Model = model ?? ReplicationModel.Default;
             TypeAccessor = typeAccessor ?? Model.GetTypeAccessor(backing.GetType());
             if (TypeAccessor.Type.IsSameGeneric(typeof(Nullable<>)))
                 TypeAccessor = Model.GetTypeAccessor(typeAccessor.Type.GetGenericArguments()[0]);
-            var surrogateAccessor = memberAccessor?.Surrogate ?? TypeAccessor.Surrogate;
+            SurrogateAccessor = memberAccessor?.Surrogate ?? TypeAccessor.Surrogate;
+            ConvertFromSurrogate = null;
+            ConvertToSurrogate = null;
+            if (SurrogateAccessor != null)
+            {
+                var castToOp = SurrogateAccessor.Type.GetMethod("op_Implicit", new Type[] { TypeAccessor.Type });
+                ConvertToSurrogate = obj => castToOp.Invoke(null, new[] { obj });
+
+                var castFromOp = SurrogateAccessor.Type.GetMethod("op_Implicit", new Type[] { SurrogateAccessor.Type });
+                ConvertFromSurrogate = obj => castFromOp.Invoke(null, new[] { obj });
+            }
             // TODO: Handle using a surrogate
 
         }
@@ -56,14 +73,15 @@ namespace Replicate.Serialization
         public IRepPrimitive AsPrimitive => this;
 
         #region Object Fields
-        public IRepNode this[int memberIndex] => this[TypeAccessor.MemberAccessors[memberIndex]];
-        public IRepNode this[string memberName] => this[TypeAccessor.MemberAccessors.First(m => m.Info.Name == memberName)];
-        public IRepNode this[MemberAccessor member] => new RepBackedNode(Backing, member.TypeAccessor, member, Model);
+        MemberAccessor[] MemberAccessors => (SurrogateAccessor ?? TypeAccessor).MemberAccessors;
+        public IRepNode this[int memberIndex] => this[MemberAccessors[memberIndex]];
+        public IRepNode this[string memberName] => this[MemberAccessors.First(m => m.Info.Name == memberName)];
+        public IRepNode this[MemberAccessor member] => new RepBackedNode(Value, member.TypeAccessor, member, Model);
 
         public IEnumerator<KeyValuePair<MemberAccessor, IRepNode>> GetEnumerator()
         {
             var @this = this;
-            return TypeAccessor.MemberAccessors
+            return MemberAccessors
                 .Select(m => new KeyValuePair<MemberAccessor, IRepNode>(m, @this[m]))
                 .GetEnumerator();
         }

@@ -14,7 +14,7 @@ namespace Replicate
 {
     public class ReplicatedObject
     {
-        public ReplicatedID id;
+        public ReplicatedId id;
         public object replicated;
         public HashSet<ushort> relevance;
         public TypeAccessor typeAccessor;
@@ -24,7 +24,7 @@ namespace Replicate
         public ReplicationModel Model { get; protected set; }
         protected Dictionary<uint, Action<byte[]>> handlerLookup = new Dictionary<uint, Action<byte[]>>();
         public Dictionary<object, ReplicatedObject> ObjectLookup = new Dictionary<object, ReplicatedObject>();
-        public Dictionary<ReplicatedID, ReplicatedObject> IDLookup = new Dictionary<ReplicatedID, ReplicatedObject>();
+        public Dictionary<ReplicatedId, ReplicatedObject> IDLookup = new Dictionary<ReplicatedId, ReplicatedObject>();
         protected Dictionary<Type, object> InterfaceLookup = new Dictionary<Type, object>();
         public IReplicationChannel Channel;
         public ReplicationManager(IReplicationChannel channel, ReplicationModel model = null)
@@ -47,7 +47,7 @@ namespace Replicate
 
         public T CreateProxy<T>(T target = null) where T : class
         {
-            ReplicatedID? id = null;
+            ReplicatedId? id = null;
             if (target != null)
             {
                 if (!ObjectLookup.ContainsKey(target))
@@ -96,7 +96,7 @@ namespace Replicate
             if (typeID.id == ushort.MaxValue)
                 throw new InvalidOperationException("Cannot register non [ReplicateType] objects");
             uint objectId = AllocateObjectID(replicated);
-            var id = new ReplicatedID()
+            var id = new ReplicatedId()
             {
                 ObjectID = objectId,
                 //creator = ID,
@@ -110,7 +110,7 @@ namespace Replicate
             return Channel.Request(((Action<InitMessage>)HandleInit).Method, message);
         }
 
-        private void AddObject(ReplicatedID id, object replicated)
+        private void AddObject(ReplicatedId id, object replicated)
         {
             var data = new ReplicatedObject()
             {
