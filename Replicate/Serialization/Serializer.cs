@@ -116,7 +116,7 @@ namespace Replicate.Serialization
                 return Activator.CreateInstance(type);
             return null;
         }
-        protected static object FillCollection(object obj, Type type, List<object> values)
+        public static object FillCollection(object obj, Type type, List<object> values)
         {
             var count = values.Count;
 
@@ -126,7 +126,7 @@ namespace Replicate.Serialization
                 obj = null;
             }
             var collectionType = type.GetInterface("ICollection`1");
-            if (obj == null)
+            if (obj is Array || obj == null)
                 obj = Activator.CreateInstance(type, count);
             else
             {

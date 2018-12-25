@@ -53,13 +53,13 @@ namespace Replicate.Serialization
                 new Tuple<string, string>("\\n", "\n"),
                 new Tuple<string, string>("\\t", "\t"),
             };
-            static string Escape(string str)
+            public static string Escape(string str)
             {
                 foreach (var replacement in replacements)
                     str = str.Replace(replacement.Item2, replacement.Item1);
                 return str;
             }
-            static string Unescape(string str)
+            public static string Unescape(string str)
             {
                 foreach (var replacement in replacements)
                     str = str.Replace(replacement.Item1, replacement.Item2);
@@ -129,7 +129,7 @@ namespace Replicate.Serialization
                 stream.ReadAllString(IsW);
                 if (stream.ReadCharOne(true) == '}')
                     break;
-                var name = parseString(stream);
+                var name = JSONStringSerializer.Unescape(parseString(stream));
                 stream.ReadAllString(IsW);
                 CheckAndThrow(stream.ReadCharOne() == ':');
                 stream.ReadAllString(IsW);

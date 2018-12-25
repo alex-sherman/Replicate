@@ -75,14 +75,15 @@ namespace Replicate.MetaData
         {
             if (type.IsGenericTypeDefinition)
                 throw new InvalidOperationException("Cannot create a type accessor for a generic type definition");
-            if (!typeAccessorLookup.TryGetValue(type, out TypeAccessor typeAcessor))
+            if (!typeAccessorLookup.TryGetValue(type, out TypeAccessor typeAccessor))
             {
                 var typeData = GetTypeData(type);
                 if (typeData == null)
                     throw new InvalidOperationException(string.Format("The type {0} has not been added to the replication model", type.FullName));
-                typeAcessor = typeAccessorLookup[type] = new TypeAccessor(typeData, type, this);
+                typeAccessor = typeAccessorLookup[type] = new TypeAccessor(typeData, type);
+                typeAccessor.InitializeMembers();
             }
-            return typeAcessor;
+            return typeAccessor;
         }
         public TypeAccessor GetCollectionValueAccessor(Type collectionType)
         {
@@ -110,6 +111,8 @@ namespace Replicate.MetaData
         }
         public TypeData Add(Type type)
         {
+            if (type.IsNotPublic)
+                throw new InvalidOperationException("Cannot add a non public type to the replication model");
             if (type.IsGenericType)
                 type = type.GetGenericTypeDefinition();
             if (typeLookup.TryGetValue(type, out TypeData typeData))

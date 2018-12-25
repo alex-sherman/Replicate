@@ -17,7 +17,7 @@ namespace Replicate.MetaData
         public Dictionary<string, MemberAccessor> Members;
         public TypeData TypeData { get; private set; }
         public TypeAccessor Surrogate { get; private set; }
-        public TypeAccessor(TypeData typeData, Type type, ReplicationModel model)
+        public TypeAccessor(TypeData typeData, Type type)
         {
             if (typeData.Surrogate != null)
             {
@@ -26,13 +26,16 @@ namespace Replicate.MetaData
                 {
                     surrogateType = surrogateType.MakeGenericType(type.GetGenericArguments());
                 }
-                Surrogate = model.GetTypeAccessor(surrogateType);
+                Surrogate = typeData.Model.GetTypeAccessor(surrogateType);
             }
             TypeData = typeData;
             Type = type;
             Name = type.FullName;
-            MemberAccessors = typeData.ReplicatedMembers
-                .Select(member => new MemberAccessor(member, this, model))
+        }
+        internal void InitializeMembers()
+        {
+            MemberAccessors = TypeData.ReplicatedMembers
+                .Select(member => new MemberAccessor(member, this, TypeData.Model))
                 .ToArray();
             Members = MemberAccessors.ToDictionary(member => member.Info.Name);
         }
