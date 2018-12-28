@@ -100,16 +100,16 @@ namespace Replicate.Serialization
             List<object> values = new List<object>();
             if (stream.ReadCharOne() != '[') throw new SerializationError();
             stream.ReadAllString(IsW);
-            while(stream.ReadCharOne(true) != ']')
+            char nextChar = stream.ReadCharOne(true);
+            if (nextChar == ']') stream.ReadCharOne();
+            while (nextChar != ']')
             {
                 stream.ReadAllString(IsW);
                 values.Add(Deserialize(null, stream, collectionValueAccessor, null));
                 stream.ReadAllString(IsW);
-                var nextChar = stream.ReadCharOne();
-                if (nextChar == ']')
-                    break;
-                CheckAndThrow(nextChar == ',');
-            }
+                nextChar = stream.ReadCharOne();
+                CheckAndThrow(nextChar == ',' || nextChar == ']');
+            };
             return FillCollection(obj, type, values);
         }
         string MapName(string fieldName)
@@ -124,11 +124,12 @@ namespace Replicate.Serialization
             if (obj == null)
                 obj = Activator.CreateInstance(type);
             if (stream.ReadCharOne() != '{') throw new SerializationError();
-            do
+            stream.ReadAllString(IsW);
+            char nextChar = stream.ReadCharOne(true);
+            if (nextChar == '}') stream.ReadCharOne();
+            while (nextChar != '}')
             {
                 stream.ReadAllString(IsW);
-                if (stream.ReadCharOne(true) == '}')
-                    break;
                 var name = JSONStringSerializer.Unescape(parseString(stream));
                 stream.ReadAllString(IsW);
                 CheckAndThrow(stream.ReadCharOne() == ':');
@@ -138,7 +139,9 @@ namespace Replicate.Serialization
                 var value = Deserialize(memberAccessor.GetValue(obj), stream, memberAccessor.TypeAccessor, memberAccessor);
                 memberAccessor.SetValue(obj, value);
                 stream.ReadAllString(IsW);
-            } while (stream.ReadCharOne() == ',');
+                nextChar = stream.ReadCharOne();
+                CheckAndThrow(nextChar == ',' || nextChar == '}');
+            };
             return obj;
         }
 
@@ -167,7 +170,7 @@ namespace Replicate.Serialization
                 {
                     return Convert.ChangeType(serializers[type].Read(stream), type);
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
                     throw new SerializationError(null, e);
                 }

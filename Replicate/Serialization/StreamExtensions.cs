@@ -49,6 +49,7 @@ namespace Replicate.Serialization
         public static char ReadCharOne(this Stream stream, bool peak = false)
         {
             var result = stream.ReadChar(out var count);
+            if (result == null) throw new EndOfStreamException();
             if (peak) stream.Position -= count;
             return result[0];
         }

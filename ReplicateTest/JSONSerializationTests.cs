@@ -24,8 +24,14 @@ namespace ReplicateTest
         [ReplicateType]
         public class PropClass
         {
-            [Replicate]
             public int Property { get; set; }
+        }
+        [ReplicateType]
+        public class ObjectWithArrayField
+        {
+            public ObjectWithArrayField ObjectField;
+            public double[] ArrayField;
+            public int? NullableValue;
         }
         [ReplicateType]
         public class SubClass : PropClass
@@ -144,6 +150,7 @@ namespace ReplicateTest
         [TestCase(null, typeof(float?), "null")]
         [TestCase("", typeof(string), "\"\"")]
         [TestCase("😈", typeof(string), "\"😈\"")]
+        [TestCase(new double[] { }, typeof(double[]), "[]")]
         public void TestSerializeDeserialize(object obj, Type type, string serialized)
         {
             var ser = new JSONSerializer(new ReplicationModel());
@@ -193,6 +200,26 @@ namespace ReplicateTest
             stream.Position = 0;
             var output = ser.Deserialize<int?>(stream);
             Assert.AreEqual(null, output);
+        }
+        [Test]
+        public void TestDeserializeObjectWithEmptyArray()
+        {
+            var ser = new JSONSerializer(new ReplicationModel());
+            var stream = new MemoryStream();
+            stream.WriteString("{\"ArrayField\": [], \"NullableValue\": 1}");
+            stream.Position = 0;
+            var output = ser.Deserialize<ObjectWithArrayField>(stream);
+            Assert.AreEqual(1, output.NullableValue);
+        }
+        [Test]
+        public void TestDeserializeObjectWithEmptyObject()
+        {
+            var ser = new JSONSerializer(new ReplicationModel());
+            var stream = new MemoryStream();
+            stream.WriteString("{\"ObjectField\": {}, \"NullableValue\": 1}");
+            stream.Position = 0;
+            var output = ser.Deserialize<ObjectWithArrayField>(stream);
+            Assert.AreEqual(1, output.NullableValue);
         }
     }
 }
