@@ -35,7 +35,7 @@ namespace Replicate.Serialization
                 }
                 throw new SerializationError();
             }
-            public void Write(object obj, Stream stream) => stream.WriteString(obj.ToString());
+            public void Write(object obj, Stream stream) => stream.WriteString(obj.ToString().ToLower());
         }
         class JSONFloatSerializer : ITypedSerializer
         {

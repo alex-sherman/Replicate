@@ -151,6 +151,8 @@ namespace ReplicateTest
         [TestCase("", typeof(string), "\"\"")]
         [TestCase("😈", typeof(string), "\"😈\"")]
         [TestCase(new double[] { }, typeof(double[]), "[]")]
+        [TestCase(true, typeof(bool), "true")]
+        [TestCase(false, typeof(bool), "false")]
         public void TestSerializeDeserialize(object obj, Type type, string serialized)
         {
             var ser = new JSONSerializer(new ReplicationModel());
