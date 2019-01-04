@@ -175,13 +175,15 @@ namespace ReplicateTest
         [Test]
         public void TestDictionary()
         {
-            var output = Util.SerializeDeserialize(new Dictionary<string, PropClass>()
-            {
-                ["faff"] = new PropClass() { Property = 3 },
-                ["herp"] = new PropClass() { Property = 4 }
-            });
-            Assert.AreEqual(3, output["faff"].Property);
-            Assert.AreEqual(4, output["herp"].Property);
+            var serialized = "{\"value\": \"herp\", \"prop\": \"derp\"}";
+            var type = typeof(Dictionary<string, string>);
+            var obj = new Dictionary<string, string>() { { "value", "herp" }, { "prop", "derp" } };
+            var ser = new JSONSerializer(new ReplicationModel());
+            var stream = new MemoryStream();
+            var str = ser.Serialize(type, obj);
+            CollectionAssert.AreEqual(serialized, str);
+            var output = ser.Deserialize(type, str);
+            Assert.AreEqual(obj, output);
         }
         [Test]
         public void TestNullableNullInt()

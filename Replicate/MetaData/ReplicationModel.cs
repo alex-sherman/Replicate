@@ -25,6 +25,7 @@ namespace Replicate.MetaData
         Dictionary<Type, TypeData> typeLookup = new Dictionary<Type, TypeData>();
         Dictionary<string, TypeData> stringLookup = new Dictionary<string, TypeData>();
         List<Type> typeIndex;
+        public bool DictionaryAsObject;
         public ReplicationModel()
         {
             Add(typeof(byte));
@@ -50,6 +51,28 @@ namespace Replicate.MetaData
             typeIndex = typeLookup.Values.OrderBy(td => td.Name).Select(td => td.Type).ToList();
         }
 
+        public IRepNode GetRepNode(object backing, TypeAccessor typeAccessor = null, MemberAccessor memberAccessor = null)
+        {
+            typeAccessor = typeAccessor ?? GetTypeAccessor(backing.GetType());
+            if(DictionaryAsObject && typeAccessor.Type.IsSameGeneric(typeof(Dictionary<,>))
+                && typeAccessor.Type.GetGenericArguments()[0] == typeof(string))
+            {
+                // TODO: Return a repnode that can deal with this
+            }
+
+            var output = new RepBackedNode(backing, typeAccessor, memberAccessor, this);
+            var surrogate = memberAccessor?.Surrogate ?? typeAccessor.Surrogate;
+            if (surrogate != null)
+            {
+                var castToOp = surrogate.Type.GetMethod("op_Implicit", new Type[] { typeAccessor.Type });
+                output.ConvertToSurrogate = obj => castToOp.Invoke(null, new[] { obj });
+
+                var castFromOp = surrogate.Type.GetMethod("op_Implicit", new Type[] { surrogate.Type });
+                output.ConvertFromSurrogate = obj => castFromOp.Invoke(null, new[] { obj });
+                output.TypeAccessor = surrogate;
+            }
+            return output;
+        }
 
         public TypeID GetID(Type type)
         {

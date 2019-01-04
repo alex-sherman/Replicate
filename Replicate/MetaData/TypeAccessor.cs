@@ -17,8 +17,6 @@ namespace Replicate.MetaData
         public Dictionary<string, MemberAccessor> Members;
         public TypeData TypeData { get; private set; }
         public TypeAccessor Surrogate { get; private set; }
-        public Func<object, object> ConvertToSurrogate;
-        public Func<object, object> ConvertFromSurrogate;
         public TypeAccessor(TypeData typeData, Type type)
         {
             if (typeData.Surrogate != null)

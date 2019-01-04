@@ -71,6 +71,15 @@ namespace ReplicateTest
             Assert.AreEqual("hurrdurr", field1.Value);
         }
         [Test]
+        public void DictionaryAsObjectTrue()
+        {
+            var model = new ReplicationModel() { DictionaryAsObject = true };
+            var node = model.GetRepNode(new Dictionary<string, string>() { { "value", "herp" }, { "prop", "derp" } });
+            Assert.AreEqual(MarshalMethod.Object, node.MarshalMethod);
+            Assert.AreEqual("herp", node.AsObject["value"].AsPrimitive.Value);
+            Assert.AreEqual("derp", node.AsObject["prop"].AsPrimitive.Value);
+        }
+        [Test]
         public void UpdateStringField()
         {
             var obj = new ObjectType() { Field1 = "hurrdurr", Field2 = null };
@@ -143,6 +152,18 @@ namespace ReplicateTest
             var surrogateValue = new RepBackedNode(obj, model: model).AsObject["Field2"].AsObject;
             Assert.AreEqual(typeof(SurrogateType), surrogateValue.Value.GetType());
             Assert.AreEqual("Herp", surrogateValue["OtherField"].AsPrimitive.Value);
+        }
+        [Test]
+        public void SetSurrogateTypeField()
+        {
+            var model = new ReplicationModel();
+            model[typeof(ObjectType)].ReplicatedMembers.First(m => m.Name == "Field2")
+                .SetSurrogate(typeof(SurrogateType));
+
+            var obj = new ObjectType() { Field2 = new ObjectType() { Field1 = "Herp" } };
+            var surrogateValue = new RepBackedNode(obj, model: model).AsObject["Field2"].AsObject;
+            surrogateValue.Value = new SurrogateType() { OtherField = "FAFF" };
+            Assert.AreEqual("FAFF", obj.Field2.Field1);
         }
     }
 }

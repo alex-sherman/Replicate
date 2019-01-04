@@ -12,12 +12,10 @@ namespace Replicate.Serialization
     {
         object Backing;
         public ReplicationModel Model { get; private set; }
-        public TypeAccessor TypeAccessor;
-        public TypeAccessor SurrogateAccessor;
+        public TypeAccessor TypeAccessor { get; set; }
         public MemberAccessor MemberAccessor;
         public Func<object, object> ConvertToSurrogate;
         public Func<object, object> ConvertFromSurrogate;
-        // TODO: Account for surrogate
         // TODO: Throw errors if trying to set value on a primitive that is not a child maybe? (The member == null case)
         public object Value
         {
@@ -50,17 +48,8 @@ namespace Replicate.Serialization
             TypeAccessor = typeAccessor ?? Model.GetTypeAccessor(backing.GetType());
             if (TypeAccessor.Type.IsSameGeneric(typeof(Nullable<>)))
                 TypeAccessor = Model.GetTypeAccessor(typeAccessor.Type.GetGenericArguments()[0]);
-            SurrogateAccessor = memberAccessor?.Surrogate ?? TypeAccessor.Surrogate;
             ConvertFromSurrogate = null;
             ConvertToSurrogate = null;
-            if (SurrogateAccessor != null)
-            {
-                var castToOp = SurrogateAccessor.Type.GetMethod("op_Implicit", new Type[] { TypeAccessor.Type });
-                ConvertToSurrogate = obj => castToOp.Invoke(null, new[] { obj });
-
-                var castFromOp = SurrogateAccessor.Type.GetMethod("op_Implicit", new Type[] { SurrogateAccessor.Type });
-                ConvertFromSurrogate = obj => castFromOp.Invoke(null, new[] { obj });
-            }
             // TODO: Handle using a surrogate
 
         }
@@ -73,16 +62,16 @@ namespace Replicate.Serialization
         public IRepPrimitive AsPrimitive => this;
 
         #region Object Fields
-        MemberAccessor[] MemberAccessors => (SurrogateAccessor ?? TypeAccessor).MemberAccessors;
+        MemberAccessor[] MemberAccessors => TypeAccessor.MemberAccessors;
         public IRepNode this[int memberIndex] => this[MemberAccessors[memberIndex]];
         public IRepNode this[string memberName] => this[MemberAccessors.First(m => m.Info.Name == memberName)];
-        public IRepNode this[MemberAccessor member] => new RepBackedNode(Value, member.TypeAccessor, member, Model);
+        IRepNode this[MemberAccessor member] => Model.GetRepNode(Value, member.TypeAccessor, member);
 
-        public IEnumerator<KeyValuePair<MemberAccessor, IRepNode>> GetEnumerator()
+        public IEnumerator<KeyValuePair<string, IRepNode>> GetEnumerator()
         {
             var @this = this;
             return MemberAccessors
-                .Select(m => new KeyValuePair<MemberAccessor, IRepNode>(m, @this[m]))
+                .Select(m => new KeyValuePair<string, IRepNode>(m.Info.Name, @this[m]))
                 .GetEnumerator();
         }
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
@@ -105,7 +94,7 @@ namespace Replicate.Serialization
             get => Values();
             set
             {
-                Node.Value = Serializer.FillCollection(Node.Value, TypeAccessor.Type, value.ToList());
+                Node.Value = Serializer.FillCollection(Node.Value, TypeAccessor.Type, value?.ToList());
             }
         }
 
@@ -124,7 +113,7 @@ namespace Replicate.Serialization
         {
             var collectionType = CollectionType;
             foreach (var item in Value)
-                yield return new RepBackedNode(item, collectionType, model: Node.Model);
+                yield return Node.Model.GetRepNode(item, CollectionType);
         }
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
