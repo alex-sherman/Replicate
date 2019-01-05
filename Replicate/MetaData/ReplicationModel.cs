@@ -57,7 +57,9 @@ namespace Replicate.MetaData
             if(DictionaryAsObject && typeAccessor.Type.IsSameGeneric(typeof(Dictionary<,>))
                 && typeAccessor.Type.GetGenericArguments()[0] == typeof(string))
             {
-                // TODO: Return a repnode that can deal with this
+                var childType = typeAccessor.Type.GetGenericArguments()[1];
+                var dictObjType = typeof(RepDictObject<>).MakeGenericType(childType);
+                return (IRepNode)Activator.CreateInstance(dictObjType, backing, this);
             }
 
             var output = new RepBackedNode(backing, typeAccessor, memberAccessor, this);

@@ -1,4 +1,4 @@
-﻿using Replicate.MetaData;
+﻿using Replicate.Serialization;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Replicate.Serialization
+namespace Replicate.MetaData
 {
     public struct RepBackedNode : IRepNode, IRepObject, IRepPrimitive
     {
@@ -63,8 +63,16 @@ namespace Replicate.Serialization
 
         #region Object Fields
         MemberAccessor[] MemberAccessors => TypeAccessor.MemberAccessors;
-        public IRepNode this[int memberIndex] => this[MemberAccessors[memberIndex]];
-        public IRepNode this[string memberName] => this[MemberAccessors.First(m => m.Info.Name == memberName)];
+        public IRepNode this[int memberIndex]
+        {
+            get => this[MemberAccessors[memberIndex]];
+            set => MemberAccessors[memberIndex].SetValue(Backing, value.Value);
+        }
+        public IRepNode this[string memberName]
+        {
+            get => this[MemberAccessors.First(m => m.Info.Name == memberName)];
+            set => MemberAccessors.First(m => m.Info.Name == memberName).SetValue(Backing, value.Value);
+        }
         IRepNode this[MemberAccessor member] => Model.GetRepNode(Value, member.TypeAccessor, member);
 
         public IEnumerator<KeyValuePair<string, IRepNode>> GetEnumerator()
@@ -81,6 +89,7 @@ namespace Replicate.Serialization
     public struct RepBackedCollection : IRepCollection
     {
         private RepBackedNode Node;
+        object IRepNode.Value { get => Node.Value; set => Node.Value = value; }
         public RepBackedCollection(RepBackedNode node)
         {
             Node = node;
@@ -89,9 +98,9 @@ namespace Replicate.Serialization
         public TypeAccessor CollectionType { get; private set; }
         public TypeAccessor TypeAccessor { get => Node.TypeAccessor; }
 
-        public IEnumerable<object> Value
+        public IEnumerable<object> Values
         {
-            get => Values();
+            get => _values();
             set
             {
                 Node.Value = Serializer.FillCollection(Node.Value, TypeAccessor.Type, value?.ToList());
@@ -103,7 +112,7 @@ namespace Replicate.Serialization
         public IRepObject AsObject => throw new InvalidOperationException();
         public IRepCollection AsCollection => this;
 
-        IEnumerable<object> Values()
+        IEnumerable<object> _values()
         {
             foreach (var item in (IEnumerable)Node.Value)
                 yield return item;
@@ -112,7 +121,7 @@ namespace Replicate.Serialization
         public IEnumerator<IRepNode> GetEnumerator()
         {
             var collectionType = CollectionType;
-            foreach (var item in Value)
+            foreach (var item in Values)
                 yield return Node.Model.GetRepNode(item, CollectionType);
         }
 

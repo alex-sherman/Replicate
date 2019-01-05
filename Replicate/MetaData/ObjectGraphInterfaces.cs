@@ -30,6 +30,7 @@ namespace Replicate.MetaData
     }
     public interface IRepNode
     {
+        object Value { get; set; }
         TypeAccessor TypeAccessor { get; }
         MarshalMethod MarshalMethod { get; }
         IRepPrimitive AsPrimitive { get; }
@@ -38,16 +39,14 @@ namespace Replicate.MetaData
     }
     public interface IRepPrimitive : IRepNode
     {
-        object Value { get; set; }
         PrimitiveType PrimitiveType { get; }
     }
     public interface IRepCollection : IRepNode, IEnumerable<IRepNode>
     {
-        IEnumerable<object> Value { get; set; }
+        IEnumerable<object> Values { get; set; }
     }
     public interface IRepObject : IRepNode, IEnumerable<KeyValuePair<string, IRepNode>>
     {
-        object Value { get; set; }
         IRepNode this[string memberName] { get; }
         IRepNode this[int memberIndex] { get; }
     }
