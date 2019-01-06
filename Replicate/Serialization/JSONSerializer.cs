@@ -10,6 +10,7 @@ using Replicate.MetaData;
 
 namespace Replicate.Serialization
 {
+    [Obsolete("Replaced by JSONGraphSerializer")]
     public class JSONSerializer : Serializer, IReplicateSerializer<string>
     {
         class JSONIntSerializer : ITypedSerializer
@@ -65,13 +66,31 @@ namespace Replicate.Serialization
                     str = str.Replace(replacement.Item1, replacement.Item2);
                 return str;
             }
-            public object Read(Stream stream) => Unescape(parseString(stream));
+            object ITypedSerializer.Read(Stream stream) => Read(stream);
+            public string Read(Stream stream) => Unescape(parseString(stream));
             public void Write(object obj, Stream stream) => stream.WriteString($"\"{Escape((string)obj)}\"");
+
+            // TODO: Handle other escape characters
+            static string parseString(Stream stream)
+            {
+                char last = char.MinValue;
+                stream.ReadAllString(IsW);
+                CheckAndThrow(stream.ReadCharOne() == '"');
+                var result = stream.ReadAllString(c =>
+                {
+                    var res = c != '"' || last == '\\';
+                    last = c;
+                    return res;
+                });
+                CheckAndThrow(stream.ReadCharOne() == '"');
+                return result;
+            }
         }
 
         public bool ToLowerFieldNames = false;
         public JSONSerializer(ReplicationModel model) : base(model) { }
         static JSONIntSerializer intSer = new JSONIntSerializer();
+        static JSONStringSerializer stringSer = new JSONStringSerializer();
         Dictionary<Type, ITypedSerializer> serializers = new Dictionary<Type, ITypedSerializer>()
         {
             {typeof(bool), new JSONBoolSerializer() },
@@ -82,7 +101,7 @@ namespace Replicate.Serialization
             {typeof(uint), intSer },
             {typeof(long), intSer },
             {typeof(ulong), intSer },
-            {typeof(string), new JSONStringSerializer() },
+            {typeof(string), stringSer },
             {typeof(float), new JSONFloatSerializer() },
         };
         static void CheckAndThrow(bool condition)
@@ -130,7 +149,7 @@ namespace Replicate.Serialization
             while (nextChar != '}')
             {
                 stream.ReadAllString(IsW);
-                var name = JSONStringSerializer.Unescape(parseString(stream));
+                var name = stringSer.Read(stream);
                 stream.ReadAllString(IsW);
                 CheckAndThrow(stream.ReadCharOne() == ':');
                 stream.ReadAllString(IsW);
@@ -143,22 +162,6 @@ namespace Replicate.Serialization
                 CheckAndThrow(nextChar == ',' || nextChar == '}');
             };
             return obj;
-        }
-
-        // TODO: Handle other escape characters
-        static string parseString(Stream stream)
-        {
-            char last = char.MinValue;
-            stream.ReadAllString(IsW);
-            CheckAndThrow(stream.ReadCharOne() == '"');
-            var result = stream.ReadAllString(c =>
-            {
-                var res = c != '"' || last == '\\';
-                last = c;
-                return res;
-            });
-            CheckAndThrow(stream.ReadCharOne() == '"');
-            return result;
         }
 
         public override object DeserializePrimitive(Stream stream, Type type)

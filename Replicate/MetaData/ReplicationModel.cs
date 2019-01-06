@@ -51,6 +51,7 @@ namespace Replicate.MetaData
             typeIndex = typeLookup.Values.OrderBy(td => td.Name).Select(td => td.Type).ToList();
         }
 
+        public IRepNode GetRepNode(object backing, Type type) => GetRepNode(backing, GetTypeAccessor(type));
         public IRepNode GetRepNode(object backing, TypeAccessor typeAccessor = null, MemberAccessor memberAccessor = null)
         {
             typeAccessor = typeAccessor ?? GetTypeAccessor(backing.GetType());
@@ -59,7 +60,7 @@ namespace Replicate.MetaData
             {
                 var childType = typeAccessor.Type.GetGenericArguments()[1];
                 var dictObjType = typeof(RepDictObject<>).MakeGenericType(childType);
-                return (IRepNode)Activator.CreateInstance(dictObjType, backing, this);
+                return (IRepNode)Activator.CreateInstance(dictObjType, backing, typeAccessor, this);
             }
 
             var output = new RepBackedNode(backing, typeAccessor, memberAccessor, this);

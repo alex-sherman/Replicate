@@ -10,7 +10,7 @@ namespace Replicate.Serialization
     public interface IReplicateSerializer<TWireType>
     {
         TWireType Serialize(Type type, object obj);
-        object Deserialize(Type type, TWireType message);
+        object Deserialize(Type type, TWireType wireValue);
     }
     public static class SerializerExtensions
     {

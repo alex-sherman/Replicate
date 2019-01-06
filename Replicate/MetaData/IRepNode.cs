@@ -43,12 +43,13 @@ namespace Replicate.MetaData
     }
     public interface IRepCollection : IRepNode, IEnumerable<IRepNode>
     {
+        TypeAccessor CollectionType { get; }
         IEnumerable<object> Values { get; set; }
     }
     public interface IRepObject : IRepNode, IEnumerable<KeyValuePair<string, IRepNode>>
     {
-        IRepNode this[string memberName] { get; }
-        IRepNode this[int memberIndex] { get; }
+        IRepNode this[string memberName] { get; set; }
+        IRepNode this[int memberIndex] { get; set; }
     }
 
 }

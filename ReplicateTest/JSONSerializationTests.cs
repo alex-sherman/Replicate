@@ -50,93 +50,61 @@ namespace ReplicateTest
         [Test]
         public void TestSerializeProperty()
         {
-            var ser = new JSONSerializer(new ReplicationModel());
-            var stream = new MemoryStream();
-            ser.Serialize(stream, new PropClass() { Property = 3 });
-            stream.Position = 0;
-            var str = stream.ReadAllString();
-            Assert.AreEqual("{\"Property\": 3}", str);
+            var ser = new JSONGraphSerializer(new ReplicationModel());
+            Assert.AreEqual("{\"Property\": 3}", ser.Serialize(new PropClass() { Property = 3 }));
         }
         [Test]
         public void TestSerializeList()
         {
-            var ser = new JSONSerializer(new ReplicationModel());
-            var stream = new MemoryStream();
-            ser.Serialize(stream, new[] { 1, 2, 3, 4 });
-            stream.Position = 0;
-            var str = stream.ReadAllString();
-            Assert.AreEqual("[1, 2, 3, 4]", str);
+            var ser = new JSONGraphSerializer(new ReplicationModel());
+            Assert.AreEqual("[1, 2, 3, 4]", ser.Serialize(new[] { 1, 2, 3, 4 }));
         }
         [Test]
         public void TestDeserializeList()
         {
-            var ser = new JSONSerializer(new ReplicationModel());
-            var stream = new MemoryStream();
-            stream.WriteString("[1, 2, 3, 4]");
-            stream.Position = 0;
-            var output = ser.Deserialize<int[]>(stream);
-            CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 }, output);
+            var ser = new JSONGraphSerializer(new ReplicationModel());
+            CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 }, ser.Deserialize<int[]>("[1, 2, 3, 4]"));
         }
         [Test]
         public void TestSerializeIEnumerable()
         {
-            var ser = new JSONSerializer(new ReplicationModel());
-            var stream = new MemoryStream();
-            ser.Serialize<IEnumerable<int>>(stream, new[] { 1, 2, 3, 4 });
-            stream.Position = 0;
-            var str = stream.ReadAllString();
-            CollectionAssert.AreEqual("[1, 2, 3, 4]", str);
+            var ser = new JSONGraphSerializer(new ReplicationModel());
+            CollectionAssert.AreEqual("[1, 2, 3, 4]", ser.Serialize<IEnumerable<int>>(new[] { 1, 2, 3, 4 }));
         }
         [Test]
         public void TestDeserializeIEnumerable()
         {
-            var ser = new JSONSerializer(new ReplicationModel());
-            var stream = new MemoryStream();
-            stream.WriteString("[1, 2, 3, 4]");
-            stream.Position = 0;
-            var output = ser.Deserialize<IEnumerable<int>>(stream);
-            CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 }, output.ToArray());
+            var ser = new JSONGraphSerializer(new ReplicationModel());
+            CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 },
+                ser.Deserialize<IEnumerable<int>>("[1, 2, 3, 4]").ToArray());
         }
 
 
         [Test]
         public void TestSerializeHashset()
         {
-            var ser = new JSONSerializer(new ReplicationModel());
-            var stream = new MemoryStream();
-            ser.Serialize(stream, new HashSet<int>(new[] { 1, 2, 3, 4 }));
-            stream.Position = 0;
-            var str = stream.ReadAllString();
-            CollectionAssert.AreEqual("[1, 2, 3, 4]", str);
+            var ser = new JSONGraphSerializer(new ReplicationModel());
+            CollectionAssert.AreEqual("[1, 2, 3, 4]", ser.Serialize(new HashSet<int>(new[] { 1, 2, 3, 4 })));
         }
         [Test]
         public void TestDeserializeHashset()
         {
-            var ser = new JSONSerializer(new ReplicationModel());
-            var stream = new MemoryStream();
-            stream.WriteString("[1, 2, 3, 4]");
-            stream.Position = 0;
-            var output = ser.Deserialize<HashSet<int>>(stream);
-            CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 }, output.ToArray());
+            var ser = new JSONGraphSerializer(new ReplicationModel());
+            CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 },
+                ser.Deserialize<HashSet<int>>("[1, 2, 3, 4]").ToArray());
         }
         [Test]
         public void TestSerializeGeneric()
         {
-            var ser = new JSONSerializer(new ReplicationModel()) { ToLowerFieldNames = true };
-            var stream = new MemoryStream();
-            ser.Serialize(stream, new GenericClass<string>() { Value = "herp", Prop = "derp" });
-            stream.Position = 0;
-            var str = stream.ReadAllString();
-            Assert.AreEqual("{\"value\": \"herp\", \"prop\": \"derp\"}", str);
+            var ser = new JSONGraphSerializer(new ReplicationModel());
+            Assert.AreEqual("{\"Value\": \"herp\", \"Prop\": \"derp\"}",
+                ser.Serialize(new GenericClass<string>() { Value = "herp", Prop = "derp" }));
         }
         [Test]
         public void TestDeserializeGeneric()
         {
-            var ser = new JSONSerializer(new ReplicationModel()) { ToLowerFieldNames = true };
-            var stream = new MemoryStream();
-            stream.WriteString("{\"value\": \"herp\", \"prop\": \"derp\"}");
-            stream.Position = 0;
-            var output = ser.Deserialize< GenericClass<string>>(stream);
+            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var output = ser.Deserialize<GenericClass<string>>("{\"Value\": \"herp\", \"Prop\": \"derp\"}");
             Assert.AreEqual("herp", output.Value);
             Assert.AreEqual("derp", output.Prop);
         }
@@ -155,7 +123,7 @@ namespace ReplicateTest
         [TestCase(false, typeof(bool), "false")]
         public void TestSerializeDeserialize(object obj, Type type, string serialized)
         {
-            var ser = new JSONSerializer(new ReplicationModel());
+            var ser = new JSONGraphSerializer(new ReplicationModel());
             var stream = new MemoryStream();
             var str = ser.Serialize(type, obj);
             CollectionAssert.AreEqual(serialized, str);
@@ -165,7 +133,7 @@ namespace ReplicateTest
         [Test]
         public void TestFieldEmptyString()
         {
-            var ser = new JSONSerializer(new ReplicationModel());
+            var ser = new JSONGraphSerializer(new ReplicationModel());
             var stream = new MemoryStream();
             var str = ser.Serialize(new SubClass() { Field = "" });
             CollectionAssert.AreEqual("{\"Field\": \"\", \"Property\": 0}", str);
@@ -178,7 +146,7 @@ namespace ReplicateTest
             var serialized = "{\"value\": \"herp\", \"prop\": \"derp\"}";
             var type = typeof(Dictionary<string, string>);
             var obj = new Dictionary<string, string>() { { "value", "herp" }, { "prop", "derp" } };
-            var ser = new JSONSerializer(new ReplicationModel());
+            var ser = new JSONGraphSerializer(new ReplicationModel() { DictionaryAsObject = true });
             var stream = new MemoryStream();
             var str = ser.Serialize(type, obj);
             CollectionAssert.AreEqual(serialized, str);
@@ -188,41 +156,30 @@ namespace ReplicateTest
         [Test]
         public void TestNullableNullInt()
         {
-            var ser = new JSONSerializer(new ReplicationModel());
+            var ser = new JSONGraphSerializer(new ReplicationModel());
             var stream = new MemoryStream();
-            ser.Serialize<int?>(stream, null);
-            stream.Position = 0;
-            var str = stream.ReadAllString();
+            var str = ser.Serialize<int?>(null);
             Assert.AreEqual("null", str);
         }
         [Test]
         public void TestDeserializeNullableNullInt()
         {
-            var ser = new JSONSerializer(new ReplicationModel());
-            var stream = new MemoryStream();
-            stream.WriteString("null");
-            stream.Position = 0;
-            var output = ser.Deserialize<int?>(stream);
+            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var output = ser.Deserialize<int?>("null");
             Assert.AreEqual(null, output);
         }
         [Test]
         public void TestDeserializeObjectWithEmptyArray()
         {
-            var ser = new JSONSerializer(new ReplicationModel());
-            var stream = new MemoryStream();
-            stream.WriteString("{\"ArrayField\": [], \"NullableValue\": 1}");
-            stream.Position = 0;
-            var output = ser.Deserialize<ObjectWithArrayField>(stream);
+            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var output = ser.Deserialize<ObjectWithArrayField>("{\"ArrayField\": [], \"NullableValue\": 1}");
             Assert.AreEqual(1, output.NullableValue);
         }
         [Test]
         public void TestDeserializeObjectWithEmptyObject()
         {
-            var ser = new JSONSerializer(new ReplicationModel());
-            var stream = new MemoryStream();
-            stream.WriteString("{\"ObjectField\": {}, \"NullableValue\": 1}");
-            stream.Position = 0;
-            var output = ser.Deserialize<ObjectWithArrayField>(stream);
+            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var output = ser.Deserialize<ObjectWithArrayField>("{\"ObjectField\": {}, \"NullableValue\": 1}");
             Assert.AreEqual(1, output.NullableValue);
         }
     }

@@ -12,19 +12,28 @@ namespace Replicate.MetaData
         Dictionary<string, T> Backing;
         ReplicationModel Model;
         TypeAccessor childTypeAccessor;
-        public RepDictObject(Dictionary<string, T> backing, ReplicationModel model)
+        public RepDictObject(Dictionary<string, T> backing, TypeAccessor typeAccessor, ReplicationModel model)
         {
             Backing = backing;
             Model = model;
             childTypeAccessor = model.GetTypeAccessor(typeof(T));
+            TypeAccessor = typeAccessor;
         }
-        public IRepNode this[string memberName] => Model.GetRepNode(Backing[memberName], childTypeAccessor);
+        public IRepNode this[string memberName]
+        {
+            get
+            {
+                Backing.TryGetValue(memberName, out var value);
+                return Model.GetRepNode(value, childTypeAccessor);
+            }
+            set => Backing[memberName] = (T)value.Value;
+        }
 
-        public IRepNode this[int memberIndex] => throw new NotImplementedException();
+        public IRepNode this[int memberIndex] { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
-        public object Value { get => Backing; set => throw new NotImplementedException(); }
+        public object Value { get => Backing; set => Backing = (Dictionary<string, T>)value; }
 
-        public TypeAccessor TypeAccessor => throw new NotImplementedException();
+        public TypeAccessor TypeAccessor { get; }
 
         public MarshalMethod MarshalMethod => MarshalMethod.Object;
         public IRepPrimitive AsPrimitive => throw new NotImplementedException();
@@ -38,9 +47,6 @@ namespace Replicate.MetaData
                 .GetEnumerator();
         }
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            throw new NotImplementedException();
-        }
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }

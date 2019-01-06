@@ -41,7 +41,25 @@ namespace ReplicateBenchmarks
             s.Stop();
             Console.WriteLine(name + ": " + s.ElapsedTicks * 1.0 / Stopwatch.Frequency);
         }
+        static void TimeSerialize<T, W>(string name, T value, IReplicateSerializer<W> serializer, double count = 1e6)
+        {
+            stream.Seek(0, SeekOrigin.Begin);
+            var s = Stopwatch.StartNew();
+            for (int i = 0; i < count; i++)
+            {
+                serializer.Serialize(value);
+            }
+            s.Stop();
+            Console.WriteLine(name + ": " + s.ElapsedTicks * 1.0 / Stopwatch.Frequency);
+        }
+
         static void Main(string[] args)
+        {
+            JsonCompare();
+            //ProtoCompare();
+            Console.ReadLine();
+        }
+        static void ProtoCompare()
         {
             var model = ReplicationModel.Default;
             model.Add(typeof(Derp));
@@ -54,7 +72,7 @@ namespace ReplicateBenchmarks
             ser.Serialize(new MemoryStream(), herp);
             TimeSerialize("Serialize String", derp, ser.Serialize);
             TimeSerialize("Proto Serialize String", derp, ProtoBuf.Serializer.Serialize);
-            
+
             TimeSerialize<object>("Serialize Derp", herp, ser.Serialize);
             TimeSerialize("Proto Serialize Derp", herp, ProtoBuf.Serializer.Serialize);
 
@@ -63,7 +81,33 @@ namespace ReplicateBenchmarks
 
             TimeSerialize<object>("Serialize GenericDerp<string>", genDerp, ser.Serialize);
             TimeSerialize("Proto Serialize GenericDerp<string>", genDerp, ProtoBuf.Serializer.Serialize);
-            Console.ReadLine();
+        }
+        static void JsonCompare()
+        {
+            var model = ReplicationModel.Default;
+            model.Add(typeof(Derp));
+
+            var serGraph = new JSONGraphSerializer(model);
+            var ser = new JSONSerializer(model);
+            var herp = new Derp() { faff = "faff" };
+            var derp = "faff";
+            var herpList = new List<Derp> { herp, herp, herp };
+            var genDerp = new GenericDerp<string>() { faff = "faff" };
+            var dict = new Dictionary<string, string>() { { "faff", "faff" } };
+            TimeSerialize("Serialize String", derp, ser);
+            TimeSerialize("Graph Serialize String", derp, serGraph);
+
+            TimeSerialize("Serialize Derp", herp, ser);
+            TimeSerialize("Graph Serialize Derp", herp, serGraph);
+
+            TimeSerialize("Serialize List<Derp>", herpList, ser, count: 1e4);
+            TimeSerialize("Graph Serialize List<Derp>", herpList, serGraph, count: 1e4);
+
+            TimeSerialize("Serialize GenericDerp<string>", genDerp, ser);
+            TimeSerialize("Graph Serialize GenericDerp<string>", genDerp, serGraph);
+
+            //TimeSerialize("Serialize Dictionary<string, string>", dict, ser);
+            TimeSerialize("Graph Serialize Dictionary<string, string>", dict, serGraph);
         }
     }
 }

@@ -164,5 +164,23 @@ namespace ReplicateTest
             surrogateValue.Value = new SurrogateType() { OtherField = "FAFF" };
             Assert.AreEqual("FAFF", obj.Field2.Field1);
         }
+        [Test]
+        public void TestNullValue()
+        {
+            var model = new ReplicationModel();
+            var node = model.GetRepNode(null, typeof(ObjectType));
+            Assert.AreEqual(MarshalMethod.Object, node.MarshalMethod);
+            var field1 = node.AsObject["Field1"];
+            Assert.AreEqual(MarshalMethod.Primitive, field1.MarshalMethod);
+            Assert.AreEqual(PrimitiveType.String, field1.AsPrimitive.PrimitiveType);
+        }
+        [Test]
+        public void TestSettingNullValue()
+        {
+            var model = new ReplicationModel();
+            var node = model.GetRepNode(null, typeof(ObjectType));
+            node.Value = new ObjectType() { Field1 = "DERP" };
+            Assert.AreEqual("DERP", node.AsObject["Field1"].Value);
+        }
     }
 }
