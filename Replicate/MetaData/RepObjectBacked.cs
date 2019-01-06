@@ -10,20 +10,17 @@ namespace Replicate.MetaData
 {
     public struct RepBackedNode : IRepNode, IRepObject, IRepPrimitive
     {
-        object Backing;
+        public object Backing { get; private set; }
         public ReplicationModel Model { get; private set; }
         public TypeAccessor TypeAccessor { get; set; }
         public MemberAccessor MemberAccessor;
         public Func<object, object> ConvertToSurrogate;
         public Func<object, object> ConvertFromSurrogate;
-        // TODO: Throw errors if trying to set value on a primitive that is not a child maybe? (The member == null case)
         public object Value
         {
             get
             {
                 var output = Backing;
-                if (MemberAccessor != null)
-                    output = MemberAccessor.GetValue(Backing);
                 if (ConvertToSurrogate != null)
                     output = ConvertToSurrogate(output);
                 return output;
@@ -32,10 +29,7 @@ namespace Replicate.MetaData
             {
                 if (ConvertFromSurrogate != null)
                     value = ConvertFromSurrogate(value);
-                if (MemberAccessor != null)
-                    MemberAccessor.SetValue(Backing, value);
-                else
-                    Backing = value;
+                Backing = value;
             }
         }
 
@@ -66,14 +60,14 @@ namespace Replicate.MetaData
         public IRepNode this[int memberIndex]
         {
             get => this[MemberAccessors[memberIndex]];
-            set => MemberAccessors[memberIndex].SetValue(Backing, value.Value);
+            set => MemberAccessors[memberIndex].SetValue(Backing, value.Backing);
         }
         public IRepNode this[string memberName]
         {
             get => this[MemberAccessors.First(m => m.Info.Name == memberName)];
-            set => MemberAccessors.First(m => m.Info.Name == memberName).SetValue(Backing, value.Value);
+            set => MemberAccessors.First(m => m.Info.Name == memberName).SetValue(Backing, value.Backing);
         }
-        IRepNode this[MemberAccessor member] => Model.GetRepNode(Value, member.TypeAccessor, member);
+        IRepNode this[MemberAccessor member] => Model.GetRepNode(member.GetValue(Value), member.TypeAccessor, member);
 
         public IEnumerator<KeyValuePair<string, IRepNode>> GetEnumerator()
         {
@@ -89,6 +83,7 @@ namespace Replicate.MetaData
     public struct RepBackedCollection : IRepCollection
     {
         private RepBackedNode Node;
+        object IRepNode.Backing => Node.Backing;
         object IRepNode.Value { get => Node.Value; set => Node.Value = value; }
         public RepBackedCollection(RepBackedNode node)
         {

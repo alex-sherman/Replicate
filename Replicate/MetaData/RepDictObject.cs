@@ -10,6 +10,7 @@ namespace Replicate.MetaData
     public class RepDictObject<T> : IRepObject
     {
         Dictionary<string, T> Backing;
+        object IRepNode.Backing => Backing;
         ReplicationModel Model;
         TypeAccessor childTypeAccessor;
         public RepDictObject(Dictionary<string, T> backing, TypeAccessor typeAccessor, ReplicationModel model)

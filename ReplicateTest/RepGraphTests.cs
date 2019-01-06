@@ -83,8 +83,10 @@ namespace ReplicateTest
         public void UpdateStringField()
         {
             var obj = new ObjectType() { Field1 = "hurrdurr", Field2 = null };
-            var value = new RepBackedNode(obj).AsObject["Field1"];
+            var objNode = new RepBackedNode(obj).AsObject;
+            var value = objNode["Field1"];
             value.Value = "newvalue";
+            objNode["Field1"] = value;
             Assert.AreEqual("newvalue", obj.Field1);
         }
         [Test]
@@ -112,24 +114,30 @@ namespace ReplicateTest
         public void SetListField()
         {
             var obj = new ObjectType() { ListField = new List<ObjectType>() { new ObjectType() { Field1 = "herp" } } };
-            var listValue = new RepBackedNode(obj).AsObject["ListField"].AsCollection;
+            var objNode = new RepBackedNode(obj).AsObject;
+            var listValue = objNode["ListField"].AsCollection;
             listValue.Values = new[] { new ObjectType() { Field1 = "derp" } };
+            objNode["ListField"] = listValue;
             Assert.AreEqual("derp", obj.ListField[0].Field1);
         }
         [Test]
         public void SetArrayField()
         {
             var obj = new ObjectType() { ArrayField = new[] { new ObjectType() { Field1 = "herp" } } };
-            var listValue = new RepBackedNode(obj).AsObject["ArrayField"].AsCollection;
+            var objNode = new RepBackedNode(obj).AsObject;
+            var listValue = objNode["ArrayField"].AsCollection;
             listValue.Values = new List<ObjectType>() { new ObjectType() { Field1 = "derp" } };
+            objNode["ArrayField"] = listValue;
             Assert.AreEqual("derp", obj.ArrayField[0].Field1);
         }
         [Test]
         public void SetEnumerableField()
         {
             var obj = new ObjectType() { EnumerableField = new List<ObjectType>() { new ObjectType() { Field1 = "herp" } } };
-            var listValue = new RepBackedNode(obj).AsObject["EnumerableField"].AsCollection;
+            var objNode = new RepBackedNode(obj).AsObject;
+            var listValue = objNode["EnumerableField"].AsCollection;
             listValue.Values = new[] { new ObjectType() { Field1 = "derp" } };
+            objNode["EnumerableField"] = listValue;
             Assert.AreEqual("derp", obj.EnumerableField.ToList()[0].Field1);
         }
         // TODO: Fix this with the decoupling of manager/collection for replicated objects?
@@ -160,8 +168,10 @@ namespace ReplicateTest
                 .SetSurrogate(typeof(SurrogateType));
 
             var obj = new ObjectType() { Field2 = new ObjectType() { Field1 = "Herp" } };
-            var surrogateValue = new RepBackedNode(obj, model: model).AsObject["Field2"].AsObject;
+            var objNode = new RepBackedNode(obj, model: model).AsObject;
+            var surrogateValue = objNode["Field2"].AsObject;
             surrogateValue.Value = new SurrogateType() { OtherField = "FAFF" };
+            objNode["Field2"] = surrogateValue;
             Assert.AreEqual("FAFF", obj.Field2.Field1);
         }
         [Test]

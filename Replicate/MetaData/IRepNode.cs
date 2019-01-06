@@ -30,6 +30,7 @@ namespace Replicate.MetaData
     }
     public interface IRepNode
     {
+        object Backing { get; }
         object Value { get; set; }
         TypeAccessor TypeAccessor { get; }
         MarshalMethod MarshalMethod { get; }

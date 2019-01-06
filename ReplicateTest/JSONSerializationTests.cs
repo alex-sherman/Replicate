@@ -45,6 +45,11 @@ namespace ReplicateTest
             [Replicate]
             public V OtherValue;
         }
+        [ReplicateType]
+        public class ObjectWithDictField
+        {
+            public Dictionary<string, string> Dict;
+        }
         #endregion
 
         [Test]
@@ -152,6 +157,19 @@ namespace ReplicateTest
             CollectionAssert.AreEqual(serialized, str);
             var output = ser.Deserialize(type, str);
             Assert.AreEqual(obj, output);
+        }
+        [Test]
+        public void TestDictionaryProperty()
+        {
+            var serialized = "{\"Dict\": {\"value\": \"herp\", \"prop\": \"derp\"}}";
+            var type = typeof(Dictionary<string, string>);
+            var obj = new ObjectWithDictField() { Dict = new Dictionary<string, string>() { { "value", "herp" }, { "prop", "derp" } } };
+            var ser = new JSONGraphSerializer(new ReplicationModel() { DictionaryAsObject = true });
+            var stream = new MemoryStream();
+            var str = ser.Serialize(obj);
+            CollectionAssert.AreEqual(serialized, str);
+            var output = ser.Deserialize<ObjectWithDictField>(str);
+            Assert.AreEqual(obj.Dict, output.Dict);
         }
         [Test]
         public void TestNullableNullInt()
