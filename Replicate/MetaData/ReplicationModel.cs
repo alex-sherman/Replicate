@@ -54,8 +54,13 @@ namespace Replicate.MetaData
         public IRepNode GetRepNode(object backing, Type type) => GetRepNode(backing, GetTypeAccessor(type));
         public IRepNode GetRepNode(object backing, TypeAccessor typeAccessor = null, MemberAccessor memberAccessor = null)
         {
+            if (backing == null && typeAccessor == null)
+                return new RepNodeTypeless();
             typeAccessor = typeAccessor ?? GetTypeAccessor(backing.GetType());
-            if(DictionaryAsObject && typeAccessor.Type.IsSameGeneric(typeof(Dictionary<,>))
+            var type = typeAccessor.Type;
+            if (type == typeof(IRepNode) || type.GetInterface(nameof(IRepNode)) != null)
+                return new RepNodeTypeless();
+            if (DictionaryAsObject && typeAccessor.Type.IsSameGeneric(typeof(Dictionary<,>))
                 && typeAccessor.Type.GetGenericArguments()[0] == typeof(string))
             {
                 var childType = typeAccessor.Type.GetGenericArguments()[1];
@@ -68,10 +73,12 @@ namespace Replicate.MetaData
             if (surrogate != null)
             {
                 var castToOp = surrogate.Type.GetMethod("op_Implicit", new Type[] { typeAccessor.Type });
-                output.ConvertToSurrogate = obj => castToOp.Invoke(null, new[] { obj });
+                output.ConvertToSurrogate = obj =>
+                    obj == null ? null : castToOp.Invoke(null, new[] { obj });
 
                 var castFromOp = surrogate.Type.GetMethod("op_Implicit", new Type[] { surrogate.Type });
-                output.ConvertFromSurrogate = obj => castFromOp.Invoke(null, new[] { obj });
+                output.ConvertFromSurrogate = obj =>
+                    obj == null ? null : castFromOp.Invoke(null, new[] { obj });
                 output.TypeAccessor = surrogate;
             }
             return output;

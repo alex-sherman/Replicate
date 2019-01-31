@@ -96,8 +96,7 @@ namespace Replicate.Serialization
             {PrimitiveType.Double, new JSONFloatSerializer() },
             {PrimitiveType.String, stringSer },
         };
-        static Regex ws = new Regex("\\s");
-        static bool IsW(char c) => ws.IsMatch("" + c);
+        static bool IsW(char c) => c == ' ' || c == '\t' || c == '\n' || c == '\r';
         static void CheckAndThrow(bool condition)
         {
             if (!condition)
@@ -135,12 +134,20 @@ namespace Replicate.Serialization
             return new StreamReader(context).ReadToEnd();
         }
 
-        public override object Read(Stream stream, IRepPrimitive value)
+        public override IRepPrimitive Read(Stream stream, IRepPrimitive value)
         {
-            if (ReadNull(stream)) return null;
+            if (ReadNull(stream)) { value.Value = null; return value; }
+            if(value.TypeAccessor == null)
+            {
+                var primType = ReadPrimitiveType(stream);
+                value.PrimitiveType = primType;
+                value.Value = serializers[value.PrimitiveType].Read(stream);
+                return value;
+            }
             try
             {
-                return Convert.ChangeType(serializers[value.PrimitiveType].Read(stream), value.TypeAccessor.Type);
+                value.Value = Convert.ChangeType(serializers[value.PrimitiveType].Read(stream), value.TypeAccessor.Type);
+                return value;
             }
             catch (Exception e)
             {
@@ -148,9 +155,9 @@ namespace Replicate.Serialization
             }
         }
 
-        public override object Read(Stream stream, IRepCollection value)
+        public override IRepCollection Read(Stream stream, IRepCollection value)
         {
-            if (ReadNull(stream)) return null;
+            if (ReadNull(stream)) { value.Value = null; return value; }
             List<object> values = new List<object>();
             if (stream.ReadCharOne() != '[') throw new SerializationError();
             stream.ReadAllString(IsW);
@@ -159,20 +166,19 @@ namespace Replicate.Serialization
             while (nextChar != ']')
             {
                 stream.ReadAllString(IsW);
-                values.Add(Read(stream, Model.GetRepNode(null, value.CollectionType)));
+                values.Add(Read(stream, Model.GetRepNode(null, value.CollectionType)).RawValue);
                 stream.ReadAllString(IsW);
                 nextChar = stream.ReadCharOne();
                 CheckAndThrow(nextChar == ',' || nextChar == ']');
             };
             value.Values = values;
-            return value.Value;
+            return value;
         }
 
-        public override object Read(Stream stream, IRepObject value)
+        public override IRepObject Read(Stream stream, IRepObject value)
         {
-            if (ReadNull(stream)) return null;
-            if (value.Value == null)
-                value.Value = value.TypeAccessor.Construct();
+            if (ReadNull(stream)) { value.Value = null; return value; }
+            value.EnsureConstructed();
             if (stream.ReadCharOne() != '{') throw new SerializationError();
             stream.ReadAllString(IsW);
             char nextChar = stream.ReadCharOne(true);
@@ -186,13 +192,12 @@ namespace Replicate.Serialization
                 stream.ReadAllString(IsW);
                 var childNode = value[name];
                 CheckAndThrow(childNode != null);
-                Read(stream, childNode);
-                value[name] = childNode;
+                value[name] = Read(stream, childNode);
                 stream.ReadAllString(IsW);
                 nextChar = stream.ReadCharOne();
                 CheckAndThrow(nextChar == ',' || nextChar == '}');
             };
-            return value.Value;
+            return value;
         }
 
         public override void Write(Stream stream, IRepPrimitive value)
@@ -233,10 +238,29 @@ namespace Replicate.Serialization
                     if (!first) stream.WriteString(", ");
                     else first = false;
                     stream.WriteString($"\"{member.Key}\": ");
-                    Write(stream, member.Value);
+                    Write(stream, member);
                 }
                 stream.WriteString("}");
             }
+        }
+
+        public override MarshalMethod ReadMarshallMethod(Stream stream)
+        {
+            stream.ReadAllString(IsW);
+            var c = stream.ReadCharOne(true);
+            // The 'n' is for null, return it as a null object
+            if (c == '{' || c == 'n') return MarshalMethod.Object;
+            if (c == '[') return MarshalMethod.Collection;
+            return MarshalMethod.Primitive;
+        }
+
+        public PrimitiveType ReadPrimitiveType(Stream stream)
+        {
+            stream.ReadAllString(IsW);
+            var c = stream.ReadCharOne(true);
+            if (c == '"') return PrimitiveType.String;
+            if (c == 't' || c == 'f') return PrimitiveType.Bool;
+            return PrimitiveType.Double;
         }
     }
 }

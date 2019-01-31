@@ -10,7 +10,7 @@ namespace Replicate.MetaData
     public class RepDictObject<T> : IRepObject
     {
         Dictionary<string, T> Backing;
-        object IRepNode.Backing => Backing;
+        object IRepNode.RawValue => Backing;
         ReplicationModel Model;
         TypeAccessor childTypeAccessor;
         public RepDictObject(Dictionary<string, T> backing, TypeAccessor typeAccessor, ReplicationModel model)
@@ -25,15 +25,16 @@ namespace Replicate.MetaData
             get
             {
                 Backing.TryGetValue(memberName, out var value);
-                return Model.GetRepNode(value, childTypeAccessor);
+                var node = Model.GetRepNode(value, childTypeAccessor);
+                node.Key = memberName;
+                return node;
             }
             set => Backing[memberName] = (T)value.Value;
         }
 
         public IRepNode this[int memberIndex] { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-
+        public string Key { get; set; }
         public object Value { get => Backing; set => Backing = (Dictionary<string, T>)value; }
-
         public TypeAccessor TypeAccessor { get; }
 
         public MarshalMethod MarshalMethod => MarshalMethod.Object;
@@ -41,13 +42,16 @@ namespace Replicate.MetaData
         public IRepCollection AsCollection => throw new NotImplementedException();
         public IRepObject AsObject => this;
 
-        public IEnumerator<KeyValuePair<string, IRepNode>> GetEnumerator()
+        public IEnumerator<IRepNode> GetEnumerator()
         {
-            return Backing
-                .Select(kvp => new KeyValuePair<string, IRepNode>(kvp.Key, Model.GetRepNode(kvp.Value, childTypeAccessor)))
+            var @this = this;
+            return Backing.Keys
+                .Select(key => @this[key])
                 .GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        public void EnsureConstructed() => Backing = new Dictionary<string, T>();
     }
 }

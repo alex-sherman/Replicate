@@ -10,46 +10,64 @@ namespace Replicate.MetaData
 {
     public struct RepBackedNode : IRepNode, IRepObject, IRepPrimitive
     {
-        public object Backing { get; private set; }
+        public object RawValue
+        {
+            get
+            {
+                if (ConvertFromSurrogate != null)
+                    return ConvertFromSurrogate(Value);
+                return Value;
+            }
+            set
+            {
+                if (ConvertToSurrogate != null)
+                    value = ConvertToSurrogate(value);
+                Value = value;
+            }
+        }
         public ReplicationModel Model { get; private set; }
         public TypeAccessor TypeAccessor { get; set; }
         public MemberAccessor MemberAccessor;
         public Func<object, object> ConvertToSurrogate;
         public Func<object, object> ConvertFromSurrogate;
-        public object Value
-        {
-            get
-            {
-                var output = Backing;
-                if (ConvertToSurrogate != null)
-                    output = ConvertToSurrogate(output);
-                return output;
-            }
-            set
-            {
-                if (ConvertFromSurrogate != null)
-                    value = ConvertFromSurrogate(value);
-                Backing = value;
-            }
-        }
+        public string Key { get; set; }
+        public object Value { get; set; }
 
         public RepBackedNode(object backing, TypeAccessor typeAccessor = null,
             MemberAccessor memberAccessor = null, ReplicationModel model = null)
         {
             MemberAccessor = memberAccessor;
-            Backing = backing;
+            Key = null;
             Model = model ?? ReplicationModel.Default;
             TypeAccessor = typeAccessor ?? Model.GetTypeAccessor(backing.GetType());
             if (TypeAccessor.Type.IsSameGeneric(typeof(Nullable<>)))
                 TypeAccessor = Model.GetTypeAccessor(typeAccessor.Type.GetGenericArguments()[0]);
-            ConvertFromSurrogate = null;
-            ConvertToSurrogate = null;
+
+            var surrogate = MemberAccessor?.Surrogate ?? TypeAccessor.Surrogate;
+            if (surrogate != null)
+            {
+                var castToOp = surrogate.Type.GetMethod("op_Implicit", new Type[] { typeAccessor.Type });
+                ConvertToSurrogate = obj =>
+                    obj == null ? null : castToOp.Invoke(null, new[] { obj });
+
+                var castFromOp = surrogate.Type.GetMethod("op_Implicit", new Type[] { surrogate.Type });
+                ConvertFromSurrogate = obj =>
+                    obj == null ? null : castFromOp.Invoke(null, new[] { obj });
+                TypeAccessor = surrogate;
+                Value = ConvertToSurrogate(backing);
+            }
+            else
+            {
+                ConvertToSurrogate = null;
+                ConvertFromSurrogate = null;
+                Value = backing;
+            }
             // TODO: Handle using a surrogate
 
         }
         public MarshalMethod MarshalMethod => TypeAccessor.TypeData.MarshalMethod;
 
-        public PrimitiveType PrimitiveType => PrimitiveTypeMap.Map[TypeAccessor.Type];
+        public PrimitiveType PrimitiveType { get => PrimitiveTypeMap.Map[TypeAccessor.Type]; set => throw new InvalidOperationException(); }
         public IRepCollection AsCollection => new RepBackedCollection(this);
 
         public IRepObject AsObject => this;
@@ -60,34 +78,49 @@ namespace Replicate.MetaData
         public IRepNode this[int memberIndex]
         {
             get => this[MemberAccessors[memberIndex]];
-            set => MemberAccessors[memberIndex].SetValue(Backing, value.Backing);
+            set => MemberAccessors[memberIndex].SetValue(Value, value.RawValue);
         }
         public IRepNode this[string memberName]
         {
             get => this[MemberAccessors.First(m => m.Info.Name == memberName)];
-            set => MemberAccessors.First(m => m.Info.Name == memberName).SetValue(Backing, value.Backing);
+            set => MemberAccessors.First(m => m.Info.Name == memberName).SetValue(Value, value.RawValue);
         }
-        IRepNode this[MemberAccessor member] => Model.GetRepNode(member.GetValue(Value), member.TypeAccessor, member);
+        IRepNode this[MemberAccessor member]
+        {
+            get
+            {
+                var node = Model.GetRepNode(member.GetValue(Value), member.TypeAccessor, member);
+                node.Key = member.Info.Name;
+                return node;
+            }
+        }
 
-        public IEnumerator<KeyValuePair<string, IRepNode>> GetEnumerator()
+        public IEnumerator<IRepNode> GetEnumerator()
         {
             var @this = this;
             return MemberAccessors
-                .Select(m => new KeyValuePair<string, IRepNode>(m.Info.Name, @this[m]))
+                .Select(m => @this[m])
                 .GetEnumerator();
         }
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        public void EnsureConstructed()
+        {
+            Value = TypeAccessor.Construct();
+        }
         #endregion
     }
 
     public struct RepBackedCollection : IRepCollection
     {
         private RepBackedNode Node;
-        object IRepNode.Backing => Node.Backing;
-        object IRepNode.Value { get => Node.Value; set => Node.Value = value; }
+        public object RawValue => Node.RawValue;
+        public string Key { get; set; }
+        public object Value { get => Node.Value; set => Node.Value = value; }
         public RepBackedCollection(RepBackedNode node)
         {
             Node = node;
+            Key = null;
             CollectionType = node.Model.GetCollectionValueAccessor(node.TypeAccessor.Type);
         }
         public TypeAccessor CollectionType { get; private set; }

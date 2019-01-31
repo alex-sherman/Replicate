@@ -30,8 +30,9 @@ namespace Replicate.Serialization
         public object Deserialize(object existingValue, Type type, TWireType wireValue)
         {
             var context = GetContext(wireValue);
+
             var node = Model.GetRepNode(existingValue, type);
-            return Read(context, node);
+            return Read(context, node).RawValue;
         }
         public abstract TContext GetContext(TWireType wireValue);
         public abstract TWireType GetWireValue(TContext context);
@@ -56,20 +57,23 @@ namespace Replicate.Serialization
         public abstract void Write(TContext context, IRepPrimitive value);
         public abstract void Write(TContext context, IRepCollection value);
         public abstract void Write(TContext context, IRepObject value);
-        public object Read(TContext context, IRepNode node)
+        public abstract MarshalMethod ReadMarshallMethod(TContext context);
+        public IRepNode Read(TContext context, IRepNode node)
         {
-            switch (node.MarshalMethod)
+            var marshalMethod = node.TypeAccessor != null ? node.MarshalMethod : ReadMarshallMethod(context);
+            switch (marshalMethod)
             {
                 case MarshalMethod.Primitive:
-                    return node.Value = Read(context, node.AsPrimitive);
+                    return Read(context, node.AsPrimitive);
                 case MarshalMethod.Collection:
-                    return node.Value = Read(context, node.AsCollection);
+                    return Read(context, node.AsCollection);
                 //case MarshalMethod.Tuple:
                 //    return node.Value = Read(context, node.AsPrimitive);
                 case MarshalMethod.Object:
-                    return node.Value = Read(context, node.AsObject);
+                    return Read(context, node.AsObject);
                 default:
-                    return Default(node.TypeAccessor.Type);
+                    node.Value = Default(node.TypeAccessor.Type);
+                    return node;
             }
         }
         protected static object Default(Type type)
@@ -78,8 +82,8 @@ namespace Replicate.Serialization
                 return Activator.CreateInstance(type);
             return null;
         }
-        public abstract object Read(TContext context, IRepPrimitive value);
-        public abstract object Read(TContext context, IRepCollection value);
-        public abstract object Read(TContext context, IRepObject value);
+        public abstract IRepPrimitive Read(TContext context, IRepPrimitive value);
+        public abstract IRepCollection Read(TContext context, IRepCollection value);
+        public abstract IRepObject Read(TContext context, IRepObject value);
     }
 }

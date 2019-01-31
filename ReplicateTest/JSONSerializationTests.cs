@@ -50,34 +50,47 @@ namespace ReplicateTest
         {
             public Dictionary<string, string> Dict;
         }
+        [ReplicateType]
+        public class ObjectWithDictFieldSurrogate
+        {
+            public Dictionary<string, string> Dict;
+            public static implicit operator ObjectWithDictField(ObjectWithDictFieldSurrogate @this)
+            {
+                return new ObjectWithDictField() { Dict = @this.Dict?.ToDictionary(kvp => kvp.Key.Replace("faff", ""), kvp => kvp.Value) };
+            }
+            public static implicit operator ObjectWithDictFieldSurrogate(ObjectWithDictField @this)
+            {
+                return new ObjectWithDictFieldSurrogate() { Dict = @this.Dict?.ToDictionary(kvp => kvp.Key + "faff", kvp => kvp.Value) };
+            }
+        }
         #endregion
 
         [Test]
-        public void TestSerializeProperty()
+        public void SerializeProperty()
         {
             var ser = new JSONGraphSerializer(new ReplicationModel());
             Assert.AreEqual("{\"Property\": 3}", ser.Serialize(new PropClass() { Property = 3 }));
         }
         [Test]
-        public void TestSerializeList()
+        public void SerializeList()
         {
             var ser = new JSONGraphSerializer(new ReplicationModel());
             Assert.AreEqual("[1, 2, 3, 4]", ser.Serialize(new[] { 1, 2, 3, 4 }));
         }
         [Test]
-        public void TestDeserializeList()
+        public void DeserializeList()
         {
             var ser = new JSONGraphSerializer(new ReplicationModel());
             CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 }, ser.Deserialize<int[]>("[1, 2, 3, 4]"));
         }
         [Test]
-        public void TestSerializeIEnumerable()
+        public void SerializeIEnumerable()
         {
             var ser = new JSONGraphSerializer(new ReplicationModel());
             CollectionAssert.AreEqual("[1, 2, 3, 4]", ser.Serialize<IEnumerable<int>>(new[] { 1, 2, 3, 4 }));
         }
         [Test]
-        public void TestDeserializeIEnumerable()
+        public void DeserializeIEnumerable()
         {
             var ser = new JSONGraphSerializer(new ReplicationModel());
             CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 },
@@ -86,27 +99,27 @@ namespace ReplicateTest
 
 
         [Test]
-        public void TestSerializeHashset()
+        public void SerializeHashset()
         {
             var ser = new JSONGraphSerializer(new ReplicationModel());
             CollectionAssert.AreEqual("[1, 2, 3, 4]", ser.Serialize(new HashSet<int>(new[] { 1, 2, 3, 4 })));
         }
         [Test]
-        public void TestDeserializeHashset()
+        public void DeserializeHashset()
         {
             var ser = new JSONGraphSerializer(new ReplicationModel());
             CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 },
                 ser.Deserialize<HashSet<int>>("[1, 2, 3, 4]").ToArray());
         }
         [Test]
-        public void TestSerializeGeneric()
+        public void SerializeGeneric()
         {
             var ser = new JSONGraphSerializer(new ReplicationModel());
             Assert.AreEqual("{\"Value\": \"herp\", \"Prop\": \"derp\"}",
                 ser.Serialize(new GenericClass<string>() { Value = "herp", Prop = "derp" }));
         }
         [Test]
-        public void TestDeserializeGeneric()
+        public void DeserializeGeneric()
         {
             var ser = new JSONGraphSerializer(new ReplicationModel());
             var output = ser.Deserialize<GenericClass<string>>("{\"Value\": \"herp\", \"Prop\": \"derp\"}");
@@ -124,9 +137,10 @@ namespace ReplicateTest
         [TestCase("", typeof(string), "\"\"")]
         [TestCase("😈", typeof(string), "\"😈\"")]
         [TestCase(new double[] { }, typeof(double[]), "[]")]
+        [TestCase(null, typeof(double[]), "null")]
         [TestCase(true, typeof(bool), "true")]
         [TestCase(false, typeof(bool), "false")]
-        public void TestSerializeDeserialize(object obj, Type type, string serialized)
+        public void SerializeDeserialize(object obj, Type type, string serialized)
         {
             var ser = new JSONGraphSerializer(new ReplicationModel());
             var stream = new MemoryStream();
@@ -136,7 +150,7 @@ namespace ReplicateTest
             Assert.AreEqual(obj, output);
         }
         [Test]
-        public void TestFieldEmptyString()
+        public void FieldEmptyString()
         {
             var ser = new JSONGraphSerializer(new ReplicationModel());
             var stream = new MemoryStream();
@@ -146,7 +160,7 @@ namespace ReplicateTest
             Assert.AreEqual("", output.Field);
         }
         [Test]
-        public void TestDictionary()
+        public void Dictionary()
         {
             var serialized = "{\"value\": \"herp\", \"prop\": \"derp\"}";
             var type = typeof(Dictionary<string, string>);
@@ -154,12 +168,12 @@ namespace ReplicateTest
             var ser = new JSONGraphSerializer(new ReplicationModel() { DictionaryAsObject = true });
             var stream = new MemoryStream();
             var str = ser.Serialize(type, obj);
-            CollectionAssert.AreEqual(serialized, str);
+            Assert.AreEqual(serialized, str);
             var output = ser.Deserialize(type, str);
             Assert.AreEqual(obj, output);
         }
         [Test]
-        public void TestDictionaryProperty()
+        public void DictionaryProperty()
         {
             var serialized = "{\"Dict\": {\"value\": \"herp\", \"prop\": \"derp\"}}";
             var type = typeof(Dictionary<string, string>);
@@ -172,7 +186,7 @@ namespace ReplicateTest
             Assert.AreEqual(obj.Dict, output.Dict);
         }
         [Test]
-        public void TestNullableNullInt()
+        public void NullableNullInt()
         {
             var ser = new JSONGraphSerializer(new ReplicationModel());
             var stream = new MemoryStream();
@@ -180,25 +194,44 @@ namespace ReplicateTest
             Assert.AreEqual("null", str);
         }
         [Test]
-        public void TestDeserializeNullableNullInt()
+        public void DeserializeNullableNullInt()
         {
             var ser = new JSONGraphSerializer(new ReplicationModel());
             var output = ser.Deserialize<int?>("null");
             Assert.AreEqual(null, output);
         }
         [Test]
-        public void TestDeserializeObjectWithEmptyArray()
+        public void DeserializeObjectWithEmptyArray()
         {
             var ser = new JSONGraphSerializer(new ReplicationModel());
             var output = ser.Deserialize<ObjectWithArrayField>("{\"ArrayField\": [], \"NullableValue\": 1}");
             Assert.AreEqual(1, output.NullableValue);
         }
         [Test]
-        public void TestDeserializeObjectWithEmptyObject()
+        public void DeserializeObjectWithEmptyObject()
         {
             var ser = new JSONGraphSerializer(new ReplicationModel());
             var output = ser.Deserialize<ObjectWithArrayField>("{\"ObjectField\": {}, \"NullableValue\": 1}");
             Assert.AreEqual(1, output.NullableValue);
+        }
+        [Test]
+        public void DeserializeSurrogate()
+        {
+            var model = new ReplicationModel() { DictionaryAsObject = true };
+            model[typeof(ObjectWithDictField)].SetSurrogate(typeof(ObjectWithDictFieldSurrogate));
+            var ser = new JSONGraphSerializer(model);
+            var obj = new ObjectWithDictField()
+            {
+                Dict = new Dictionary<string, string>()
+                {
+                    {"a", "herp" },
+                    {"b", "derp" },
+                },
+            };
+            var serStr = ser.Serialize(obj);
+            Assert.AreEqual("{\"Dict\": {\"afaff\": \"herp\", \"bfaff\": \"derp\"}}", serStr);
+            var deser = ser.Deserialize<ObjectWithDictField>(serStr);
+            CollectionAssert.AreEqual(obj.Dict, deser.Dict);
         }
     }
 }

@@ -30,8 +30,15 @@ namespace Replicate.MetaData
     }
     public interface IRepNode
     {
-        object Backing { get; }
+        /// <summary>
+        /// The true, non-surrogatted, value represented by this node
+        /// </summary>
+        object RawValue { get; }
+        /// <summary>
+        /// The, potentially surrogatted, value represented by this node
+        /// </summary>
         object Value { get; set; }
+        string Key { get; set; }
         TypeAccessor TypeAccessor { get; }
         MarshalMethod MarshalMethod { get; }
         IRepPrimitive AsPrimitive { get; }
@@ -40,15 +47,16 @@ namespace Replicate.MetaData
     }
     public interface IRepPrimitive : IRepNode
     {
-        PrimitiveType PrimitiveType { get; }
+        PrimitiveType PrimitiveType { get; set; }
     }
     public interface IRepCollection : IRepNode, IEnumerable<IRepNode>
     {
         TypeAccessor CollectionType { get; }
         IEnumerable<object> Values { get; set; }
     }
-    public interface IRepObject : IRepNode, IEnumerable<KeyValuePair<string, IRepNode>>
+    public interface IRepObject : IRepNode, IEnumerable<IRepNode>
     {
+        void EnsureConstructed();
         IRepNode this[string memberName] { get; set; }
         IRepNode this[int memberIndex] { get; set; }
     }
