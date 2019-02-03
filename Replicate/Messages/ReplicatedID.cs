@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace Replicate.Messages
 {
     [ReplicateType]
-    public struct ReplicatedId
+    public struct ReplicateId
     {
         [Replicate]
         public ushort Creator;

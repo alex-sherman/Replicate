@@ -12,7 +12,7 @@ namespace Replicate
     public class ReplicatedReference<T> where T : class
     {
         [Replicate]
-        public ReplicatedId Id;
+        public ReplicateId Id;
         public static implicit operator T(ReplicatedReference<T> self)
         {
             if (self == null)

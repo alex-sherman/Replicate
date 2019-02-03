@@ -1,6 +1,7 @@
 ﻿using Replicate.Interfaces;
 using Replicate.Messages;
 using Replicate.MetaData;
+using Replicate.RPC;
 using Replicate.Serialization;
 using System;
 using System.Collections.Generic;
@@ -14,7 +15,7 @@ namespace Replicate
 {
     public class ReplicatedObject
     {
-        public ReplicatedId id;
+        public ReplicateId id;
         public object replicated;
         public HashSet<ushort> relevance;
         public TypeAccessor typeAccessor;
@@ -24,10 +25,10 @@ namespace Replicate
         public ReplicationModel Model { get; protected set; }
         protected Dictionary<uint, Action<byte[]>> handlerLookup = new Dictionary<uint, Action<byte[]>>();
         public Dictionary<object, ReplicatedObject> ObjectLookup = new Dictionary<object, ReplicatedObject>();
-        public Dictionary<ReplicatedId, ReplicatedObject> IDLookup = new Dictionary<ReplicatedId, ReplicatedObject>();
+        public Dictionary<ReplicateId, ReplicatedObject> IDLookup = new Dictionary<ReplicateId, ReplicatedObject>();
         protected Dictionary<Type, object> InterfaceLookup = new Dictionary<Type, object>();
-        public IReplicationChannel Channel;
-        public ReplicationManager(IReplicationChannel channel, ReplicationModel model = null)
+        public IRPCChannel Channel;
+        public ReplicationManager(IRPCChannel channel, ReplicationModel model = null)
         {
             Model = model ?? ReplicationModel.Default;
             Channel = channel;
@@ -47,7 +48,7 @@ namespace Replicate
 
         public T CreateProxy<T>(T target = null) where T : class
         {
-            ReplicatedId? id = null;
+            ReplicateId? id = null;
             if (target != null)
             {
                 if (!ObjectLookup.ContainsKey(target))
@@ -96,7 +97,7 @@ namespace Replicate
             if (typeID.id == ushort.MaxValue)
                 throw new InvalidOperationException("Cannot register non [ReplicateType] objects");
             uint objectId = AllocateObjectID(replicated);
-            var id = new ReplicatedId()
+            var id = new ReplicateId()
             {
                 ObjectID = objectId,
                 //creator = ID,
@@ -110,7 +111,7 @@ namespace Replicate
             return Channel.Request(((Action<InitMessage>)HandleInit).Method, message);
         }
 
-        private void AddObject(ReplicatedId id, object replicated)
+        private void AddObject(ReplicateId id, object replicated)
         {
             var data = new ReplicatedObject()
             {

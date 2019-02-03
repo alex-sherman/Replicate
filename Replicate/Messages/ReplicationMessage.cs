@@ -10,7 +10,7 @@ namespace Replicate.Messages
     [ReplicateType]
     public struct ReplicationMessage
     {
-        public ReplicatedId id;
+        public ReplicateId id;
         public List<ReplicationData> Data;
     }
     public struct ReplicationData

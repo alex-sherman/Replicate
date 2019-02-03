@@ -1,17 +1,18 @@
-﻿using Replicate.Messages;
+﻿using Replicate.Interfaces;
+using Replicate.Messages;
 using System;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace Replicate.Interfaces
+namespace Replicate.RPC
 {
     public class ReplicatedProxy : IImplementor
     {
-        ReplicatedId? Target;
-        IReplicationChannel Channel;
+        ReplicateId? Target;
+        IRPCChannel Channel;
 
-        public ReplicatedProxy(ReplicatedId? target, IReplicationChannel channel, Type replicatedInterface)
+        public ReplicatedProxy(ReplicateId? target, IRPCChannel channel, Type replicatedInterface)
         {
             Target = target;
             Channel = channel;

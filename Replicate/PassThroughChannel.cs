@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Replicate.Messages;
 using Replicate.MetaData;
+using Replicate.RPC;
 using Replicate.Serialization;
 
 namespace Replicate
@@ -29,7 +30,7 @@ namespace Replicate
     }
     public class PassThroughChannel
     {
-        public class PassThroughChannelEndpoint : ReplicationChannel<string, object>
+        public class PassThroughChannelEndpoint : RPCChannel<string, object>
         {
             public PassThroughChannelEndpoint target;
 
