@@ -190,9 +190,15 @@ namespace Replicate.Serialization
                 stream.ReadAllString(IsW);
                 CheckAndThrow(stream.ReadCharOne() == ':');
                 stream.ReadAllString(IsW);
-                var childNode = value[name];
-                CheckAndThrow(childNode != null);
-                value[name] = Read(stream, childNode);
+                try
+                {
+                    var childNode = value[name];
+                    value[name] = Read(stream, childNode);
+                }
+                catch(KeyNotFoundException)
+                {
+                    throw new SerializationError($"Invalid object field {name}");
+                }
                 stream.ReadAllString(IsW);
                 nextChar = stream.ReadCharOne();
                 CheckAndThrow(nextChar == ',' || nextChar == '}');

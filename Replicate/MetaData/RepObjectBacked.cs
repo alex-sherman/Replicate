@@ -82,8 +82,8 @@ namespace Replicate.MetaData
         }
         public IRepNode this[string memberName]
         {
-            get => this[MemberAccessors.First(m => m.Info.Name == memberName)];
-            set => MemberAccessors.First(m => m.Info.Name == memberName).SetValue(Value, value.RawValue);
+            get => this[TypeAccessor.Members[memberName]];
+            set => TypeAccessor.Members[memberName].SetValue(Value, value.RawValue);
         }
         IRepNode this[MemberAccessor member]
         {
