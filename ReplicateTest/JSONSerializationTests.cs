@@ -72,16 +72,34 @@ namespace ReplicateTest
             Assert.AreEqual("{\"Property\": 3}", ser.Serialize(new PropClass() { Property = 3 }));
         }
         [Test]
-        public void SerializeList()
+        public void SerializeArray()
         {
             var ser = new JSONGraphSerializer(new ReplicationModel());
             Assert.AreEqual("[1, 2, 3, 4]", ser.Serialize(new[] { 1, 2, 3, 4 }));
         }
         [Test]
-        public void DeserializeList()
+        public void DeserializeArray()
         {
             var ser = new JSONGraphSerializer(new ReplicationModel());
             CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 }, ser.Deserialize<int[]>("[1, 2, 3, 4]"));
+        }
+        [Test]
+        public void DeserializeList()
+        {
+            var ser = new JSONGraphSerializer(new ReplicationModel());
+            CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 }, ser.Deserialize<List<int>>("[1, 2, 3, 4]"));
+        }
+        [Test]
+        public void SerializeCollection()
+        {
+            var ser = new JSONGraphSerializer(new ReplicationModel());
+            Assert.AreEqual("[1, 2, 3, 4]", ser.Serialize<ICollection<int>>(new[] { 1, 2, 3, 4 }));
+        }
+        [Test]
+        public void DeserializeCollection()
+        {
+            var ser = new JSONGraphSerializer(new ReplicationModel());
+            CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 }, ser.Deserialize<ICollection<int>>("[1, 2, 3, 4]"));
         }
         [Test]
         public void SerializeIEnumerable()

@@ -75,5 +75,9 @@ namespace Replicate.MetaData
                 return null;
             }
         }
+        public override string ToString()
+        {
+            return Info.ToString();
+        }
     }
 }

@@ -120,7 +120,7 @@ namespace Replicate.Serialization
         {
             var count = values.Count;
 
-            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+            if (type.IsSameGeneric(typeof(IEnumerable<>)) || type.IsSameGeneric(typeof(ICollection<>)))
             {
                 type = typeof(List<>).MakeGenericType(type.GetGenericArguments());
                 obj = null;

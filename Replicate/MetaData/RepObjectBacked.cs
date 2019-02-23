@@ -108,6 +108,10 @@ namespace Replicate.MetaData
         {
             Value = TypeAccessor.Construct();
         }
+        public override string ToString()
+        {
+            return $"{Key}: {MarshalMethod.ToString()}";
+        }
         #endregion
     }
 

@@ -11,9 +11,10 @@ namespace Replicate.MetaData
     public class MemberInfo
     {
         public byte ID { get; private set; }
-        public string Name { get { return Property?.Name ?? Field?.Name; } }
+        public string Name { get { return Property?.Name ?? Field.Name; } }
         public ReplicationModel Model;
-        public Type MemberType { get { return Property?.PropertyType ?? Field?.FieldType; } }
+        public Type MemberType { get { return Property?.PropertyType ?? Field.FieldType; } }
+        public Type ParentType { get => Property?.DeclaringType ?? Field.DeclaringType; }
         public TypeData TypeData { get; set; }
         public TypeAccessor Surrogate { get; private set; }
         public bool IsGenericParameter { get { return MemberType.IsGenericParameter; } }
@@ -61,6 +62,10 @@ namespace Replicate.MetaData
             if (surrogate.IsGenericTypeDefinition)
                 throw new InvalidOperationException("Cannot set a surrogate type that is generic");
             Surrogate = Model.GetTypeAccessor(surrogate);
+        }
+        public override string ToString()
+        {
+            return $"{ParentType}.{Name}";
         }
     }
 }

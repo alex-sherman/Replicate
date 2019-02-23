@@ -30,7 +30,7 @@ namespace Replicate.MetaData
                 MarshalMethod = MarshalMethod.Primitive;
             else
             {
-                if (type.GetInterface("ICollection`1") != null || type == typeof(IEnumerable<>))
+                if (type == typeof(ICollection<>) || type.GetInterface("ICollection`1") != null || type == typeof(IEnumerable<>))
                     MarshalMethod = MarshalMethod.Collection;
                 else
                     MarshalMethod = MarshalMethod.Object;

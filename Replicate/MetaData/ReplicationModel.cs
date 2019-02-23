@@ -120,9 +120,22 @@ namespace Replicate.MetaData
         }
         public TypeAccessor GetCollectionValueAccessor(Type collectionType)
         {
-            if (!collectionType.IsGenericType || collectionType.GetGenericTypeDefinition() != typeof(IEnumerable<>))
-                collectionType = collectionType.GetInterface("ICollection`1");
-            return GetTypeAccessor(collectionType.GetGenericArguments()[0]);
+            Type interfacedCollectionType = null;
+            if (collectionType.IsSameGeneric(typeof(ICollection<>))
+                || collectionType.IsSameGeneric(typeof(IEnumerable<>)))
+            {
+                interfacedCollectionType = collectionType;
+            }
+            else
+            {
+                if (collectionType.GetInterface("ICollection`1") != null)
+                    interfacedCollectionType = collectionType.GetInterface("ICollection`1");
+                else if (collectionType.GetInterface("IEnumerable`1") != null)
+                    interfacedCollectionType = collectionType.GetInterface("IEnumerable`1");
+            }
+            if (interfacedCollectionType == null)
+                throw new InvalidOperationException($"{collectionType.FullName} is not a valid collection type");
+            return GetTypeAccessor(interfacedCollectionType.GetGenericArguments()[0]);
         }
         public TypeData GetTypeData(Type type, bool autoAddType = true)
         {
@@ -132,10 +145,6 @@ namespace Replicate.MetaData
                 return td;
             if (autoAddType)
                 return Add(type);
-            if (type.GetInterface("ICollection`1") != null)
-                return typeLookup[typeof(ICollection<>)];
-            if (type.GetInterface("IEnumerable`1") != null)
-                return typeLookup[typeof(IEnumerable<>)];
             return null;
         }
         public TypeData this[Type type]
