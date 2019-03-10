@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Collections.Generic;
 using NUnit.Framework;
 using System.Threading.Tasks;
+using Replicate.MetaData.Policy;
 
 namespace ReplicateTest
 {
@@ -20,7 +21,7 @@ namespace ReplicateTest
     {
         public int field1;
         public string field2;
-        [ReplicatePolicy(AsReference = true)]
+        [AsReference]
         public ReplicatedType2 child1;
     }
 

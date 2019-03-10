@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Replicate.MetaData.Policy;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -39,7 +40,7 @@ namespace Replicate.MetaData
         {
             Model = model;
             ID = id;
-            if (GetAttribute<ReplicatePolicyAttribute>()?.AsReference ?? false)
+            if (GetAttribute<AsReferenceAttribute>() != null)
                 SetSurrogate(typeof(ReplicatedReference<>).MakeGenericType(MemberType));
         }
         public Type GetMemberType(Type declaringType)
