@@ -74,17 +74,26 @@ namespace Replicate.RPC
             }
             return None.Value;
         }
-        public virtual async Task<TWireType> Receive(TEndpoint endpoint, TWireType request, ReplicateId? target = null)
+        RPCRequest CreateRequest(TEndpoint endpoint, TWireType request, ReplicateId? target, out RPCContract contract)
         {
-            if (!TryGetContract(endpoint, out var contract))
+            if (!TryGetContract(endpoint, out contract))
                 throw new ContractNotFoundError(endpoint.ToString());
-            var rpcRequest = new RPCRequest()
+            return new RPCRequest()
             {
                 Contract = contract,
                 Request = request == null ? null : Serializer.Deserialize(contract.RequestType, request),
                 Target = target,
             };
+        }
+        public virtual async Task<TWireType> Receive(TEndpoint endpoint, TWireType request, ReplicateId? target = null)
+        {
+            var rpcRequest = CreateRequest(endpoint, request, target, out var contract);
             return Serializer.Serialize(contract.ResponseType, (await Receive(endpoint, rpcRequest)));
+        }
+        public virtual async Task<Tuple<object, RPCContract>> ReceiveRaw(TEndpoint endpoint, TWireType request, ReplicateId? target = null)
+        {
+            var rpcRequest = CreateRequest(endpoint, request, target, out var contract);
+            return new Tuple<object, RPCContract>(await Receive(endpoint, rpcRequest), contract);
         }
     }
 }
