@@ -8,7 +8,7 @@ namespace Replicate
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
     public class ReplicateAttribute : Attribute { }
 
-    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
+    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property | AttributeTargets.Method)]
     public class ReplicateIgnoreAttribute : Attribute { }
 
     public enum AutoAdd

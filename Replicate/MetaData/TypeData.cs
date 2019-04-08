@@ -59,6 +59,7 @@ namespace Replicate.MetaData
             if (autoMethods != AutoAdd.AllPublic)
                 bindingFlags |= BindingFlags.NonPublic;
             RPCMethods = type.GetMethods(bindingFlags)
+                .Where(meth => meth.GetCustomAttribute<ReplicateIgnoreAttribute>() == null)
                 .Where(meth => autoMethods != AutoAdd.None || meth.GetCustomAttribute<ReplicateRPCAttribute>() != null)
                 .ToList();
             ReplicatedInterfaces = type.GetInterfaces()
