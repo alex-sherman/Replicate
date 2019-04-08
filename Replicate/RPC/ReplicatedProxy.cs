@@ -22,9 +22,10 @@ namespace Replicate.RPC
         {
             return Channel.Request(method, new RPCRequest()
             {
+                // TODO: This might be expensive, should maybe move to ReplicationModel
                 Contract = new RPCContract(method),
                 Target = Target,
-                Request = args.Length == 1 ? args[0] : null,
+                Request = args.Length > 0 ? args[0] : null,
             });
         }
 
@@ -36,7 +37,7 @@ namespace Replicate.RPC
 
         public void InterceptVoid(MethodInfo method, object[] args)
         {
-            RPC(method, args);
+            RPC(method, args).GetAwaiter().GetResult();
         }
 
         public async Task<T> InterceptAsync<T>(MethodInfo method, object[] args)

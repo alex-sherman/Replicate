@@ -6,13 +6,56 @@ using Replicate;
 using static ReplicateTest.Util;
 using System.Threading.Tasks;
 using NUnit.Framework;
+using Replicate.RPC;
 
 namespace ReplicateTest
 {
+    public class AddImplementor : IAutoAddNone, IAutoAddAllPublic
+    {
+        public bool AddModifier() => true;
+        public bool IgnoreModifier() => true;
+        public bool NoModifiers() => true;
+    }
+    [ReplicateType(AutoMethods = AutoAdd.AllPublic)]
+    public interface IAutoAddAllPublic
+    {
+        bool NoModifiers();
+        [ReplicateRPC]
+        bool AddModifier();
+        [ReplicateIgnore]
+        bool IgnoreModifier();
+    }
+    [ReplicateType(AutoMethods = AutoAdd.None)]
+    public interface IAutoAddNone
+    {
+        bool NoModifiers();
+        [ReplicateRPC]
+        bool AddModifier();
+        [ReplicateIgnore]
+        bool IgnoreModifier();
+    }
+    [ReplicateType]
+    public interface IMultipleParameters
+    {
+        bool TwoParameters(int a, bool b);
+    }
+    [ReplicateType]
+    public interface IDefaultParameter
+    {
+        int TwoParameters(int a, bool b = false);
+    }
+    public class DefaultParameter : IDefaultParameter
+    {
+        public int TwoParameters(int a, bool b = false)
+        {
+            Assert.IsFalse(b);
+            return a;
+        }
+    }
     [TestFixture]
     public class RPCTests
     {
-        [ReplicateType(AutoMethods = AutoAdd.AllPublic, IsInstanceRPC = true)]
+        [ReplicateType(IsInstanceRPC = true)]
         public interface ITestInterface
         {
             int Herp(string faff);
@@ -20,7 +63,7 @@ namespace ReplicateTest
             Task<int> AsyncHerp(string faff);
             Task AsyncDerp();
         }
-        [ReplicateType(AutoMethods = AutoAdd.AllPublic)]
+        [ReplicateType]
         public interface ITestGenericInterface
         {
             T Generic<T>(T value);
@@ -94,6 +137,8 @@ namespace ReplicateTest
                 await Task.Delay(100);
                 return Herp(faff);
             }
+            [ReplicateIgnore]
+            public void Ignored() { }
         }
         [Test]
         public void ProxyImplementTest1()
@@ -141,26 +186,26 @@ namespace ReplicateTest
             Assert.AreEqual("derp", clientTarget.HerpValue);
         }
         [Test]
-        public void TestRPCDoesntAddMethod()
+        public void AutoAddNone()
         {
-            var cs = MakeClientServer();
-            var serverTarget = new TestTarget();
-            cs.server.RegisterObject(serverTarget).Await();
-            var clientTarget = cs.client.ObjectLookup.Values.First().replicated as TestTarget;
-            var proxy = cs.server.CreateProxy<ITestInterface2>(serverTarget);
-            proxy.Derp();
-            Assert.AreEqual(false, clientTarget.DerpCalled);
+            var channel = new PassThroughChannel.Endpoint();
+            channel.target = channel;
+            channel.RegisterSingleton<IAutoAddNone>(new AddImplementor());
+            var proxy = channel.CreateProxy<IAutoAddNone>();
+            Assert.IsTrue(proxy.AddModifier());
+            Assert.Throws<ContractNotFoundError>(() => proxy.IgnoreModifier());
+            Assert.Throws<ContractNotFoundError>(() => proxy.NoModifiers());
         }
         [Test]
-        public void TestRPCDoesAddMethod()
+        public void AutoAddPublic()
         {
-            var cs = MakeClientServer();
-            var serverTarget = new TestTarget();
-            cs.server.RegisterObject(serverTarget).Await();
-            var clientTarget = cs.client.ObjectLookup.Values.First().replicated as TestTarget;
-            var proxy = cs.server.CreateProxy<ITestInterface2>(serverTarget);
-            proxy.Herp("derp");
-            Assert.AreEqual("derp", clientTarget.HerpValue);
+            var channel = new PassThroughChannel.Endpoint();
+            channel.target = channel;
+            channel.RegisterSingleton<IAutoAddAllPublic>(new AddImplementor());
+            var proxy = channel.CreateProxy<IAutoAddAllPublic>();
+            Assert.IsTrue(proxy.AddModifier());
+            Assert.Throws<ContractNotFoundError>(() => proxy.IgnoreModifier());
+            Assert.IsTrue(proxy.NoModifiers());
         }
         [Test]
         public void TestRPCTargetGetsCalled()
@@ -199,6 +244,24 @@ namespace ReplicateTest
             cs.server.Channel.RegisterSingleton<ITestInterface>(target);
             var proxy = cs.client.CreateProxy<ITestInterface>();
             Assert.AreEqual(4, proxy.AsyncHerp("derp").Result);
+        }
+        [Test]
+        public void MultipleParametersError()
+        {
+            var channel = new PassThroughChannel.Endpoint();
+            channel.target = channel;
+            Assert.Throws<ReplicateError>(() => channel.RegisterSingleton<IMultipleParameters>(null));
+        }
+        [Test]
+        public void DefaultParametersSuccess()
+        {
+            var channel = new PassThroughChannel.Endpoint();
+            channel.target = channel;
+            channel.RegisterSingleton<IDefaultParameter>(new DefaultParameter());
+            channel.TryGetContract(channel.GetEndpoint(typeof(IDefaultParameter).GetMethods().First()), out var contract);
+            Assert.AreEqual(contract.RequestType, typeof(int));
+            var proxy = channel.CreateProxy<IDefaultParameter>();
+            Assert.AreEqual(5, proxy.TwoParameters(5));
         }
     }
 }

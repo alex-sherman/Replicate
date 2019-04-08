@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Replicate.RPC;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -45,25 +46,30 @@ namespace Replicate
             return task.GetAwaiter().GetResult();
         }
 
-        public static Task<object> RPCInvoke(MethodInfo method, object target, object request)
+        public static HandlerDelegate CreateHandler(MethodInfo method, Func<RPCRequest, object> target)
         {
-            using (ReplicateContext.UpdateContext(r => r.Value._isInRPC = true))
+            var contract = new RPCContract(method);
+            object[] args = method.GetParameters().Select(p => p.HasDefaultValue ? null : p.DefaultValue).ToArray();
+
+            return request =>
             {
-                object[] args = new object[] { };
-                if (method.GetParameters().Length == 1)
-                    args = new[] { request };
-                try
+                using (ReplicateContext.UpdateContext(r => r.Value._isInRPC = true))
                 {
-                    var result = method.Invoke(target, args);
-                    // TODO: This could be done with Reflection.Emit I think?
-                    return Taskify(method.ReturnType, result);
+                    if (contract.RequestType != typeof(None))
+                        args[0] = request.Request;
+                    try
+                    {
+                        var result = method.Invoke(target(request), args);
+                        // TODO: This could be done with Reflection.Emit I think?
+                        return Taskify(method.ReturnType, result);
+                    }
+                    catch (TargetInvocationException e)
+                    {
+                        ExceptionDispatchInfo.Capture(e.InnerException).Throw();
+                        throw e.InnerException;
+                    }
                 }
-                catch(TargetInvocationException e)
-                {
-                    ExceptionDispatchInfo.Capture(e.InnerException).Throw();
-                    throw e.InnerException;
-                }
-            }
+            };
         }
     }
 }

@@ -14,8 +14,8 @@ namespace Replicate.MetaData
         public MarshalMethod MarshalMethod;
         public string Name { get; private set; }
         public Type Type { get; private set; }
-        public List<MemberInfo> ReplicatedMembers = new List<MemberInfo>();
-        public List<MethodInfo> RPCMethods = new List<MethodInfo>();
+        public readonly List<MemberInfo> ReplicatedMembers = new List<MemberInfo>();
+        public readonly List<MethodInfo> RPCMethods = new List<MethodInfo>();
         public readonly bool IsInstanceRPC;
         public List<Type> ReplicatedInterfaces;
         public Type Surrogate { get; private set; }

@@ -28,13 +28,18 @@ namespace Replicate
             return serializer.Serialize(type, obj);
         }
     }
+    public class NonSerializer : IReplicateSerializer<object>
+    {
+        public object Deserialize(Type type, object wireValue) => wireValue;
+        public object Serialize(Type type, object obj) => obj;
+    }
     public class PassThroughChannel
     {
-        public class PassThroughChannelEndpoint : RPCChannel<string, object>
+        public class Endpoint : RPCChannel<string, object>
         {
-            public PassThroughChannelEndpoint target;
+            public Endpoint target;
 
-            private IReplicateSerializer<object> serializer;
+            private IReplicateSerializer<object> serializer = new NonSerializer();
             public override IReplicateSerializer<object> Serializer => serializer;
             public void SetSerializer(IReplicateSerializer<object> serializer) => this.serializer = serializer;
 
@@ -51,12 +56,12 @@ namespace Replicate
             }
         }
 
-        public PassThroughChannelEndpoint PointA;
-        public PassThroughChannelEndpoint PointB;
+        public Endpoint PointA;
+        public Endpoint PointB;
         public PassThroughChannel()
         {
-            var pointA = new PassThroughChannelEndpoint();
-            var pointB = new PassThroughChannelEndpoint() { target = pointA };
+            var pointA = new Endpoint();
+            var pointB = new Endpoint() { target = pointA };
             pointA.target = pointB;
             PointA = pointA;
             PointB = pointB;

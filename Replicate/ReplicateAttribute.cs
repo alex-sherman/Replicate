@@ -22,7 +22,7 @@ namespace Replicate
     {
         public Type SurrogateType;
         public AutoAdd AutoMembers = AutoAdd.AllPublic;
-        public AutoAdd AutoMethods = AutoAdd.None;
+        public AutoAdd AutoMethods = AutoAdd.AllPublic;
         public bool IsInstanceRPC = false;
     }
 }

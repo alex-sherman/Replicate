@@ -21,8 +21,10 @@ namespace Replicate.RPC
         }
         public RPCContract(MethodInfo method)
         {
-            var parameters = method.GetParameters();
-            RequestType = parameters.Length == 1 ? parameters[0].ParameterType : typeof(None);
+            var parameters = method.GetParameters().Where(p => !p.IsOptional);
+            if (parameters.Skip(1).Any())
+                throw new ReplicateError("Invalid contract with multiple required parameters");
+            RequestType = parameters.FirstOrDefault()?.ParameterType ?? typeof(None);
             ResponseType = method.ReturnType.GetTaskReturnType();
             Method = method;
         }
