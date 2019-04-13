@@ -39,9 +39,8 @@ namespace Replicate
         {
             public Endpoint target;
 
-            private IReplicateSerializer<object> serializer = new NonSerializer();
-            public override IReplicateSerializer<object> Serializer => serializer;
-            public void SetSerializer(IReplicateSerializer<object> serializer) => this.serializer = serializer;
+            public Endpoint() : base(new NonSerializer()) { }
+            public Endpoint(IReplicateSerializer<object> serializer) : base(serializer) { }
 
             public override string GetEndpoint(MethodInfo method)
             {
@@ -60,16 +59,15 @@ namespace Replicate
         public Endpoint PointB;
         public PassThroughChannel()
         {
-            var pointA = new Endpoint();
-            var pointB = new Endpoint() { target = pointA };
-            pointA.target = pointB;
-            PointA = pointA;
-            PointB = pointB;
         }
         public void SetSerializer<T>(IReplicateSerializer<T> serializer)
         {
-            PointA.SetSerializer(new CastedSerializer<T>(serializer));
-            PointB.SetSerializer(new CastedSerializer<T>(serializer));
+            var objectSer = new CastedSerializer<T>(serializer);
+            var pointA = new Endpoint(objectSer);
+            var pointB = new Endpoint(objectSer) { target = pointA };
+            pointA.target = pointB;
+            PointA = pointA;
+            PointB = pointB;
         }
     }
 }

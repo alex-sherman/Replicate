@@ -30,13 +30,18 @@ namespace Replicate.RPC
             public RPCContract Contract;
             public HandlerDelegate Handler;
         }
-        public abstract IReplicateSerializer<TWireType> Serializer { get; }
+        public IReplicateSerializer<TWireType> Serializer { get; }
         Dictionary<TEndpoint, HandlerInfo> responders = new Dictionary<TEndpoint, HandlerInfo>();
         /// <summary>
         /// Specifies whether or not the channel is allowed to send/receive messages.
         /// When IsOpen is true <see cref="LocalID"/> must be valid.
         /// </summary>
         public bool IsOpen { get; protected set; }
+
+        public RPCChannel(IReplicateSerializer<TWireType> serializer)
+        {
+            Serializer = serializer;
+        }
 
         public abstract TEndpoint GetEndpoint(MethodInfo endpoint);
 
