@@ -54,6 +54,7 @@ namespace Replicate.Serialization
             };
             public static string Escape(string str)
             {
+                str = str.Replace("\r\n", "\n").Replace('\r', '\n');
                 foreach (var replacement in replacements)
                     str = str.Replace(replacement.Item2, replacement.Item1);
                 return str;
