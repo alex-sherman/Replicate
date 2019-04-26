@@ -1,4 +1,5 @@
-﻿using Replicate.RPC;
+﻿using Replicate.MetaData;
+using Replicate.RPC;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,8 +10,30 @@ using System.Threading.Tasks;
 
 namespace Replicate
 {
-    public static class Util
+    public static class TypeUtil
     {
+        public static void UpdateMembersFrom<T, U>(T target, U newFields, string[] whiteList = null, string[] blackList = null) where T : class
+        {
+            var taT = ReplicationModel.Default.GetTypeAccessor(typeof(T));
+            var taU = taT;
+            if(typeof(T) != typeof(U))
+                taU = ReplicationModel.Default.GetTypeAccessor(typeof(U));
+            IEnumerable<MemberAccessor> members = taT.MemberAccessors;
+            if (whiteList != null && whiteList.Any())
+                members = members.Where(mem => whiteList.Contains(mem.Info.Name));
+            if (blackList != null && blackList.Any())
+                members = members.Where(mem => !blackList.Contains(mem.Info.Name));
+            var memberTuples = members
+                .Where(m => taU.Members.ContainsKey(m.Info.Name))
+                .Select(tMember => new { tMember, uMember = taU.Members[tMember.Info.Name] })
+                .Where(tuple => tuple.tMember.Type == tuple.uMember.Type);
+            foreach (var tuple in memberTuples)
+            {
+                var newValue = tuple.uMember.GetValue(newFields);
+                if (newValue == null) continue;
+                tuple.tMember.SetValue(target, newValue);
+            }
+        }
         public static bool IsSameGeneric(this Type compare, Type target)
         {
             return (compare.IsGenericTypeDefinition && compare == target) ||

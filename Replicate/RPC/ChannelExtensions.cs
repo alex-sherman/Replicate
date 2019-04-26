@@ -40,7 +40,7 @@ namespace Replicate
         public static void RegisterSingleton<T>(this IRPCChannel channel, T implementation)
         {
             foreach (var method in ReplicationModel.Default[typeof(T)].RPCMethods)
-                channel.Respond(method, Util.CreateHandler(method, _ => implementation));
+                channel.Respond(method, TypeUtil.CreateHandler(method, _ => implementation));
         }
 
         public static T CreateProxy<T>(this IRPCChannel channel, ReplicateId? target = null) where T : class

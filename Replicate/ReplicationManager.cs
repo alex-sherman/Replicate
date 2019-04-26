@@ -35,7 +35,7 @@ namespace Replicate
             Channel.Respond<ReplicationMessage>(HandleReplication);
             Channel.Respond<InitMessage>(HandleInit);
             foreach (var method in Model.Where(typeData => typeData.IsInstanceRPC).SelectMany(typeData => typeData.RPCMethods))
-                Channel.Respond(method, Util.CreateHandler(method, request => IDLookup[request.Target.Value].replicated));
+                Channel.Respond(method, TypeUtil.CreateHandler(method, request => IDLookup[request.Target.Value].replicated));
         }
 
         ReplicateContext CreateContext()

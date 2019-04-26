@@ -1,12 +1,23 @@
-﻿using System;
+﻿using Replicate.Messages;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Replicate
 {
-    public class None { public static None Value { get; private set; } = new None(); }
+    public struct TypedValue
+    {
+        public static TypedValue None { get; }
+        public object Value;
+        public TypedValue(object value)
+        {
+            Value = value;
+        }
+    }
+    public struct None { public static None Value { get; private set; } = new None(); }
     public class Ref<T> where T : struct
     {
         public Ref(T value) => Value = value;
