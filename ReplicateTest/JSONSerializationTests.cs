@@ -13,6 +13,11 @@ namespace ReplicateTest
     public class JSONSerializationTests
     {
         #region Types
+        public enum JSONEnum
+        {
+            One = 1,
+            Two = 2,
+        }
         [ReplicateType]
         public class GenericClass<T>
         {
@@ -158,6 +163,7 @@ namespace ReplicateTest
         [TestCase(null, typeof(double[]), "null")]
         [TestCase(true, typeof(bool), "true")]
         [TestCase(false, typeof(bool), "false")]
+        [TestCase(JSONEnum.One, typeof(JSONEnum), "1")]
         public void SerializeDeserialize(object obj, Type type, string serialized)
         {
             var ser = new JSONGraphSerializer(new ReplicationModel());

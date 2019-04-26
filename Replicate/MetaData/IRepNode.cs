@@ -17,7 +17,7 @@ namespace Replicate.MetaData
     }
     public static class PrimitiveTypeMap
     {
-        public static Dictionary<Type, PrimitiveType> Map = new Dictionary<Type, PrimitiveType>()
+        static Dictionary<Type, PrimitiveType> Map = new Dictionary<Type, PrimitiveType>()
         {
             { typeof(bool),   PrimitiveType.Bool },
             { typeof(byte),   PrimitiveType.Int8 },
@@ -27,6 +27,12 @@ namespace Replicate.MetaData
             { typeof(double), PrimitiveType.Double },
             { typeof(string), PrimitiveType.String },
         };
+        public static PrimitiveType MapType(Type type)
+        {
+            if (type.IsEnum)
+                return PrimitiveType.Int32;
+            return Map[type];
+        }
     }
     public interface IRepNode
     {

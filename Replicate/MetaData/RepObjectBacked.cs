@@ -67,7 +67,11 @@ namespace Replicate.MetaData
         }
         public MarshalMethod MarshalMethod => TypeAccessor.TypeData.MarshalMethod;
 
-        public PrimitiveType PrimitiveType { get => PrimitiveTypeMap.Map[TypeAccessor.Type]; set => throw new InvalidOperationException(); }
+        public PrimitiveType PrimitiveType
+        {
+            get => PrimitiveTypeMap.MapType(TypeAccessor.Type);
+            set => throw new InvalidOperationException();
+        }
         public IRepCollection AsCollection => new RepBackedCollection(this);
 
         public IRepObject AsObject => this;

@@ -26,7 +26,7 @@ namespace Replicate.MetaData
             Type = type;
             Name = type.FullName;
             Model = model;
-            if (type.IsPrimitive || type == typeof(string))
+            if (type.IsPrimitive || type == typeof(string) || type.IsEnum)
                 MarshalMethod = MarshalMethod.Primitive;
             else
             {

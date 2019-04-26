@@ -43,5 +43,11 @@ namespace Replicate.MetaData
         {
             return Activator.CreateInstance(Type);
         }
+        public object Coerce(object obj)
+        {
+            if (Type.IsEnum && obj is int intValue)
+                return Enum.ToObject(Type, intValue);
+            return Convert.ChangeType(obj, Type);
+        }
     }
 }

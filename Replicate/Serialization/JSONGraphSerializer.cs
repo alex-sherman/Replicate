@@ -14,8 +14,8 @@ namespace Replicate.Serialization
         class JSONIntSerializer : ITypedSerializer
         {
             Regex rx = new Regex(@"[0-9\.\+\-eE]");
-            public object Read(Stream stream) => long.Parse(stream.ReadAllString(c => rx.IsMatch("" + c)));
-            public void Write(object obj, Stream stream) => stream.WriteString(obj.ToString());
+            public object Read(Stream stream) => int.Parse(stream.ReadAllString(c => rx.IsMatch("" + c)));
+            public void Write(object obj, Stream stream) => stream.WriteString(((int)obj).ToString());
         }
         class JSONBoolSerializer : ITypedSerializer
         {
@@ -147,7 +147,7 @@ namespace Replicate.Serialization
             }
             try
             {
-                value.Value = Convert.ChangeType(serializers[value.PrimitiveType].Read(stream), value.TypeAccessor.Type);
+                value.Value = value.TypeAccessor.Coerce(serializers[value.PrimitiveType].Read(stream));
                 return value;
             }
             catch (Exception e)
