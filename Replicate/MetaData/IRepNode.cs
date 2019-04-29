@@ -65,6 +65,7 @@ namespace Replicate.MetaData
         void EnsureConstructed();
         IRepNode this[string memberName] { get; set; }
         IRepNode this[int memberIndex] { get; set; }
+        bool CanSetMember(string memberName);
     }
 
 }

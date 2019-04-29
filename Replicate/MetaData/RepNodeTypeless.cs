@@ -66,5 +66,7 @@ namespace Replicate.MetaData
                 result = $"{Key}: {result}";
             return result;
         }
+
+        public bool CanSetMember(string memberName) => true;
     }
 }

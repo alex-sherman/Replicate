@@ -257,5 +257,14 @@ namespace ReplicateTest
             var deser = ser.Deserialize<ObjectWithDictField>(serStr);
             CollectionAssert.AreEqual(obj.Dict, deser.Dict);
         }
+        [Test]
+        public void HandlesExtraObjectFields()
+        {
+            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var output = ser.Deserialize<ObjectWithArrayField>("{\"ExtraField\": \"extra value\"}");
+            Assert.AreEqual(null, output.NullableValue);
+            Assert.AreEqual(null, output.ArrayField);
+            Assert.AreEqual(null, output.ObjectField);
+        }
     }
 }

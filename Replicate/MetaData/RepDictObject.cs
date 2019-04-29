@@ -53,5 +53,7 @@ namespace Replicate.MetaData
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         public void EnsureConstructed() => Backing = new Dictionary<string, T>();
+
+        public bool CanSetMember(string memberName) => true;
     }
 }

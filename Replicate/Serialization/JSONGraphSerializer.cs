@@ -119,7 +119,7 @@ namespace Replicate.Serialization
         public override Stream GetContext(string wireValue)
         {
             var stream = new MemoryStream();
-            if(wireValue != null)
+            if (wireValue != null)
             {
                 var sw = new StreamWriter(stream);
                 sw.Write(wireValue);
@@ -138,7 +138,7 @@ namespace Replicate.Serialization
         public override IRepPrimitive Read(Stream stream, IRepPrimitive value)
         {
             if (ReadNull(stream)) { value.Value = null; return value; }
-            if(value.TypeAccessor == null)
+            if (value.TypeAccessor == null)
             {
                 var primType = ReadPrimitiveType(stream);
                 value.PrimitiveType = primType;
@@ -188,17 +188,21 @@ namespace Replicate.Serialization
             {
                 stream.ReadAllString(IsW);
                 var name = stringSer.Read(stream);
+                if (name == "location")
+                {
+
+                }
                 stream.ReadAllString(IsW);
                 CheckAndThrow(stream.ReadCharOne() == ':');
                 stream.ReadAllString(IsW);
-                try
+                if (value.CanSetMember(name))
                 {
                     var childNode = value[name];
                     value[name] = Read(stream, childNode);
                 }
-                catch(KeyNotFoundException)
+                else
                 {
-                    throw new SerializationError($"Invalid object field {name}");
+                    Read(stream, (IRepNode)RepNodeNoop.Single);
                 }
                 stream.ReadAllString(IsW);
                 nextChar = stream.ReadCharOne();

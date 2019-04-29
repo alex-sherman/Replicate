@@ -116,6 +116,8 @@ namespace Replicate.MetaData
         {
             return $"{Key}: {MarshalMethod.ToString()}";
         }
+
+        public bool CanSetMember(string memberName) => TypeAccessor.Members.ContainsKey(memberName);
         #endregion
     }
 
