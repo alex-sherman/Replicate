@@ -16,7 +16,7 @@ namespace Replicate
         {
             var taT = ReplicationModel.Default.GetTypeAccessor(typeof(T));
             var taU = taT;
-            if(typeof(T) != typeof(U))
+            if (typeof(T) != typeof(U))
                 taU = ReplicationModel.Default.GetTypeAccessor(typeof(U));
             IEnumerable<MemberAccessor> members = taT.MemberAccessors;
             if (whiteList != null && whiteList.Any())
@@ -72,7 +72,7 @@ namespace Replicate
         public static HandlerDelegate CreateHandler(MethodInfo method, Func<RPCRequest, object> target)
         {
             var contract = new RPCContract(method);
-            object[] args = method.GetParameters().Select(p => p.HasDefaultValue ? null : p.DefaultValue).ToArray();
+            object[] args = method.GetParameters().Select(p => p.HasDefaultValue ? p.DefaultValue : null).ToArray();
 
             return request =>
             {
