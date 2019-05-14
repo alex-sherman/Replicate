@@ -10,6 +10,7 @@ namespace Replicate.MetaData
     public class MemberAccessor
     {
         private Func<object, object> getter;
+        private Action<object, object> setter;
         public MemberInfo Info { get; private set; }
         public TypeAccessor TypeAccessor { get; private set; }
         public TypeAccessor Surrogate { get; private set; }
@@ -22,7 +23,7 @@ namespace Replicate.MetaData
             DeclaringType = declaringType.Type;
             Type = info.GetMemberType(declaringType.Type);
             TypeAccessor = model.GetTypeAccessor(Type);
-            this.Info = info;
+            Info = info;
             if (info.Field != null)
             {
                 var meth = new DynamicMethod("getter", typeof(object), new Type[] { typeof(object) });
@@ -42,27 +43,22 @@ namespace Replicate.MetaData
                 il.Emit(OpCodes.Ret);
                 getter = (Func<object, object>)meth.CreateDelegate(
                     typeof(Func<object, object>));
+                setter = info.GetField(DeclaringType).SetValue;
             }
             else
             {
                 getter = info.GetProperty(DeclaringType).GetValue;
+                setter = info.GetProperty(DeclaringType).SetValue;
             }
         }
 
         public void SetValue(object obj, object value)
         {
-            if (DeclaringType.IsGenericType)
+            try
             {
-                if (Info.Property != null)
-                    obj.GetType().GetProperty(Info.Property.Name).SetValue(obj, value);
-                if (Info.Field != null)
-                    obj.GetType().GetField(Info.Field.Name).SetValue(obj, value);
+                setter(obj, value);
             }
-            else
-            {
-                Info.Property?.SetValue(obj, value);
-                Info.Field?.SetValue(obj, value);
-            }
+            catch { }
         }
         public object GetValue(object obj)
         {
