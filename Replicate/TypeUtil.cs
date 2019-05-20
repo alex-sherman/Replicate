@@ -12,7 +12,7 @@ namespace Replicate
 {
     public static class TypeUtil
     {
-        public static void UpdateMembersFrom<T, U>(T target, U newFields, string[] whiteList = null, string[] blackList = null) where T : class
+        public static T CopyFrom<T, U>(T target, U newFields, string[] whiteList = null, string[] blackList = null) where T : class
         {
             var taT = ReplicationModel.Default.GetTypeAccessor(typeof(T));
             var taU = taT;
@@ -33,6 +33,7 @@ namespace Replicate
                 if (newValue == null) continue;
                 tuple.tMember.SetValue(target, newValue);
             }
+            return target;
         }
         public static bool IsSameGeneric(this Type compare, Type target)
         {

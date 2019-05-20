@@ -31,7 +31,7 @@ namespace ReplicateTest
         {
             var A = new TypeA() { A = "herp", B = 0xfaff };
             var B = new TypeA();
-            TypeUtil.UpdateMembersFrom(B, A);
+            TypeUtil.CopyFrom(B, A);
             Assert.AreEqual("herp", B.A);
             Assert.AreEqual(0xfaff, B.B);
         }
@@ -40,7 +40,7 @@ namespace ReplicateTest
         {
             var A = new TypeA() { A = "herp", B = 0xfaff, C = "uhoh" };
             var B = new TypeB();
-            TypeUtil.UpdateMembersFrom(B, A);
+            TypeUtil.CopyFrom(B, A);
             Assert.AreEqual("herp", B.A);
             Assert.AreEqual(0xfaff, B.B);
         }
