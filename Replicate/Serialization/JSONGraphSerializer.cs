@@ -167,7 +167,7 @@ namespace Replicate.Serialization
             while (nextChar != ']')
             {
                 stream.ReadAllString(IsW);
-                values.Add(Read(stream, Model.GetRepNode(null, value.CollectionType)).RawValue);
+                values.Add(Read(stream, Model.GetRepNode(null, value.CollectionType, null)).RawValue);
                 stream.ReadAllString(IsW);
                 nextChar = stream.ReadCharOne();
                 CheckAndThrow(nextChar == ',' || nextChar == ']');
@@ -246,6 +246,7 @@ namespace Replicate.Serialization
                 bool first = true;
                 foreach (var member in value)
                 {
+                    if (member.IsSkipNull() && member.RawValue == null) continue;
                     if (!first) stream.WriteString(", ");
                     else first = false;
                     stream.WriteString($"\"{member.Key}\": ");

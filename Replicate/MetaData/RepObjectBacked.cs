@@ -27,7 +27,7 @@ namespace Replicate.MetaData
         }
         public ReplicationModel Model { get; private set; }
         public TypeAccessor TypeAccessor { get; set; }
-        public MemberAccessor MemberAccessor;
+        public MemberAccessor MemberAccessor { get; private set; }
         public Func<object, object> ConvertToSurrogate;
         public Func<object, object> ConvertFromSurrogate;
         public string Key { get; set; }
@@ -135,6 +135,7 @@ namespace Replicate.MetaData
         }
         public TypeAccessor CollectionType { get; private set; }
         public TypeAccessor TypeAccessor { get => Node.TypeAccessor; }
+        public MemberAccessor MemberAccessor { get => Node.MemberAccessor; }
 
         public IEnumerable<object> Values
         {
@@ -160,7 +161,7 @@ namespace Replicate.MetaData
         {
             var collectionType = CollectionType;
             foreach (var item in Values)
-                yield return Node.Model.GetRepNode(item, CollectionType);
+                yield return Node.Model.GetRepNode(item, CollectionType, null);
         }
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

@@ -8,4 +8,6 @@ namespace Replicate.MetaData.Policy
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Field | AttributeTargets.Property)]
     public class AsReferenceAttribute : Attribute { }
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Field | AttributeTargets.Property)]
+    public class SkipNullAttribute : Attribute { }
 }

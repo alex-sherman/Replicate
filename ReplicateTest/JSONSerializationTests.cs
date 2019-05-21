@@ -5,6 +5,7 @@ using System.Linq;
 using NUnit.Framework;
 using Replicate;
 using Replicate.MetaData;
+using Replicate.MetaData.Policy;
 using Replicate.Serialization;
 
 namespace ReplicateTest
@@ -36,6 +37,12 @@ namespace ReplicateTest
         {
             public ObjectWithArrayField ObjectField;
             public double[] ArrayField;
+            public int? NullableValue;
+        }
+        [ReplicateType]
+        public class ObjectWithNullableField
+        {
+            [SkipNull]
             public int? NullableValue;
         }
         [ReplicateType]
@@ -265,6 +272,20 @@ namespace ReplicateTest
             Assert.AreEqual(null, output.NullableValue);
             Assert.AreEqual(null, output.ArrayField);
             Assert.AreEqual(null, output.ObjectField);
+        }
+        [Test]
+        public void SkipsNullFields()
+        {
+            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var output = ser.Serialize(new ObjectWithNullableField());
+            Assert.AreEqual("{}", output);
+        }
+        [Test]
+        public void IncludesNotNullFields()
+        {
+            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var output = ser.Serialize(new ObjectWithNullableField() { NullableValue = 1 });
+            Assert.AreEqual("{\"NullableValue\": 1}", output);
         }
     }
 }

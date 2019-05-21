@@ -46,6 +46,7 @@ namespace Replicate.MetaData
         object Value { get; set; }
         string Key { get; set; }
         TypeAccessor TypeAccessor { get; }
+        MemberAccessor MemberAccessor { get; }
         MarshalMethod MarshalMethod { get; }
         IRepPrimitive AsPrimitive { get; }
         IRepCollection AsCollection { get; }

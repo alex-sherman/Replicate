@@ -74,7 +74,7 @@ namespace ReplicateTest
         public void DictionaryAsObjectTrue()
         {
             var model = new ReplicationModel() { DictionaryAsObject = true };
-            var node = model.GetRepNode(new Dictionary<string, string>() { { "value", "herp" }, { "prop", "derp" } });
+            var node = model.GetRepNode(new Dictionary<string, string>() { { "value", "herp" }, { "prop", "derp" } }, null, null);
             Assert.AreEqual(MarshalMethod.Object, node.MarshalMethod);
             Assert.AreEqual("herp", node.AsObject["value"].AsPrimitive.Value);
             Assert.AreEqual("derp", node.AsObject["prop"].AsPrimitive.Value);

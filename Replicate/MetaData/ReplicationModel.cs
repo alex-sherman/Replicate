@@ -51,21 +51,21 @@ namespace Replicate.MetaData
             typeIndex = typeLookup.Values.OrderBy(td => td.Name).Select(td => td.Type).ToList();
         }
 
-        public IRepNode GetRepNode(object backing, Type type) => GetRepNode(backing, GetTypeAccessor(type));
-        public IRepNode GetRepNode(object backing, TypeAccessor typeAccessor = null, MemberAccessor memberAccessor = null)
+        public IRepNode GetRepNode(object backing, Type type) => GetRepNode(backing, GetTypeAccessor(type), null);
+        public IRepNode GetRepNode(object backing, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
             if (backing == null && typeAccessor == null)
                 return new RepNodeTypeless();
             typeAccessor = typeAccessor ?? GetTypeAccessor(backing.GetType());
             var type = typeAccessor.Type;
             if (type == typeof(IRepNode) || type.GetInterface(nameof(IRepNode)) != null)
-                return new RepNodeTypeless();
+                return new RepNodeTypeless(memberAccessor);
             if (DictionaryAsObject && typeAccessor.Type.IsSameGeneric(typeof(Dictionary<,>))
                 && typeAccessor.Type.GetGenericArguments()[0] == typeof(string))
             {
                 var childType = typeAccessor.Type.GetGenericArguments()[1];
                 var dictObjType = typeof(RepDictObject<>).MakeGenericType(childType);
-                return (IRepNode)Activator.CreateInstance(dictObjType, backing, typeAccessor, this);
+                return (IRepNode)Activator.CreateInstance(dictObjType, backing, typeAccessor, memberAccessor, this);
             }
 
             var output = new RepBackedNode(backing, typeAccessor, memberAccessor, this);

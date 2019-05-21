@@ -15,6 +15,7 @@ namespace Replicate.MetaData
         public object Value { get; set; }
 
         public TypeAccessor TypeAccessor => null;
+        public MemberAccessor MemberAccessor => null;
 
         public MarshalMethod MarshalMethod { get => throw new NotImplementedException(); }
         public IRepPrimitive AsPrimitive => this;

@@ -14,6 +14,7 @@ namespace Replicate.MetaData
         public object Value { get; set; }
 
         public TypeAccessor TypeAccessor => null;
+        public MemberAccessor MemberAccessor { get; }
 
         private MarshalMethod? marshalMethod = null;
         public MarshalMethod MarshalMethod
@@ -26,17 +27,18 @@ namespace Replicate.MetaData
             set => marshalMethod = value;
         }
         public IRepPrimitive AsPrimitive { get { MarshalMethod = MarshalMethod.Primitive; return this; } }
-
         public IRepCollection AsCollection { get { MarshalMethod = MarshalMethod.Collection; return this; } }
-
         public IRepObject AsObject { get { MarshalMethod = MarshalMethod.Object; return this; } }
-
         public PrimitiveType PrimitiveType { get; set; }
-
         public TypeAccessor CollectionType => null;
 
         public List<RepNodeTypeless> Children = new List<RepNodeTypeless>();
         public IEnumerable<object> Values { get => Children; set => Children = value.Cast<RepNodeTypeless>().ToList(); }
+
+        public RepNodeTypeless(MemberAccessor memberAccessor = null)
+        {
+            MemberAccessor = memberAccessor;
+        }
 
         public IRepNode this[int memberIndex] { get => Children[memberIndex]; set => Children[memberIndex] = (RepNodeTypeless)value; }
         public IRepNode this[string memberName]

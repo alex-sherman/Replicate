@@ -13,19 +13,21 @@ namespace Replicate.MetaData
         object IRepNode.RawValue => Backing;
         ReplicationModel Model;
         TypeAccessor childTypeAccessor;
-        public RepDictObject(Dictionary<string, T> backing, TypeAccessor typeAccessor, ReplicationModel model)
+        public RepDictObject(Dictionary<string, T> backing, TypeAccessor typeAccessor,
+            MemberAccessor memberAccessor, ReplicationModel model)
         {
             Backing = backing;
             Model = model;
             childTypeAccessor = model.GetTypeAccessor(typeof(T));
             TypeAccessor = typeAccessor;
+            MemberAccessor = memberAccessor;
         }
         public IRepNode this[string memberName]
         {
             get
             {
                 Backing.TryGetValue(memberName, out var value);
-                var node = Model.GetRepNode(value, childTypeAccessor);
+                var node = Model.GetRepNode(value, childTypeAccessor, null);
                 node.Key = memberName;
                 return node;
             }
@@ -36,6 +38,7 @@ namespace Replicate.MetaData
         public string Key { get; set; }
         public object Value { get => Backing; set => Backing = (Dictionary<string, T>)value; }
         public TypeAccessor TypeAccessor { get; }
+        public MemberAccessor MemberAccessor { get; }
 
         public MarshalMethod MarshalMethod => MarshalMethod.Object;
         public IRepPrimitive AsPrimitive => throw new NotImplementedException();
