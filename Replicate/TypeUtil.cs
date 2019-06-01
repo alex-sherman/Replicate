@@ -26,7 +26,7 @@ namespace Replicate
             var memberTuples = members
                 .Where(m => taU.Members.ContainsKey(m.Info.Name))
                 .Select(tMember => new { tMember, uMember = taU.Members[tMember.Info.Name] })
-                .Where(tuple => tuple.tMember.Type == tuple.uMember.Type
+                .Where(tuple => tuple.tMember.Type.IsAssignableFrom(tuple.uMember.Type)
                 || (tuple.uMember.Type.IsSameGeneric(typeof(Nullable<>)) && tuple.tMember.Type == tuple.uMember.Type.GetGenericArguments()[0]));
             foreach (var tuple in memberTuples)
             {
