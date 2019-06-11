@@ -62,6 +62,10 @@ namespace Replicate
                 return type.GetGenericArguments()[0];
             return type;
         }
+        public static T Cast<T>(object obj)
+        {
+            return (T)(obj ?? default(T));
+        }
         public static void Await(this Task task)
         {
             task.GetAwaiter().GetResult();

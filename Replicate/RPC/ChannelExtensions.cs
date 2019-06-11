@@ -19,11 +19,11 @@ namespace Replicate
         }
         public static void Respond<TRequest, TResponse>(this IRPCChannel channel, Func<TRequest, Task<TResponse>> handler)
         {
-            channel.Respond(handler.Method, async (req) => { return await handler((TRequest)req.Request); });
+            channel.Respond(handler.Method, async (req) => { return await handler(TypeUtil.Cast<TRequest>(req.Request)); });
         }
         public static void Respond<TRequest>(this IRPCChannel channel, Action<TRequest> handler)
         {
-            channel.Respond(handler.Method, (req) => { handler((TRequest)req.Request); return null; });
+            channel.Respond(handler.Method, (req) => { handler(TypeUtil.Cast<TRequest>(req.Request)); return null; });
         }
         /// <summary>
         /// Avoid using this since there is no type checking on request/response
