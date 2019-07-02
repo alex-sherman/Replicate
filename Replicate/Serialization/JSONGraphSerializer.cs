@@ -11,13 +11,13 @@ namespace Replicate.Serialization
 {
     public class JSONGraphSerializer : GraphSerializer<Stream, string>
     {
-        class JSONIntSerializer : ITypedSerializer
+        public class JSONIntSerializer : ITypedSerializer
         {
             Regex rx = new Regex(@"[0-9\.\+\-eE]");
             public object Read(Stream stream) => int.Parse(stream.ReadAllString(c => rx.IsMatch("" + c)));
             public void Write(object obj, Stream stream) => stream.WriteString(((int)obj).ToString());
         }
-        class JSONBoolSerializer : ITypedSerializer
+        public class JSONBoolSerializer : ITypedSerializer
         {
             public object Read(Stream stream)
             {
@@ -36,14 +36,14 @@ namespace Replicate.Serialization
             }
             public void Write(object obj, Stream stream) => stream.WriteString(obj.ToString().ToLower());
         }
-        class JSONFloatSerializer : ITypedSerializer
+        public class JSONFloatSerializer : ITypedSerializer
         {
             Regex rx = new Regex(@"[0-9\.\+\-eE]");
             public object Read(Stream stream) => double.Parse(stream.ReadAllString(c => rx.IsMatch("" + c)));
             public void Write(object obj, Stream stream) => stream.WriteString(obj.ToString());
         }
 
-        class JSONStringSerializer : ITypedSerializer
+        public class JSONStringSerializer : ITypedSerializer
         {
             public static List<Tuple<string, string>> replacements = new List<Tuple<string, string>>()
             {

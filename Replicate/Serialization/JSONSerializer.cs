@@ -13,87 +13,13 @@ namespace Replicate.Serialization
     [Obsolete("Replaced by JSONGraphSerializer")]
     public class JSONSerializer : Serializer, IReplicateSerializer<string>
     {
-        class JSONIntSerializer : ITypedSerializer
-        {
-            Regex rx = new Regex(@"[0-9\.\+\-eE]");
-            public object Read(Stream stream) => long.Parse(stream.ReadAllString(c => rx.IsMatch("" + c)));
-            public void Write(object obj, Stream stream) => stream.WriteString(obj.ToString());
-        }
-        class JSONBoolSerializer : ITypedSerializer
-        {
-            public object Read(Stream stream)
-            {
-                var firstChar = stream.ReadCharOne();
-                if (firstChar == 'f')
-                {
-                    CheckAndThrow(stream.ReadChars(4) == "alse");
-                    return false;
-                }
-                if (firstChar == 't')
-                {
-                    CheckAndThrow(stream.ReadChars(3) == "rue");
-                    return true;
-                }
-                throw new SerializationError();
-            }
-            public void Write(object obj, Stream stream) => stream.WriteString(obj.ToString().ToLower());
-        }
-        class JSONFloatSerializer : ITypedSerializer
-        {
-            Regex rx = new Regex(@"[0-9\.\+\-eE]");
-            public object Read(Stream stream) => double.Parse(stream.ReadAllString(c => rx.IsMatch("" + c)));
-            public void Write(object obj, Stream stream) => stream.WriteString(obj.ToString());
-        }
-
-        class JSONStringSerializer : ITypedSerializer
-        {
-            public static List<Tuple<string, string>> replacements = new List<Tuple<string, string>>()
-            {
-                new Tuple<string, string>("\\\\", "\\"),
-                new Tuple<string, string>("\\\"", "\""),
-                new Tuple<string, string>("\\n", "\n"),
-                new Tuple<string, string>("\\t", "\t"),
-            };
-            public static string Escape(string str)
-            {
-                foreach (var replacement in replacements)
-                    str = str.Replace(replacement.Item2, replacement.Item1);
-                return str;
-            }
-            public static string Unescape(string str)
-            {
-                foreach (var replacement in replacements)
-                    str = str.Replace(replacement.Item1, replacement.Item2);
-                return str;
-            }
-            object ITypedSerializer.Read(Stream stream) => Read(stream);
-            public string Read(Stream stream) => Unescape(parseString(stream));
-            public void Write(object obj, Stream stream) => stream.WriteString($"\"{Escape((string)obj)}\"");
-
-            // TODO: Handle other escape characters
-            static string parseString(Stream stream)
-            {
-                char last = char.MinValue;
-                stream.ReadAllString(IsW);
-                CheckAndThrow(stream.ReadCharOne() == '"');
-                var result = stream.ReadAllString(c =>
-                {
-                    var res = c != '"' || last == '\\';
-                    last = c;
-                    return res;
-                });
-                CheckAndThrow(stream.ReadCharOne() == '"');
-                return result;
-            }
-        }
-
         public bool ToLowerFieldNames = false;
         public JSONSerializer(ReplicationModel model) : base(model) { }
-        static JSONIntSerializer intSer = new JSONIntSerializer();
-        static JSONStringSerializer stringSer = new JSONStringSerializer();
+        static JSONGraphSerializer.JSONIntSerializer intSer = new JSONGraphSerializer.JSONIntSerializer();
+        static JSONGraphSerializer.JSONStringSerializer stringSer = new JSONGraphSerializer.JSONStringSerializer();
         Dictionary<Type, ITypedSerializer> serializers = new Dictionary<Type, ITypedSerializer>()
         {
-            {typeof(bool), new JSONBoolSerializer() },
+            {typeof(bool), new JSONGraphSerializer.JSONBoolSerializer() },
             {typeof(byte), intSer },
             {typeof(short), intSer },
             {typeof(ushort), intSer },
@@ -102,7 +28,7 @@ namespace Replicate.Serialization
             {typeof(long), intSer },
             {typeof(ulong), intSer },
             {typeof(string), stringSer },
-            {typeof(float), new JSONFloatSerializer() },
+            {typeof(float), new JSONGraphSerializer.JSONFloatSerializer() },
         };
         static void CheckAndThrow(bool condition)
         {

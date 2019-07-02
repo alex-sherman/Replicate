@@ -55,8 +55,8 @@ namespace ReplicateBenchmarks
 
         static void Main(string[] args)
         {
-            //JsonCompare();
-            ProtoCompare();
+            JsonCompare();
+            //ProtoCompare();
             Console.ReadLine();
         }
         static void ProtoCompare()
