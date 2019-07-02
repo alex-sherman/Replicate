@@ -41,7 +41,6 @@ namespace Replicate.MetaData
             Add(typeof(List<>));
             Add(typeof(ICollection<>));
             Add(typeof(IEnumerable<>));
-            Add(typeof(Nullable<>));
             var kvpTD = Add(typeof(KeyValuePair<,>));
             kvpTD.MarshalMethod = MarshalMethod.Tuple;
             kvpTD.AddMember("Key");
@@ -57,8 +56,8 @@ namespace Replicate.MetaData
             if (backing == null && typeAccessor == null)
                 return new RepNodeTypeless();
             typeAccessor = typeAccessor ?? GetTypeAccessor(backing.GetType());
-            var type = typeAccessor.Type;
-            if (type == typeof(IRepNode) || type.GetInterface(nameof(IRepNode)) != null)
+            var surrogate = memberAccessor?.Surrogate ?? typeAccessor.Surrogate;
+            if (typeAccessor.IsTypeless)
                 return new RepNodeTypeless(memberAccessor);
             if (DictionaryAsObject && typeAccessor.Type.IsSameGeneric(typeof(Dictionary<,>))
                 && typeAccessor.Type.GetGenericArguments()[0] == typeof(string))
@@ -69,7 +68,6 @@ namespace Replicate.MetaData
             }
 
             var output = new RepBackedNode(backing, typeAccessor, memberAccessor, this);
-            var surrogate = memberAccessor?.Surrogate ?? typeAccessor.Surrogate;
             if (surrogate != null)
             {
                 var castToOp = surrogate.Type.GetMethod("op_Implicit", new Type[] { typeAccessor.Type });
@@ -110,6 +108,8 @@ namespace Replicate.MetaData
                 throw new InvalidOperationException("Cannot create a type accessor for a generic type definition");
             if (!typeAccessorLookup.TryGetValue(type, out TypeAccessor typeAccessor))
             {
+                if (type.IsSameGeneric(typeof(Nullable<>)))
+                    type = type.GetGenericArguments()[0];
                 var typeData = GetTypeData(type);
                 if (typeData == null)
                     throw new InvalidOperationException(string.Format("The type {0} has not been added to the replication model", type.FullName));

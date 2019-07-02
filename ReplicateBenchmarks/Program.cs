@@ -55,8 +55,8 @@ namespace ReplicateBenchmarks
 
         static void Main(string[] args)
         {
-            JsonCompare();
-            //ProtoCompare();
+            //JsonCompare();
+            ProtoCompare();
             Console.ReadLine();
         }
         static void ProtoCompare()
@@ -64,22 +64,22 @@ namespace ReplicateBenchmarks
             var model = ReplicationModel.Default;
             model.Add(typeof(Derp));
 
-            Serializer ser = new BinarySerializer(model);
+            var ser = new BinarySerializer(model);
             var herp = new Derp() { faff = "faff" };
             var derp = "faff";
             var herpList = new List<Derp> { herp, herp, herp };
             var genDerp = new GenericDerp<string>() { faff = "faff" };
-            ser.Serialize(new MemoryStream(), herp);
-            TimeSerialize("Serialize String", derp, ser.Serialize);
+            //ser.Serialize(new MemoryStream(), herp);
+            TimeSerialize("Serialize String", derp, ser);
             TimeSerialize("Proto Serialize String", derp, ProtoBuf.Serializer.Serialize);
 
-            TimeSerialize<object>("Serialize Derp", herp, ser.Serialize);
+            TimeSerialize("Serialize Derp", herp, ser);
             TimeSerialize("Proto Serialize Derp", herp, ProtoBuf.Serializer.Serialize);
 
-            TimeSerialize<object>("Serialize List<Derp>", herpList, ser.Serialize, count: 1e4);
+            TimeSerialize("Serialize List<Derp>", herpList, ser, count: 1e4);
             TimeSerialize("Proto Serialize List<Derp>", herpList, ProtoBuf.Serializer.Serialize, count: 1e4);
 
-            TimeSerialize<object>("Serialize GenericDerp<string>", genDerp, ser.Serialize);
+            TimeSerialize("Serialize GenericDerp<string>", genDerp, ser);
             TimeSerialize("Proto Serialize GenericDerp<string>", genDerp, ProtoBuf.Serializer.Serialize);
         }
         static void JsonCompare()
@@ -107,7 +107,7 @@ namespace ReplicateBenchmarks
             TimeSerialize("Graph Serialize GenericDerp<string>", genDerp, serGraph);
 
             //TimeSerialize("Serialize Dictionary<string, string>", dict, ser);
-            TimeSerialize("Graph Serialize Dictionary<string, string>", dict, serGraph);
+            //TimeSerialize("Graph Serialize Dictionary<string, string>", dict, serGraph);
         }
     }
 }

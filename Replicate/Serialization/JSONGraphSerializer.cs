@@ -54,20 +54,64 @@ namespace Replicate.Serialization
             };
             public static string Escape(string str)
             {
-                str = str.Replace("\r\n", "\n").Replace('\r', '\n');
-                foreach (var replacement in replacements)
-                    str = str.Replace(replacement.Item2, replacement.Item1);
-                return str;
+                char[] chars = str.ToCharArray();
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < chars.Length; i++)
+                {
+                    switch (chars[i])
+                    {
+                        case '\t':
+                            sb.Append(@"\t"); break;
+                        case '\n':
+                            sb.Append(@"\n"); break;
+                        case '\r':
+                            if (i + 1 < chars.Length && chars[i] == '\n')
+                            {
+                                sb.Append(@"\n");
+                                ++i;
+                            }
+                            break;
+                        case '\\':
+                            sb.Append(@"\\"); break;
+                        default:
+                            sb.Append(chars[i]); break;
+                    }
+                }
+                return sb.ToString();
             }
             public static string Unescape(string str)
             {
-                foreach (var replacement in replacements)
-                    str = str.Replace(replacement.Item1, replacement.Item2);
-                return str;
+                char[] chars = str.ToCharArray();
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < chars.Length; i++)
+                {
+                    if (chars[i] == '\\' && i + 1 < chars.Length)
+                    {
+                        switch (chars[i + 1])
+                        {
+                            case 't':
+                                sb.Append("\t"); break;
+                            case 'n':
+                                sb.Append("\n"); break;
+                            case '\\':
+                                sb.Append("\\"); break;
+                            default:
+                                sb.Append(chars[i]); continue;
+                        }
+                        ++i;
+                    }
+                    else sb.Append(chars[i]);
+                }
+                return sb.ToString();
             }
             object ITypedSerializer.Read(Stream stream) => Read(stream);
             public string Read(Stream stream) => Unescape(ParseString(stream));
-            public void Write(object obj, Stream stream) => stream.WriteString($"\"{Escape((string)obj)}\"");
+            public void Write(object obj, Stream stream)
+            {
+                stream.WriteString("\"");
+                stream.WriteString(Escape((string)obj));
+                stream.WriteString("\"");
+            }
 
             // TODO: Handle other escape characters
             static string ParseString(Stream stream)
@@ -249,7 +293,9 @@ namespace Replicate.Serialization
                     if (member.IsSkipNull() && member.RawValue == null) continue;
                     if (!first) stream.WriteString(", ");
                     else first = false;
-                    stream.WriteString($"\"{member.Key}\": ");
+                    stream.WriteString("\"");
+                    stream.WriteString(member.Key);
+                    stream.WriteString("\": ");
                     Write(stream, member);
                 }
                 stream.WriteString("}");

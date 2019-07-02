@@ -11,7 +11,7 @@ namespace Replicate.MetaData
     {
         public static bool IsSkipNull(this IRepNode node)
         {
-            return node.MemberAccessor?.Info.GetAttribute<SkipNullAttribute>() != null;
+            return node.MemberAccessor?.SkipNull ?? false;
         }
     }
 }

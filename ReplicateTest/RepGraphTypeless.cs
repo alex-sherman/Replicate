@@ -17,14 +17,30 @@ namespace ReplicateTest
         [TestCase(1, "1")]
         [TestCase(0.5, "0.5")]
         [TestCase("", "\"\"")]
+        [TestCase("\n\t\\\n", "\"\\n\\t\\\\\\n\"")]
         [TestCase("😈", "\"😈\"")]
         [TestCase(true, "true")]
         [TestCase(false, "false")]
-        public void TestSerializeDeserialize(object obj, string serialized)
+        public void TestDeserialize(object obj, string serialized)
         {
             var ser = new JSONGraphSerializer(new ReplicationModel());
             var output = ser.Deserialize<IRepNode>(serialized);
             Assert.AreEqual(obj, output.Value);
+        }
+        [TestCase(null, "null")]
+        [TestCase(0, "0")]
+        [TestCase(1, "1")]
+        [TestCase(0.5, "0.5")]
+        [TestCase("", "\"\"")]
+        [TestCase("\n\t\\\r\n", "\"\\n\\t\\\\\\n\"")]
+        [TestCase("😈", "\"😈\"")]
+        [TestCase(true, "true")]
+        [TestCase(false, "false")]
+        public void TestSerialize(object obj, string serialized)
+        {
+            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var output = ser.Serialize(obj?.GetType() ?? typeof(string), obj);
+            Assert.AreEqual(serialized, output);
         }
         [Test]
         public void TestDeserializeEmptyCollection()

@@ -13,12 +13,14 @@ namespace Replicate.MetaData
     {
         public string Name { get; private set; }
         public Type Type { get; private set; }
+        public readonly bool IsTypeless;
         public MemberAccessor[] MemberAccessors;
         public Dictionary<string, MemberAccessor> Members;
         public TypeData TypeData { get; private set; }
         public TypeAccessor Surrogate { get; private set; }
         public TypeAccessor(TypeData typeData, Type type)
         {
+            IsTypeless = type == typeof(IRepNode) || type.GetInterface(nameof(IRepNode)) != null;
             if (typeData.Surrogate != null)
             {
                 var surrogateType = typeData.Surrogate;
@@ -30,6 +32,7 @@ namespace Replicate.MetaData
             }
             TypeData = typeData;
             Type = type;
+            //UnwrappedType = TypeData.Type == typeof(Nullable<>);
             Name = type.FullName;
         }
         internal void InitializeMembers()

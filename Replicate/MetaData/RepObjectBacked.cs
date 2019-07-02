@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Replicate.MetaData
 {
-    public struct RepBackedNode : IRepNode, IRepObject, IRepPrimitive
+    public class RepBackedNode : IRepNode, IRepObject, IRepPrimitive
     {
         public object RawValue
         {
@@ -40,8 +40,6 @@ namespace Replicate.MetaData
             Key = null;
             Model = model ?? ReplicationModel.Default;
             TypeAccessor = typeAccessor ?? Model.GetTypeAccessor(backing.GetType());
-            if (TypeAccessor.Type.IsSameGeneric(typeof(Nullable<>)))
-                TypeAccessor = Model.GetTypeAccessor(typeAccessor.Type.GetGenericArguments()[0]);
 
             var surrogate = MemberAccessor?.Surrogate ?? TypeAccessor.Surrogate;
             if (surrogate != null)

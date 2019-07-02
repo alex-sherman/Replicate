@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Replicate.MetaData.Policy;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
@@ -12,6 +13,7 @@ namespace Replicate.MetaData
         private Func<object, object> getter;
         private Action<object, object> setter;
         public MemberInfo Info { get; private set; }
+        public readonly bool SkipNull;
         public TypeAccessor TypeAccessor { get; private set; }
         public TypeAccessor Surrogate { get; private set; }
         public Type Type { get; private set; }
@@ -24,6 +26,7 @@ namespace Replicate.MetaData
             Type = info.GetMemberType(declaringType.Type);
             TypeAccessor = model.GetTypeAccessor(Type);
             Info = info;
+            SkipNull = info.GetAttribute<SkipNullAttribute>() != null;
             if (info.Field != null)
             {
                 var meth = new DynamicMethod("getter", typeof(object), new Type[] { typeof(object) });

@@ -32,9 +32,6 @@ namespace Replicate.Serialization
             if (obj != null && typeAccessor == null)
                 throw new InvalidOperationException(string.Format("Cannot serialize {0}", obj.GetType().Name));
 
-            if (typeAccessor.Type.IsSameGeneric(typeof(Nullable<>)))
-                typeAccessor = Model.GetTypeAccessor(typeAccessor.Type.GetGenericArguments()[0]);
-
             var surrogateAccessor = memberAccessor?.Surrogate ?? typeAccessor.Surrogate;
             if (surrogateAccessor != null)
             {
@@ -76,9 +73,6 @@ namespace Replicate.Serialization
         public object Deserialize(object obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
             MethodInfo castOp = null;
-
-            if (typeAccessor.Type.IsSameGeneric(typeof(Nullable<>)))
-                typeAccessor = Model.GetTypeAccessor(typeAccessor.Type.GetGenericArguments()[0]);
 
             var surrogateAccessor = memberAccessor?.Surrogate ?? typeAccessor.Surrogate;
             if (surrogateAccessor != null)
