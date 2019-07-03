@@ -10,7 +10,7 @@ namespace Replicate.MetaData
     public class RepNodeTypeless : IRepNode, IRepPrimitive, IRepCollection, IRepObject
     {
         public object RawValue => this;
-        public string Key { get; set; }
+        public MemberKey Key { get; set; }
         public object Value { get; set; }
 
         public TypeAccessor TypeAccessor => null;
@@ -41,11 +41,12 @@ namespace Replicate.MetaData
         }
 
         public IRepNode this[int memberIndex] { get => Children[memberIndex]; set => Children[memberIndex] = (RepNodeTypeless)value; }
-        public IRepNode this[string memberName]
+        public IRepNode this[MemberKey memberName]
         {
             get
             {
-                var child = Children.FirstOrDefault(c => c.Key == memberName);
+                if (memberName.Index.HasValue) return Children[memberName.Index.Value];
+                var child = Children.FirstOrDefault(c => c.Key.Equals(memberName));
                 if (child == null)
                 {
                     child = new RepNodeTypeless() { Key = memberName };
@@ -64,11 +65,11 @@ namespace Replicate.MetaData
         public override string ToString()
         {
             var result = MarshalMethod == MarshalMethod.Primitive ? (Value?.ToString() ?? "null") : $"{MarshalMethod.ToString()}";
-            if (Key != null)
+            if (Key.Name != null)
                 result = $"{Key}: {result}";
             return result;
         }
 
-        public bool CanSetMember(string memberName) => true;
+        public bool CanSetMember(MemberKey _) => true;
     }
 }

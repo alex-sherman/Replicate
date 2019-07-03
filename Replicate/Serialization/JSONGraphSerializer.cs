@@ -244,10 +244,7 @@ namespace Replicate.Serialization
                     var childNode = value[name];
                     value[name] = Read(stream, childNode);
                 }
-                else
-                {
-                    Read(stream, (IRepNode)RepNodeNoop.Single);
-                }
+                else Read(stream, (IRepNode)RepNodeNoop.Single);
                 stream.ReadAllString(IsW);
                 nextChar = stream.ReadCharOne();
                 CheckAndThrow(nextChar == ',' || nextChar == '}');
@@ -294,7 +291,7 @@ namespace Replicate.Serialization
                     if (!first) stream.WriteString(", ");
                     else first = false;
                     stream.WriteString("\"");
-                    stream.WriteString(member.Key);
+                    stream.WriteString(member.Key.Name);
                     stream.WriteString("\": ");
                     Write(stream, member);
                 }

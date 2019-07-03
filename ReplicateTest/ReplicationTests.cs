@@ -67,7 +67,7 @@ namespace ReplicateTest
                 time = 10,
                 faff = "FAFF"
             };
-            var cs = Util.MakeClientServer();
+            var cs = BinarySerializerUtil.MakeClientServer();
             bool called = false;
             var method = new Func<SimpleMessage, Task<bool>>((message) =>
             {
@@ -96,7 +96,7 @@ namespace ReplicateTest
         public void RegisterObj()
         {
             ReplicatedType replicated = new ReplicatedType();
-            var cs = Util.MakeClientServer();
+            var cs = BinarySerializerUtil.MakeClientServer();
             cs.server.RegisterObject(replicated);
             Assert.IsInstanceOf<ReplicatedType>(cs.client.IDLookup.Values.First().replicated);
         }
@@ -109,7 +109,7 @@ namespace ReplicateTest
                 field1 = 3,
                 field2 = "herpderp"
             };
-            var cs = Util.MakeClientServer();
+            var cs = BinarySerializerUtil.MakeClientServer();
             cs.server.RegisterObject(replicated);
             cs.server.Replicate(replicated);
             cs.server.RegisterObject(replicated).Wait();
@@ -133,7 +133,7 @@ namespace ReplicateTest
             {
                 child1 = child
             };
-            var cs = Util.MakeClientServer();
+            var cs = BinarySerializerUtil.MakeClientServer();
             cs.server.RegisterObject(replicated1);
             cs.server.RegisterObject(replicated2);
             cs.server.RegisterObject(child);
@@ -168,14 +168,14 @@ namespace ReplicateTest
         public void RegisterSurrogatedType()
         {
             var v = new ClassWithSurrogate();
-            var cs = Util.MakeClientServer();
+            var cs = BinarySerializerUtil.MakeClientServer();
             Assert.Throws<InvalidOperationException>(() => cs.server.RegisterObject(v));
         }
         class Unknown { }
         [Test]
         public void RegisterUnknownType()
         {
-            var cs = Util.MakeClientServer();
+            var cs = BinarySerializerUtil.MakeClientServer();
             Assert.Throws<InvalidOperationException>(() => cs.server.RegisterObject(new Unknown()));
         }
     }

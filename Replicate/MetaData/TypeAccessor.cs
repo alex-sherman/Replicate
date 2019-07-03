@@ -52,5 +52,9 @@ namespace Replicate.MetaData
                 return Enum.ToObject(Type, intValue);
             return Convert.ChangeType(obj, Type);
         }
+        public MemberAccessor this[MemberKey key]
+            => key.Index.HasValue
+                ? MemberAccessors[key.Index.Value]
+                : Members.TryGetValue(key.Name, out var member) ? member : null;
     }
 }

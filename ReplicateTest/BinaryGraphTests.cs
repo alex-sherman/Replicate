@@ -7,11 +7,12 @@ using System.IO;
 using System.Collections.Generic;
 using Replicate.Messages;
 using NUnit.Framework;
+using static ReplicateTest.BinaryGraphUtil;
 
 namespace ReplicateTest
 {
     [TestFixture]
-    public class SerializationTests
+    public class BinaryGraphTests
     {
         [ReplicateType]
         public class GenericClass<T>
@@ -37,27 +38,27 @@ namespace ReplicateTest
         [Test]
         public void TestProperty()
         {
-            var output = Util.SerializeDeserialize(new PropClass() { Property = 3 });
+            var output = SerializeDeserialize(new PropClass() { Property = 3 });
             Assert.AreEqual(3, output.Property);
         }
         [Test]
         public void TestGeneric()
         {
-            var output = Util.SerializeDeserialize(new GenericClass<string>() { Value = "herp", Prop = "derp" });
+            var output = SerializeDeserialize(new GenericClass<string>() { Value = "herp", Prop = "derp" });
             Assert.AreEqual("herp", output.Value);
             Assert.AreEqual("derp", output.Prop);
         }
         [Test]
         public void TestList()
         {
-            var output = Util.SerializeDeserialize(new List<PropClass>() { new PropClass() { Property = 3 }, new PropClass() { Property = 4 } });
+            var output = SerializeDeserialize(new List<PropClass>() { new PropClass() { Property = 3 }, new PropClass() { Property = 4 } });
             Assert.AreEqual(3, output[0].Property);
             Assert.AreEqual(4, output[1].Property);
         }
         [Test]
         public void TestDictionary()
         {
-            var output = Util.SerializeDeserialize(new Dictionary<string, PropClass>()
+            var output = SerializeDeserialize(new Dictionary<string, PropClass>()
             {
                 ["faff"] = new PropClass() { Property = 3 },
                 ["herp"] = new PropClass() { Property = 4 }
@@ -68,7 +69,7 @@ namespace ReplicateTest
         [Test]
         public void TestNullObject()
         {
-            var output = Util.SerializeDeserialize<PropClass>(null);
+            var output = SerializeDeserialize<PropClass>(null);
             Assert.IsNull(output);
         }
         [Test]
@@ -92,7 +93,7 @@ namespace ReplicateTest
         [Test]
         public void TestInheritedType()
         {
-            var value = Util.SerializeDeserialize(new SubClass()
+            var value = SerializeDeserialize(new SubClass()
             {
                 Field = "test",
                 Property = 5
@@ -103,7 +104,7 @@ namespace ReplicateTest
         [Test]
         public void TestNestedGeneric()
         {
-            var value = Util.SerializeDeserialize(new GenericSubClass<GenericClass<int>, GenericClass<string>>()
+            var value = SerializeDeserialize(new GenericSubClass<GenericClass<int>, GenericClass<string>>()
             {
                 Value = new GenericClass<int>() { Value = 1 },
                 OtherValue = new GenericClass<string>() { Value = "faff" }

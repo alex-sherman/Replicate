@@ -21,6 +21,11 @@ namespace ReplicateTest
         //[ReplicatePolicy(AsReference = true)]
         //public ObjectType ReferenceField;
     }
+    [ReplicateType]
+    public struct ValueType
+    {
+        public string Field1;
+    }
 
     [ReplicateType]
     public class SurrogateType
@@ -191,6 +196,15 @@ namespace ReplicateTest
             var node = model.GetRepNode(null, typeof(ObjectType));
             node.Value = new ObjectType() { Field1 = "DERP" };
             Assert.AreEqual("DERP", node.AsObject["Field1"].Value);
+        }
+        [Test]
+        public void TestSettingValueTypeField()
+        {
+            var model = new ReplicationModel();
+            var node = model.GetRepNode(new ValueType() { Field1 = "DERP" }, typeof(ValueType));
+            Assert.AreEqual("DERP", node.AsObject["Field1"].Value);
+            node.AsObject["Field1"].Value = "HERP";
+            Assert.AreEqual("HERP", node.AsObject["Field1"].Value);
         }
     }
 }

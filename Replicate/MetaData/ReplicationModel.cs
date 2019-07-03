@@ -42,7 +42,7 @@ namespace Replicate.MetaData
             Add(typeof(ICollection<>));
             Add(typeof(IEnumerable<>));
             var kvpTD = Add(typeof(KeyValuePair<,>));
-            kvpTD.MarshalMethod = MarshalMethod.Tuple;
+            kvpTD.MarshalMethod = MarshalMethod.Object;
             kvpTD.AddMember("Key");
             kvpTD.AddMember("Value");
             Add(typeof(TypedValue));

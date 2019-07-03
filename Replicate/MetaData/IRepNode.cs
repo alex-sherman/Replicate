@@ -44,7 +44,7 @@ namespace Replicate.MetaData
         /// The, potentially surrogatted, value represented by this node
         /// </summary>
         object Value { get; set; }
-        string Key { get; set; }
+        MemberKey Key { get; set; }
         TypeAccessor TypeAccessor { get; }
         MemberAccessor MemberAccessor { get; }
         MarshalMethod MarshalMethod { get; }
@@ -61,12 +61,37 @@ namespace Replicate.MetaData
         TypeAccessor CollectionType { get; }
         IEnumerable<object> Values { get; set; }
     }
+    public struct MemberKey
+    {
+        public readonly int? Index;
+        public readonly string Name;
+        public MemberKey(string str) { Index = null; Name = str; }
+        public MemberKey(int index) { Index = index; Name = null; }
+
+        public override bool Equals(object obj)
+        {
+            if (!(obj is MemberKey)) return false;
+
+            var key = (MemberKey)obj;
+            return EqualityComparer<int?>.Default.Equals(Index, key.Index) || Name == key.Name;
+        }
+
+        public override int GetHashCode()
+        {
+            var hashCode = -1868479479;
+            //hashCode = hashCode * -1521134295 + EqualityComparer<int?>.Default.GetHashCode(Index);
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(Name);
+            return hashCode;
+        }
+
+        public static implicit operator MemberKey(string str) => new MemberKey(str);
+        public static implicit operator MemberKey(int index) => new MemberKey(index);
+    }
     public interface IRepObject : IRepNode, IEnumerable<IRepNode>
     {
         void EnsureConstructed();
-        IRepNode this[string memberName] { get; set; }
-        IRepNode this[int memberIndex] { get; set; }
-        bool CanSetMember(string memberName);
+        IRepNode this[MemberKey key] { get; set; }
+        bool CanSetMember(MemberKey key);
     }
 
 }

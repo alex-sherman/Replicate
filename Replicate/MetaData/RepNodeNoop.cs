@@ -11,7 +11,7 @@ namespace Replicate.MetaData
     {
         public static RepNodeNoop Single { get; } = new RepNodeNoop();
         public object RawValue => this;
-        public string Key { get; set; }
+        public MemberKey Key { get; set; }
         public object Value { get; set; }
 
         public TypeAccessor TypeAccessor => null;
@@ -29,8 +29,7 @@ namespace Replicate.MetaData
         static readonly IEnumerable<RepNodeNoop> Children = Enumerable.Empty<RepNodeNoop>();
         public IEnumerable<object> Values { get => Children; set { } }
 
-        public IRepNode this[int memberIndex] { get => throw new KeyNotFoundException(); set { } }
-        public IRepNode this[string memberName]
+        public IRepNode this[MemberKey memberName]
         {
             get => this;
             set { }
@@ -41,6 +40,6 @@ namespace Replicate.MetaData
 
         public void EnsureConstructed() { }
 
-        public bool CanSetMember(string memberName) => false;
+        public bool CanSetMember(MemberKey _) => false;
     }
 }

@@ -58,7 +58,7 @@ namespace ReplicateTest
         {
             var model = new ReplicationModel();
             model[typeof(GameObject)].SetSurrogate(typeof(GameObjectSurrogate));
-            var result = Util.SerializeDeserialize(new GameObject() { id = 123, data = "faff" }, model);
+            var result = BinarySerializerUtil.SerializeDeserialize(new GameObject() { id = 123, data = "faff" }, model);
             Assert.AreEqual((ulong)124, result.id);
             Assert.AreEqual("Surrogated", result.data);
         }
@@ -67,7 +67,7 @@ namespace ReplicateTest
         {
             var model = new ReplicationModel();
             model[typeof(GameObject)].SetSurrogate(typeof(GenericSurrogate<GameObject>));
-            var result = Util.SerializeDeserialize(new GameObject() { id = 123, data = "faff" }, model);
+            var result = BinarySerializerUtil.SerializeDeserialize(new GameObject() { id = 123, data = "faff" }, model);
             Assert.AreEqual((ulong)123, result.id);
             Assert.AreEqual("Surrogated", result.data);
         }

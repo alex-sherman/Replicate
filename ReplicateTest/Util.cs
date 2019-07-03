@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace ReplicateTest
 {
-    public static class Util
+    public static class BinarySerializerUtil
     {
         public struct ClientServer
         {
@@ -41,6 +41,37 @@ namespace ReplicateTest
             var stream = new MemoryStream();
             ser.Serialize(stream, data);
             stream.Seek(0, SeekOrigin.Begin);
+            return ser.Deserialize<T>(stream);
+        }
+    }
+    public static class BinaryGraphUtil
+    {
+        public struct ClientServer
+        {
+            public ReplicationModel model;
+            public PassThroughChannel channel;
+            public ReplicationManager server;
+            public ReplicationManager client;
+        }
+        public static ClientServer MakeClientServer()
+        {
+            ReplicationModel model = new ReplicationModel();
+            PassThroughChannel channel = new PassThroughChannel();
+            channel.SetSerializer(new BinaryGraphSerializer(model));
+            return new ClientServer()
+            {
+                model = model,
+                channel = channel,
+                server = new ReplicationManager(channel.PointA, model),
+                client = new ReplicationManager(channel.PointB, model)
+            };
+        }
+
+        public static T SerializeDeserialize<T>(T data, ReplicationModel model = null)
+        {
+            model = model ?? new ReplicationModel();
+            var ser = new BinaryGraphSerializer(model);
+            var stream = ser.Serialize(data);
             return ser.Deserialize<T>(stream);
         }
     }

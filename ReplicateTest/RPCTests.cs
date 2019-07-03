@@ -3,7 +3,7 @@ using System.Reflection;
 using Replicate.Interfaces;
 using System.Linq;
 using Replicate;
-using static ReplicateTest.Util;
+using static ReplicateTest.BinarySerializerUtil;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using Replicate.RPC;

@@ -30,7 +30,7 @@ namespace Replicate.MetaData
         public MemberAccessor MemberAccessor { get; private set; }
         public Func<object, object> ConvertToSurrogate;
         public Func<object, object> ConvertFromSurrogate;
-        public string Key { get; set; }
+        public MemberKey Key { get; set; }
         public object Value { get; set; }
 
         public RepBackedNode(object backing, TypeAccessor typeAccessor = null,
@@ -77,15 +77,10 @@ namespace Replicate.MetaData
 
         #region Object Fields
         MemberAccessor[] MemberAccessors => TypeAccessor.MemberAccessors;
-        public IRepNode this[int memberIndex]
+        public IRepNode this[MemberKey key]
         {
-            get => this[MemberAccessors[memberIndex]];
-            set => MemberAccessors[memberIndex].SetValue(Value, value.RawValue);
-        }
-        public IRepNode this[string memberName]
-        {
-            get => this[TypeAccessor.Members[memberName]];
-            set => TypeAccessor.Members[memberName].SetValue(Value, value.RawValue);
+            get => this[TypeAccessor[key]];
+            set => TypeAccessor[key].SetValue(Value, value.RawValue);
         }
         IRepNode this[MemberAccessor member]
         {
@@ -115,7 +110,7 @@ namespace Replicate.MetaData
             return $"{Key}: {MarshalMethod.ToString()}";
         }
 
-        public bool CanSetMember(string memberName) => TypeAccessor.Members.ContainsKey(memberName);
+        public bool CanSetMember(MemberKey key) => TypeAccessor[key] != null;
         #endregion
     }
 
@@ -123,7 +118,7 @@ namespace Replicate.MetaData
     {
         private RepBackedNode Node;
         public object RawValue => Node.RawValue;
-        public string Key { get; set; }
+        public MemberKey Key { get; set; }
         public object Value { get => Node.Value; set => Node.Value = value; }
         public RepBackedCollection(RepBackedNode node)
         {
