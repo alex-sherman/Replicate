@@ -6,7 +6,7 @@ using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Replicate.Interfaces
+namespace Replicate.MetaTyping
 {
     public interface IImplementor
     {
@@ -49,10 +49,7 @@ namespace Replicate.Interfaces
         public static T HookUp<T>(IImplementor implementor)
         {
             Type target = typeof(T);
-            AssemblyName assemblyName = new AssemblyName("DataBuilderAssembly");
-            AssemblyBuilder assemBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
-            ModuleBuilder moduleBuilder = assemBuilder.DefineDynamicModule("DataBuilderModule");
-            TypeBuilder typeBuilder = moduleBuilder.DefineType(target.Name + "_Proxy", TypeAttributes.Class, typeof(ProxyImplement));
+            TypeBuilder typeBuilder = DynamicModule.Create().DefineType(target.Name + "_Proxy", TypeAttributes.Class, typeof(ProxyImplement));
             typeBuilder.AddInterfaceImplementation(target);
             var methods = target.GetMethods();
             for (int i = 0; i < methods.Length; i++)

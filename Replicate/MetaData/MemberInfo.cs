@@ -19,8 +19,8 @@ namespace Replicate.MetaData
         public TypeData TypeData { get; set; }
         public TypeAccessor Surrogate { get; private set; }
         public bool IsGenericParameter { get { return MemberType.IsGenericParameter; } }
-        internal FieldInfo Field;
-        internal PropertyInfo Property;
+        public readonly FieldInfo Field;
+        public readonly PropertyInfo Property;
         public int GenericParameterPosition { get { return MemberType.GenericParameterPosition; } }
         public T GetAttribute<T>() where T : Attribute
         {

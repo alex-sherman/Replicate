@@ -80,7 +80,11 @@ namespace Replicate.MetaData
         public IRepNode this[MemberKey key]
         {
             get => this[TypeAccessor[key]];
-            set => TypeAccessor[key].SetValue(Value, value.RawValue);
+            set {
+                var member = TypeAccessor[key];
+                if (member == null) throw new KeyNotFoundException(key.ToString());
+                member.SetValue(Value, value.RawValue);
+            }
         }
         IRepNode this[MemberAccessor member]
         {

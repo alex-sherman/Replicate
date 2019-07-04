@@ -1,4 +1,4 @@
-﻿using Replicate.Interfaces;
+﻿using Replicate.MetaTyping;
 using Replicate.Messages;
 using System;
 using System.Linq;

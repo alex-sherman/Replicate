@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Reflection;
-using Replicate.Interfaces;
+using Replicate.MetaTyping;
 using System.Linq;
 using Replicate;
 using static ReplicateTest.BinarySerializerUtil;

@@ -54,7 +54,7 @@ namespace Replicate.Serialization
 
         public override void Write(MemoryStream stream, IRepPrimitive value)
         {
-            if (value == null)
+            if (value.RawValue == null)
                 stream.WriteByte(0);
             else
             {

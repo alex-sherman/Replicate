@@ -86,6 +86,12 @@ namespace Replicate.MetaData
 
         public static implicit operator MemberKey(string str) => new MemberKey(str);
         public static implicit operator MemberKey(int index) => new MemberKey(index);
+        public override string ToString()
+        {
+            if (Name != null) return Name;
+            if (Index != null) return Index.ToString();
+            return "<Invalid MemberKey>";
+        }
     }
     public interface IRepObject : IRepNode, IEnumerable<IRepNode>
     {
