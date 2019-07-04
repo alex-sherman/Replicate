@@ -21,6 +21,7 @@ namespace Replicate.MetaData
         public Type Surrogate { get; private set; }
         public ReplicationModel Model { get; private set; }
         private bool IsSurrogate = false;
+        public readonly ReplicateTypeAttribute TypeAttribute;
         public TypeData(Type type, ReplicationModel model)
         {
             Type = type;
@@ -35,11 +36,11 @@ namespace Replicate.MetaData
                 else
                     MarshalMethod = MarshalMethod.Object;
             }
-            var replicateAttr = type.GetCustomAttribute<ReplicateTypeAttribute>();
-            IsInstanceRPC = replicateAttr?.IsInstanceRPC ?? false;
-            var surrogateType = replicateAttr?.SurrogateType;
+            TypeAttribute = type.GetCustomAttribute<ReplicateTypeAttribute>();
+            IsInstanceRPC = TypeAttribute?.IsInstanceRPC ?? false;
+            var surrogateType = TypeAttribute?.SurrogateType;
             if (surrogateType != null) SetSurrogate(surrogateType);
-            var autoMembers = replicateAttr?.AutoMembers ?? AutoAdd.None;
+            var autoMembers = TypeAttribute?.AutoMembers ?? AutoAdd.None;
             var bindingFlags = BindingFlags.Instance | BindingFlags.Public;
             if (autoMembers != AutoAdd.AllPublic)
                 bindingFlags |= BindingFlags.NonPublic;
@@ -55,7 +56,7 @@ namespace Replicate.MetaData
             }
 
             bindingFlags = BindingFlags.Instance | BindingFlags.Public;
-            var autoMethods = replicateAttr?.AutoMethods ?? AutoAdd.None;
+            var autoMethods = TypeAttribute?.AutoMethods ?? AutoAdd.None;
             if (autoMethods != AutoAdd.AllPublic)
                 bindingFlags |= BindingFlags.NonPublic;
             RPCMethods = type.GetMethods(bindingFlags)

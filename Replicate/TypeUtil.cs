@@ -3,6 +3,7 @@ using Replicate.RPC;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Text;
@@ -12,25 +13,42 @@ namespace Replicate
 {
     public static class TypeUtil
     {
+        [Obsolete]
         public static T CopyFrom<T, U>(T target, U newFields, string[] whiteList = null, string[] blackList = null) where T : class
         {
-            var taT = ReplicationModel.Default.GetTypeAccessor(typeof(T));
-            var taU = taT;
-            if (typeof(T) != typeof(U))
-                taU = ReplicationModel.Default.GetTypeAccessor(typeof(U));
-            IEnumerable<MemberAccessor> members = taT.MemberAccessors;
+            CopyToRaw(newFields, typeof(U), target, typeof(T), whiteList, blackList);
+            return target;
+        }
+        public static T CopyTo<S, T>(S source, T target, string[] whiteList = null, string[] blackList = null) where T : class
+        {
+            CopyToRaw(source, typeof(S), target, typeof(T), whiteList, blackList);
+            return target;
+        }
+        public static object CopyToRaw(object source, object target, string[] whiteList = null, string[] blackList = null)
+        {
+            return CopyToRaw(source, source.GetType(), target, target.GetType(), whiteList, blackList);
+        }
+        public static object CopyToRaw(object source, Type sourceType, object target, Type targetType, string[] whiteList = null, string[] blackList = null)
+        {
+            if (source == null) return target;
+            var taTarget = ReplicationModel.Default.GetTypeAccessor(targetType);
+            var taSource = taTarget;
+            if (targetType != sourceType)
+                taSource = ReplicationModel.Default.GetTypeAccessor(sourceType);
+            if (target == null) target = taTarget.Construct();
+            IEnumerable<MemberAccessor> members = taTarget.MemberAccessors;
             if (whiteList != null && whiteList.Any())
                 members = members.Where(mem => whiteList.Contains(mem.Info.Name));
             if (blackList != null && blackList.Any())
                 members = members.Where(mem => !blackList.Contains(mem.Info.Name));
             var memberTuples = members
-                .Where(m => taU.Members.ContainsKey(m.Info.Name))
-                .Select(tMember => new { tMember, uMember = taU.Members[tMember.Info.Name] })
+                .Where(m => taSource.Members.ContainsKey(m.Info.Name))
+                .Select(tMember => new { tMember, uMember = taSource.Members[tMember.Info.Name] })
                 .Where(tuple => tuple.tMember.Type.IsAssignableFrom(tuple.uMember.Type)
                 || (tuple.uMember.Type.IsSameGeneric(typeof(Nullable<>)) && tuple.tMember.Type == tuple.uMember.Type.GetGenericArguments()[0]));
             foreach (var tuple in memberTuples)
             {
-                var newValue = tuple.uMember.GetValue(newFields);
+                var newValue = tuple.uMember.GetValue(source);
                 if (newValue == null) continue;
                 tuple.tMember.SetValue(target, newValue);
             }
@@ -73,6 +91,26 @@ namespace Replicate
         public static T Output<T>(this Task<T> task)
         {
             return task.GetAwaiter().GetResult();
+        }
+
+        public static MethodInfo Method<T>(Expression<Func<T, object>> method)
+        {
+            return null;
+        }
+
+        public static MethodInfo StaticMethod(Expression<Action> method)
+        {
+            return (method.Body as MethodCallExpression).Method;
+        }
+
+        public static bool IsPrimitive(Type type)
+        {
+            return type.IsPrimitive || type == typeof(string) || type.IsEnum;
+        }
+
+        public static bool IsStruct(Type type)
+        {
+            return type.IsValueType && !IsPrimitive(type);
         }
 
         public static HandlerDelegate CreateHandler(MethodInfo method, Func<RPCRequest, object> target)

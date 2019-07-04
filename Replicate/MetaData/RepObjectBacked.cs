@@ -40,28 +40,7 @@ namespace Replicate.MetaData
             Key = null;
             Model = model ?? ReplicationModel.Default;
             TypeAccessor = typeAccessor ?? Model.GetTypeAccessor(backing.GetType());
-
-            var surrogate = MemberAccessor?.Surrogate ?? TypeAccessor.Surrogate;
-            if (surrogate != null)
-            {
-                var castToOp = surrogate.Type.GetMethod("op_Implicit", new Type[] { typeAccessor.Type });
-                ConvertToSurrogate = obj =>
-                    obj == null ? null : castToOp.Invoke(null, new[] { obj });
-
-                var castFromOp = surrogate.Type.GetMethod("op_Implicit", new Type[] { surrogate.Type });
-                ConvertFromSurrogate = obj =>
-                    obj == null ? null : castFromOp.Invoke(null, new[] { obj });
-                TypeAccessor = surrogate;
-                Value = ConvertToSurrogate(backing);
-            }
-            else
-            {
-                ConvertToSurrogate = null;
-                ConvertFromSurrogate = null;
-                Value = backing;
-            }
-            // TODO: Handle using a surrogate
-
+            RawValue = backing;
         }
         public MarshalMethod MarshalMethod => TypeAccessor.TypeData.MarshalMethod;
 
