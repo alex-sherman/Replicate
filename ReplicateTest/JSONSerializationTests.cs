@@ -194,13 +194,24 @@ namespace ReplicateTest
         public void Dictionary()
         {
             var serialized = "{\"value\": \"herp\", \"prop\": \"derp\"}";
-            var type = typeof(Dictionary<string, string>);
             var obj = new Dictionary<string, string>() { { "value", "herp" }, { "prop", "derp" } };
             var ser = new JSONGraphSerializer(new ReplicationModel() { DictionaryAsObject = true });
             var stream = new MemoryStream();
-            var str = ser.Serialize(type, obj);
+            var str = ser.Serialize(obj);
             Assert.AreEqual(serialized, str);
-            var output = ser.Deserialize(type, str);
+            var output = ser.Deserialize(obj.GetType(), str);
+            Assert.AreEqual(obj, output);
+        }
+        [Test]
+        public void DictionaryNonStringKey()
+        {
+            var serialized = "[{\"Key\": 0, \"Value\": \"herp\"}, {\"Key\": 1, \"Value\": \"derp\"}]";
+            var obj = new Dictionary<int, string>() { { 0, "herp" }, { 1, "derp" } };
+            var ser = new JSONGraphSerializer(new ReplicationModel() { DictionaryAsObject = true });
+            var stream = new MemoryStream();
+            var str = ser.Serialize(obj);
+            Assert.AreEqual(serialized, str);
+            var output = ser.Deserialize(obj.GetType(), str);
             Assert.AreEqual(obj, output);
         }
         [Test]
