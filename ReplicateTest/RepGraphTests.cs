@@ -201,10 +201,11 @@ namespace ReplicateTest
         public void TestSettingValueTypeField()
         {
             var model = new ReplicationModel();
-            var node = model.GetRepNode(new ValueType() { Field1 = "DERP" }, typeof(ValueType));
-            Assert.AreEqual("DERP", node.AsObject["Field1"].Value);
-            node.AsObject["Field1"].Value = "HERP";
-            Assert.AreEqual("HERP", node.AsObject["Field1"].Value);
+            var node = model.GetRepNode(new ValueType() { Field1 = "DERP" }, typeof(ValueType)).AsObject;
+            Assert.AreEqual("DERP", node["Field1"].Value);
+            node["Field1"] = new RepBackedNode("HERP");
+            var value = (ValueType)node.RawValue;
+            Assert.AreEqual("HERP", value.Field1);
         }
     }
 }

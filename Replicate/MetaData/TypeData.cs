@@ -18,7 +18,7 @@ namespace Replicate.MetaData
         public readonly List<MethodInfo> RPCMethods = new List<MethodInfo>();
         public readonly bool IsInstanceRPC;
         public List<Type> ReplicatedInterfaces;
-        public Type Surrogate { get; private set; }
+        public Surrogate Surrogate { get; private set; }
         public ReplicationModel Model { get; private set; }
         private bool IsSurrogate = false;
         public readonly ReplicateTypeAttribute TypeAttribute;
@@ -96,11 +96,11 @@ namespace Replicate.MetaData
         {
             ReplicatedMembers.Add(new MemberInfo(Model, property, (byte)ReplicatedMembers.Count));
         }
-        public void SetSurrogate(Type surrogate)
+        public void SetSurrogate(Surrogate surrogate)
         {
             if (IsSurrogate)
                 throw new InvalidOperationException("Cannot set the surrogate of a surrogate type");
-            Model.Add(surrogate).IsSurrogate = true;
+            Model[surrogate.Type].IsSurrogate = true;
             Surrogate = surrogate;
         }
     }

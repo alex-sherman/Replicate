@@ -17,7 +17,7 @@ namespace Replicate.MetaData
         public Type MemberType { get { return Property?.PropertyType ?? Field.FieldType; } }
         public Type ParentType { get => Property?.DeclaringType ?? Field.DeclaringType; }
         public TypeData TypeData { get; set; }
-        public TypeAccessor Surrogate { get; private set; }
+        public Surrogate Surrogate { get; private set; }
         public bool IsGenericParameter { get { return MemberType.IsGenericParameter; } }
         public readonly FieldInfo Field;
         public readonly PropertyInfo Property;
@@ -58,11 +58,9 @@ namespace Replicate.MetaData
         {
             return declaringType.GetProperty(Name);
         }
-        public void SetSurrogate(Type surrogate)
+        public void SetSurrogate(Surrogate surrogate)
         {
-            if (surrogate.IsGenericTypeDefinition)
-                throw new InvalidOperationException("Cannot set a surrogate type that is generic");
-            Surrogate = Model.GetTypeAccessor(surrogate);
+            Surrogate = surrogate;
         }
         public override string ToString()
         {

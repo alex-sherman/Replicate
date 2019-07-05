@@ -59,7 +59,7 @@ namespace ReplicateTest
             node.EnsureConstructed();
             node["Key"] = new RepBackedNode("Derp");
             KeyValuePair<string, int> derp = (KeyValuePair<string, int>)node.RawValue;
-            Assert.AreEqual(derp.Key, "Derp");
+            Assert.AreEqual("Derp", derp.Key);
         }
     }
 }

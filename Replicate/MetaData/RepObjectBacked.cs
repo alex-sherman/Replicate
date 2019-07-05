@@ -14,22 +14,21 @@ namespace Replicate.MetaData
         {
             get
             {
-                if (ConvertFromSurrogate != null)
-                    return ConvertFromSurrogate(Value);
+                if (surrogate?.ConvertFrom != null)
+                    return surrogate.ConvertFrom(Value);
                 return Value;
             }
             set
             {
-                if (ConvertToSurrogate != null)
-                    value = ConvertToSurrogate(value);
+                if (surrogate?.ConvertTo != null)
+                    value = surrogate.ConvertTo(value);
                 Value = value;
             }
         }
         public ReplicationModel Model { get; private set; }
         public TypeAccessor TypeAccessor { get; set; }
         public MemberAccessor MemberAccessor { get; private set; }
-        public Func<object, object> ConvertToSurrogate;
-        public Func<object, object> ConvertFromSurrogate;
+        private readonly SurrogateAccessor surrogate;
         public MemberKey Key { get; set; }
         public object Value { get; set; }
 
@@ -39,8 +38,10 @@ namespace Replicate.MetaData
             MemberAccessor = memberAccessor;
             Key = null;
             Model = model ?? ReplicationModel.Default;
-            TypeAccessor = typeAccessor ?? Model.GetTypeAccessor(backing.GetType());
+            var originalTypeAccessor = typeAccessor ?? Model.GetTypeAccessor(backing.GetType());
             RawValue = backing;
+            surrogate = memberAccessor?.Surrogate ?? originalTypeAccessor.Surrogate;
+            TypeAccessor = surrogate?.TypeAccessor ?? originalTypeAccessor;
         }
         public MarshalMethod MarshalMethod => TypeAccessor.TypeData.MarshalMethod;
 

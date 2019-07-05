@@ -15,16 +15,17 @@ namespace Replicate.MetaData
         public MemberInfo Info { get; private set; }
         public readonly bool SkipNull;
         public TypeAccessor TypeAccessor { get; private set; }
-        public TypeAccessor Surrogate { get; private set; }
+        public SurrogateAccessor Surrogate { get; private set; }
         public Type Type { get; private set; }
         public Type DeclaringType { get; private set; }
 
         public MemberAccessor(MemberInfo info, TypeAccessor declaringType, ReplicationModel model)
         {
-            Surrogate = info.Surrogate;
             DeclaringType = declaringType.Type;
             Type = info.GetMemberType(declaringType.Type);
             TypeAccessor = model.GetTypeAccessor(Type);
+            if (info.Surrogate != null)
+                Surrogate = new SurrogateAccessor(TypeAccessor, info.Surrogate, model);
             Info = info;
             SkipNull = info.GetAttribute<SkipNullAttribute>() != null;
             if (info.Field != null)

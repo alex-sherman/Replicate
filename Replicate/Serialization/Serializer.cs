@@ -35,10 +35,8 @@ namespace Replicate.Serialization
             var surrogateAccessor = memberAccessor?.Surrogate ?? typeAccessor.Surrogate;
             if (surrogateAccessor != null)
             {
-                var castOp = surrogateAccessor.Type.GetMethod("op_Implicit", new Type[] { typeAccessor.Type });
-                typeAccessor = surrogateAccessor;
-                var surrogate = castOp.Invoke(null, new object[] { obj });
-                obj = surrogate;
+                obj = surrogateAccessor.ConvertTo(obj);
+                typeAccessor = surrogateAccessor.TypeAccessor;
             }
             var marshalMethod = typeAccessor.TypeData.MarshalMethod;
             switch (marshalMethod)
@@ -72,18 +70,14 @@ namespace Replicate.Serialization
         }
         public object Deserialize(object obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
-            MethodInfo castOp = null;
-
             var surrogateAccessor = memberAccessor?.Surrogate ?? typeAccessor.Surrogate;
             if (surrogateAccessor != null)
             {
-                var invCastOp = surrogateAccessor.Type.GetMethod("op_Implicit", new Type[] { typeAccessor.Type });
-                typeAccessor = surrogateAccessor;
-                castOp = typeAccessor.Type.GetMethod("op_Implicit", new Type[] { invCastOp.ReturnType });
                 obj = null;
+                typeAccessor = surrogateAccessor?.TypeAccessor;
             }
             obj = DeserializeRaw(obj, stream, typeAccessor);
-            return castOp?.Invoke(null, new object[] { obj }) ?? obj;
+            return surrogateAccessor == null ? obj : surrogateAccessor.ConvertFrom(obj);
 
         }
         private object DeserializeRaw(object obj, Stream stream, TypeAccessor typeAccessor)

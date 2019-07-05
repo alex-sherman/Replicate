@@ -46,7 +46,7 @@ namespace Replicate.MetaData
             kvpTD.MarshalMethod = MarshalMethod.Object;
             kvpTD.AddMember("Key");
             kvpTD.AddMember("Value");
-            //kvpTD.SetSurrogate(Fake.FromType(typeof(KeyValuePair<,>), this));
+            kvpTD.SetTupleSurrogate();
             Add(typeof(TypedValue));
             LoadTypes(Assembly.GetCallingAssembly());
             typeIndex = typeLookup.Values.OrderBy(td => td.Name).Select(td => td.Type).ToList();
@@ -58,7 +58,6 @@ namespace Replicate.MetaData
             if (backing == null && typeAccessor == null)
                 return new RepNodeTypeless();
             typeAccessor = typeAccessor ?? GetTypeAccessor(backing.GetType());
-            var surrogate = memberAccessor?.Surrogate ?? typeAccessor.Surrogate;
             if (typeAccessor.IsTypeless)
                 return new RepNodeTypeless(memberAccessor);
             if (DictionaryAsObject && typeAccessor.Type.IsSameGeneric(typeof(Dictionary<,>))
@@ -70,26 +69,6 @@ namespace Replicate.MetaData
             }
 
             var output = new RepBackedNode(null, typeAccessor, memberAccessor, this);
-            // TODO: Move this logic to TypeData and support custom conversions
-            if (surrogate != null)
-            {
-                var castToOp = surrogate.Type.GetMethod("op_Implicit", new Type[] { typeAccessor.Type });
-                if (castToOp != null)
-                    output.ConvertToSurrogate = obj =>
-                        obj == null ? null : castToOp.Invoke(null, new[] { obj });
-                else
-                    output.ConvertToSurrogate =
-                        obj => TypeUtil.CopyToRaw(obj, typeAccessor.Type, Activator.CreateInstance(surrogate.Type), surrogate.Type);
-
-                var castFromOp = surrogate.Type.GetMethod("op_Implicit", new Type[] { surrogate.Type });
-                if (castFromOp != null)
-                    output.ConvertFromSurrogate = obj =>
-                        obj == null ? null : castFromOp.Invoke(null, new[] { obj });
-                else
-                    output.ConvertFromSurrogate =
-                        obj => TypeUtil.CopyToRaw(obj, surrogate.Type, Activator.CreateInstance(typeAccessor.Type), typeAccessor.Type);
-                output.TypeAccessor = surrogate;
-            }
             output.RawValue = backing;
             return output;
         }

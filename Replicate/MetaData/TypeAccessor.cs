@@ -17,23 +17,15 @@ namespace Replicate.MetaData
         public MemberAccessor[] MemberAccessors;
         public Dictionary<string, MemberAccessor> Members;
         public TypeData TypeData { get; private set; }
-        public TypeAccessor Surrogate { get; private set; }
+        public SurrogateAccessor Surrogate { get; private set; }
         public TypeAccessor(TypeData typeData, Type type)
         {
             IsTypeless = type == typeof(IRepNode) || type.GetInterface(nameof(IRepNode)) != null;
-            if (typeData.Surrogate != null)
-            {
-                var surrogateType = typeData.Surrogate;
-                // TODO: This is untested and maybe confusing?
-                if (surrogateType.IsGenericTypeDefinition)
-                    surrogateType = surrogateType.MakeGenericType(type.GetGenericArguments());
-
-                Surrogate = typeData.Model.GetTypeAccessor(surrogateType);
-            }
             TypeData = typeData;
             Type = type;
-            //UnwrappedType = TypeData.Type == typeof(Nullable<>);
             Name = type.FullName;
+            if (typeData.Surrogate != null)
+                Surrogate = new SurrogateAccessor(this, typeData.Surrogate, typeData.Model);
         }
         internal void InitializeMembers()
         {
@@ -42,9 +34,9 @@ namespace Replicate.MetaData
                 .ToArray();
             Members = MemberAccessors.ToDictionary(member => member.Info.Name);
         }
-        public object Construct()
+        public object Construct(params object[] args)
         {
-            return Activator.CreateInstance(Type);
+            return Activator.CreateInstance(Type, args);
         }
         public object Coerce(object obj)
         {
