@@ -55,7 +55,8 @@ namespace ReplicateBenchmarks
 
         static void Main(string[] args)
         {
-            JsonCompare();
+            //JsonCompare();
+            BinaryCompare();
             //ProtoCompare();
             Console.ReadLine();
         }
@@ -81,6 +82,30 @@ namespace ReplicateBenchmarks
 
             TimeSerialize("Serialize GenericDerp<string>", genDerp, ser);
             TimeSerialize("Proto Serialize GenericDerp<string>", genDerp, ProtoBuf.Serializer.Serialize);
+        }
+        static void BinaryCompare()
+        {
+            var model = ReplicationModel.Default;
+            model.Add(typeof(Derp));
+
+            var serGraph = new BinaryGraphSerializer(model);
+            var ser = new BinarySerializer(model);
+            var herp = new Derp() { faff = "faff" };
+            var derp = "faff";
+            var herpList = new List<Derp> { herp, herp, herp };
+            var genDerp = new GenericDerp<string>() { faff = "faff" };
+
+            TimeSerialize("Serialize String", derp, ser);
+            TimeSerialize("Graph Serialize String", derp, serGraph);
+
+            TimeSerialize("Serialize Derp", herp, ser);
+            TimeSerialize("Graph Serialize Derp", herp, serGraph);
+
+            TimeSerialize("Serialize List<Derp>", herpList, ser, count: 1e5);
+            TimeSerialize("Graph Serialize List<Derp>", herpList, serGraph, count: 1e5);
+
+            TimeSerialize("Serialize GenericDerp<string>", genDerp, ser);
+            TimeSerialize("Graph Serialize GenericDerp<string>", genDerp, serGraph);
         }
         static void JsonCompare()
         {
