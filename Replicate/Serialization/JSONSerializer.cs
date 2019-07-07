@@ -11,7 +11,7 @@ using Replicate.MetaData;
 namespace Replicate.Serialization
 {
     [Obsolete("Replaced by JSONGraphSerializer")]
-    public class JSONSerializer : Serializer, IReplicateSerializer<string>
+    public class JSONSerializer : Serializer<Stream, string>
     {
         public bool ToLowerFieldNames = false;
         public JSONSerializer(ReplicationModel model) : base(model) { }
@@ -55,7 +55,7 @@ namespace Replicate.Serialization
                 nextChar = stream.ReadCharOne();
                 CheckAndThrow(nextChar == ',' || nextChar == ']');
             };
-            return FillCollection(obj, type, values);
+            return CollectionUtil.FillCollection(obj, type, values);
         }
         string MapName(string fieldName)
         {
@@ -173,22 +173,20 @@ namespace Replicate.Serialization
             throw new NotImplementedException();
         }
 
-        public string Serialize(Type type, object obj)
+        public override Stream GetContext(string wireValue)
         {
             var stream = new MemoryStream();
-            Serialize(stream, type, obj);
-            stream.Position = 0;
-            return new StreamReader(stream).ReadToEnd();
+            if (wireValue != null)
+            {
+                var sw = new StreamWriter(stream);
+                sw.Write(wireValue);
+                sw.Flush();
+                stream.Position = 0;
+            }
+            return stream;
         }
 
-        public object Deserialize(Type type, string message)
-        {
-            var stream = new MemoryStream();
-            var sw = new StreamWriter(stream);
-            sw.Write(message);
-            sw.Flush();
-            stream.Position = 0;
-            return Deserialize(stream, type);
-        }
+        public override string GetWireValue(Stream stream)
+            => new StreamReader(stream).ReadToEnd();
     }
 }

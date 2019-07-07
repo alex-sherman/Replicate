@@ -20,7 +20,6 @@ namespace Replicate
         }
         public uint Client { get; internal set; }
         public ReplicationManager Manager { get; internal set; }
-        public Serializer Serializer { get; internal set; }
         internal bool _isInRPC;
         public static bool IsInRPC => Current._isInRPC;
         private static AsyncLocal<ReplicateContext> current = new AsyncLocal<ReplicateContext>();

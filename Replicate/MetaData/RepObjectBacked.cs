@@ -119,7 +119,7 @@ namespace Replicate.MetaData
             get => _values();
             set
             {
-                Node.Value = Serializer.FillCollection(Node.Value, TypeAccessor.Type, value?.ToList());
+                Node.Value = CollectionUtil.FillCollection(Node.Value, TypeAccessor.Type, value?.ToList());
             }
         }
 
