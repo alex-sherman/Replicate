@@ -93,16 +93,6 @@ namespace Replicate
             return task.GetAwaiter().GetResult();
         }
 
-        public static MethodInfo Method<T>(Expression<Func<T, object>> method)
-        {
-            return null;
-        }
-
-        public static MethodInfo StaticMethod(Expression<Action> method)
-        {
-            return (method.Body as MethodCallExpression).Method;
-        }
-
         public static bool IsPrimitive(Type type)
         {
             return type.IsPrimitive || type == typeof(string) || type.IsEnum;

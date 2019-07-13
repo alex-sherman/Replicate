@@ -20,6 +20,9 @@ namespace Replicate.RPC
     public interface IRPCChannel
     {
         Task<object> Request(MethodInfo method, RPCRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced);
+        /// <summary>
+        /// Register a handler to respond to the given method
+        /// </summary>
         void Respond(MethodInfo method, HandlerDelegate handler);
     }
 
@@ -30,13 +33,8 @@ namespace Replicate.RPC
             public RPCContract Contract;
             public HandlerDelegate Handler;
         }
-        public IReplicateSerializer<TWireType> Serializer { get; }
+        public readonly IReplicateSerializer<TWireType> Serializer;
         Dictionary<TEndpoint, HandlerInfo> responders = new Dictionary<TEndpoint, HandlerInfo>();
-        /// <summary>
-        /// Specifies whether or not the channel is allowed to send/receive messages.
-        /// When IsOpen is true <see cref="LocalID"/> must be valid.
-        /// </summary>
-        public bool IsOpen { get; protected set; }
 
         public RPCChannel(IReplicateSerializer<TWireType> serializer)
         {

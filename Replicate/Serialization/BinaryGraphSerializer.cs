@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Replicate.Serialization
 {
-    public class BinaryGraphSerializer : GraphSerializer<MemoryStream, byte[]>
+    public class BinaryGraphSerializer : GraphSerializer<MemoryStream, MemoryStream>
     {
         public BinaryGraphSerializer(ReplicationModel model) : base(model) { }
         static BinaryIntSerializer intSer = new BinaryIntSerializer();
@@ -42,14 +42,15 @@ namespace Replicate.Serialization
         //    return type.GetConstructor(paramTypes.ToArray()).Invoke(parameters.ToArray());
         //}
 
-        public override MemoryStream GetContext(byte[] wireValue)
+        public override MemoryStream GetContext(MemoryStream wireValue)
         {
-            return wireValue != null ? new MemoryStream(wireValue) : new MemoryStream();
+            return wireValue ?? new MemoryStream();
         }
 
-        public override byte[] GetWireValue(MemoryStream context)
+        public override MemoryStream GetWireValue(MemoryStream context)
         {
-            return context.ToArray();
+            context.Position = 0;
+            return context ?? new MemoryStream();
         }
 
         public override void Write(MemoryStream stream, IRepPrimitive value)

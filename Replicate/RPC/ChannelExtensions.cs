@@ -8,6 +8,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using System.Linq.Expressions;
 
 namespace Replicate
 {
@@ -24,6 +25,17 @@ namespace Replicate
         public static void Respond<TRequest>(this IRPCChannel channel, Action<TRequest> handler)
         {
             channel.Respond(handler.Method, (req) => { handler(TypeUtil.Cast<TRequest>(req.Request)); return null; });
+        }
+
+        public static MethodInfo StaticMethod(Expression<Action> method)
+        {
+            return (method.Body as MethodCallExpression).Method;
+        }
+        public static async Task<T> Request<T>(this IRPCChannel channel, Expression<Func<Task<T>>> call)
+        {
+            var methodCall = call.Body as MethodCallExpression;
+            var arguments = methodCall.EvaluateArguments();
+            return (T)(await channel.Request(methodCall.Method, arguments.Length > 0 ? arguments[0] : None.Value));
         }
         /// <summary>
         /// Avoid using this since there is no type checking on request/response
