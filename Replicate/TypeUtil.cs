@@ -66,8 +66,9 @@ namespace Replicate
                 await task;
                 if (type == typeof(Task))
                     return None.Value;
-                if (type.IsSameGeneric(typeof(Task<>)))
-                    return (object)((dynamic)task).Result;
+                return type.GetProperty("Result").GetValue(obj);
+                // For some reason this seems to have worst first-call performance, lasting about 400ms
+                // return (object)((dynamic)task).Result;
             }
             return obj;
         }

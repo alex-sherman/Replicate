@@ -122,7 +122,7 @@ namespace ReplicateTest
             }
             public async Task AsyncDerp()
             {
-                await Task.Delay(100);
+                await Task.Yield();
                 Derp();
             }
             public int Herp(string faff)
@@ -134,7 +134,7 @@ namespace ReplicateTest
             }
             public async Task<int> AsyncHerp(string faff)
             {
-                await Task.Delay(100);
+                await Task.Yield();
                 return Herp(faff);
             }
             [ReplicateIgnore]

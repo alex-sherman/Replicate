@@ -66,7 +66,6 @@ namespace Replicate.Serialization
 
         public override void Write(MemoryStream stream, IRepCollection value)
         {
-            var count = 0;
             if (value.Value == null)
             {
                 stream.WriteInt32(-1);
@@ -74,6 +73,7 @@ namespace Replicate.Serialization
             }
             var lengthPos = stream.Position;
             stream.Position += 4;
+            var count = 0;
             foreach (var item in value)
             {
                 Write(stream, item);
@@ -84,21 +84,42 @@ namespace Replicate.Serialization
             stream.WriteInt32(count);
             stream.Position = reset;
         }
-
+        void Write(Stream stream, MemberKey key)
+        {
+            if (key.Index.HasValue)
+                stream.WriteByte((byte)key.Index.Value);
+            else
+            {
+                stream.WriteByte(255);
+                serializers[PrimitiveType.String].Write(key.Name, stream);
+            }
+        }
+        MemberKey ReadKey(Stream stream)
+        {
+            var b = (byte)stream.ReadByte();
+            if (b != 255) return b;
+            return (string)serializers[PrimitiveType.String].Read(stream);
+        }
         public override void Write(MemoryStream stream, IRepObject value)
         {
-            var typeAccessor = value.TypeAccessor;
             if (value.Value == null)
             {
                 stream.WriteInt32(-1);
                 return;
             }
-            stream.WriteInt32(typeAccessor.MemberAccessors.Length);
-            for (int id = 0; id < typeAccessor.MemberAccessors.Length; id++)
+            var lengthPosition = stream.Position;
+            stream.Position += 4;
+            var count = 0;
+            foreach (var member in value)
             {
-                stream.WriteByte((byte)id);
-                Write(stream, value[id]);
+                Write(stream, member.Key);
+                Write(stream, member);
+                count++;
             }
+            var endPosition = stream.Position;
+            stream.Position = lengthPosition;
+            stream.WriteInt32(count);
+            stream.Position = endPosition;
         }
 
         public override MarshalMethod ReadMarshallMethod(MemoryStream context)
@@ -129,7 +150,7 @@ namespace Replicate.Serialization
             value.EnsureConstructed();
             for (int i = 0; i < count; i++)
             {
-                int id = stream.ReadByte();
+                var id = ReadKey(stream);
                 var inner = value[id];
                 if (value.CanSetMember(id))
                 {

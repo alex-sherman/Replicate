@@ -67,6 +67,17 @@ namespace ReplicateTest
             Assert.AreEqual(4, output["herp"].Property);
         }
         [Test]
+        public void TestDictionaryAsObject()
+        {
+            var output = SerializeDeserialize(new Dictionary<string, PropClass>()
+            {
+                ["faff"] = new PropClass() { Property = 3 },
+                ["herp"] = new PropClass() { Property = 4 }
+            }, new ReplicationModel() { DictionaryAsObject = true });
+            Assert.AreEqual(3, output["faff"].Property);
+            Assert.AreEqual(4, output["herp"].Property);
+        }
+        [Test]
         public void TestNullObject()
         {
             var output = SerializeDeserialize<PropClass>(null);
