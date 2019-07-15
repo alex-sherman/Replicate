@@ -1,6 +1,4 @@
 ﻿using Replicate.Messages;
-using Replicate.MetaTyping;
-using Replicate.Serialization;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -25,10 +23,12 @@ namespace Replicate.MetaData
         Dictionary<Type, TypeAccessor> typeAccessorLookup = new Dictionary<Type, TypeAccessor>();
         Dictionary<Type, TypeData> typeLookup = new Dictionary<Type, TypeData>();
         Dictionary<string, TypeData> stringLookup = new Dictionary<string, TypeData>();
-        List<Type> typeIndex;
+        List<TypeData> typeIndex = new List<TypeData>();
         public bool DictionaryAsObject;
+        public bool AddOnLookup = false;
         public ReplicationModel()
         {
+            Add(typeof(None));
             Add(typeof(byte));
             Add(typeof(short));
             Add(typeof(int));
@@ -37,19 +37,21 @@ namespace Replicate.MetaData
             Add(typeof(uint));
             Add(typeof(ulong));
             Add(typeof(float));
+            Add(typeof(double));
             Add(typeof(string));
             Add(typeof(Dictionary<,>));
             Add(typeof(List<>));
             Add(typeof(ICollection<>));
             Add(typeof(IEnumerable<>));
+            Add(typeof(IRepNode));
             var kvpTD = Add(typeof(KeyValuePair<,>));
             kvpTD.MarshalMethod = MarshalMethod.Object;
             kvpTD.AddMember("Key");
             kvpTD.AddMember("Value");
             kvpTD.SetTupleSurrogate();
             Add(typeof(TypedValue));
+            LoadTypes(Assembly.GetExecutingAssembly());
             LoadTypes(Assembly.GetCallingAssembly());
-            typeIndex = typeLookup.Values.OrderBy(td => td.Name).Select(td => td.Type).ToList();
         }
 
         public IRepNode GetRepNode(object backing, Type type) => GetRepNode(backing, GetTypeAccessor(type), null);
@@ -75,10 +77,9 @@ namespace Replicate.MetaData
 
         public TypeID GetID(Type type)
         {
-            var genericType = type.IsGenericType ? type.GetGenericTypeDefinition() : type;
             var output = new TypeID()
             {
-                id = (ushort)typeIndex.IndexOf(genericType)
+                id = (ushort)typeIndex.IndexOf(this[type])
             };
             if (type.IsGenericType)
                 output.subtypes = type.GetGenericArguments().Select(t => GetID(t)).ToArray();
@@ -86,7 +87,7 @@ namespace Replicate.MetaData
         }
         public Type GetType(TypeID typeID)
         {
-            Type type = typeIndex[typeID.id];
+            Type type = typeIndex[typeID.id].Type;
             if (type.IsGenericTypeDefinition)
             {
                 type = type.MakeGenericType(typeID.subtypes.Select(subType => GetType(subType)).ToArray());
@@ -101,10 +102,7 @@ namespace Replicate.MetaData
             {
                 if (type.IsSameGeneric(typeof(Nullable<>)))
                     type = type.GetGenericArguments()[0];
-                var typeData = GetTypeData(type);
-                if (typeData == null)
-                    throw new InvalidOperationException(string.Format("The type {0} has not been added to the replication model", type.FullName));
-                typeAccessor = typeAccessorLookup[type] = new TypeAccessor(typeData, type);
+                typeAccessor = typeAccessorLookup[type] = new TypeAccessor(GetTypeData(type), type);
                 typeAccessor.InitializeMembers();
             }
             return typeAccessor;
@@ -128,15 +126,27 @@ namespace Replicate.MetaData
                 throw new InvalidOperationException($"{collectionType.FullName} is not a valid collection type");
             return GetTypeAccessor(interfacedCollectionType.GetGenericArguments()[0]);
         }
-        public TypeData GetTypeData(Type type, bool autoAddType = true)
+        // Will never add to typeIndex, but may add a reference in typeLookup to an existing typeData in typeIndex
+        public bool TryGetTypeData(Type type, out TypeData typeData)
         {
             if (type.IsGenericType)
                 type = type.GetGenericTypeDefinition();
-            if (typeLookup.TryGetValue(type, out TypeData td))
-                return td;
-            if (autoAddType)
-                return Add(type);
-            return null;
+            if (typeLookup.TryGetValue(type, out typeData))
+                return true;
+            if (type.Implements(typeof(IEnumerable<>)))
+            {
+                typeData = type.Implements(typeof(ICollection<>)) ? this[typeof(ICollection<>)] : this[typeof(IEnumerable<>)];
+                typeLookup.Add(type, typeData);
+                stringLookup.Add(type.FullName, typeData);
+                return true;
+            }
+            return false;
+        }
+        public TypeData GetTypeData(Type type)
+        {
+            if (TryGetTypeData(type, out var typeData)) return typeData;
+            if (AddOnLookup) return Add(type);
+            throw new InvalidOperationException(string.Format("The type {0} has not been added to the replication model", type.FullName));
         }
         public TypeData this[Type type]
         {
@@ -146,14 +156,26 @@ namespace Replicate.MetaData
         {
             if (type.IsNotPublic)
                 throw new InvalidOperationException("Cannot add a non public type to the replication model");
+            IEnumerable<Type> genericParameters = null;
             if (type.IsGenericType)
+            {
+                genericParameters = type.GetGenericArguments()
+                    .SelectMany(t => t.IsGenericType ? t.GetGenericArguments() : new[] { t })
+                    .Where(t => !t.IsGenericParameter);
                 type = type.GetGenericTypeDefinition();
-            if (typeLookup.TryGetValue(type, out TypeData typeData))
-                return typeData;
-            var output = new TypeData(type, this);
-            typeLookup.Add(type, output);
-            stringLookup.Add(type.FullName, output);
-            return output;
+            }
+            if (!typeLookup.TryGetValue(type, out var typeData))
+            {
+                typeData = new TypeData(type, this);
+                typeIndex.Add(typeData);
+                typeLookup.Add(type, typeData);
+                stringLookup.Add(type.FullName, typeData);
+                typeData.InitializeMembers();
+            }
+            if (genericParameters != null)
+                foreach (var generic in genericParameters)
+                    Add(generic);
+            return typeData;
         }
         static bool IsReplicateType(Type type)
         {

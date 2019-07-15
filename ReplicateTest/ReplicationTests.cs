@@ -29,15 +29,16 @@ namespace ReplicateTest
     public class ReplicationTests
     {
         static TypeAccessor typeAccessor;
+        static ReplicationModel model = new ReplicationModel();
         [OneTimeSetUp]
         public static void InitTypes()
         {
-            typeAccessor = ReplicationModel.Default.GetTypeAccessor(typeof(ReplicatedType));
+            typeAccessor = model.GetTypeAccessor(typeof(ReplicatedType));
         }
         [Test]
         public void TypeDataTest()
         {
-            Assert.AreEqual(ReplicationModel.Default[typeof(ReplicatedType)].ReplicatedMembers[0].Name, "field1");
+            Assert.AreEqual(model[typeof(ReplicatedType)].ReplicatedMembers[0].Name, "field1");
         }
         [ReplicateType]
         public struct IgnoredFields
@@ -49,7 +50,7 @@ namespace ReplicateTest
         [Test]
         public void TestReplicateIgnore()
         {
-            var members = ReplicationModel.Default[typeof(IgnoredFields)].ReplicatedMembers;
+            var members = model[typeof(IgnoredFields)].ReplicatedMembers;
             Assert.AreEqual(1, members.Count);
             Assert.AreEqual("exist", members[0].Name);
         }

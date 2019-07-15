@@ -13,6 +13,9 @@ namespace Replicate
 {
     public static class TypeUtil
     {
+        // TODO: This might be a bad idea? Could theoretically remove this if all the copy methods allowed providing a ReplicationModel
+        // The downside to having it is there might be cases where a user expects the TypeData to be used from ReplicationModel.Default
+        public static ReplicationModel Model { get; } = new ReplicationModel() { AddOnLookup = true };
         [Obsolete]
         public static T CopyFrom<T, U>(T target, U newFields, string[] whiteList = null, string[] blackList = null) where T : class
         {
@@ -31,10 +34,10 @@ namespace Replicate
         public static object CopyToRaw(object source, Type sourceType, object target, Type targetType, string[] whiteList = null, string[] blackList = null)
         {
             if (source == null) return target;
-            var taTarget = ReplicationModel.Default.GetTypeAccessor(targetType);
+            var taTarget = Model.GetTypeAccessor(targetType);
             var taSource = taTarget;
             if (targetType != sourceType)
-                taSource = ReplicationModel.Default.GetTypeAccessor(sourceType);
+                taSource = Model.GetTypeAccessor(sourceType);
             if (target == null) target = taTarget.Construct();
             IEnumerable<MemberAccessor> members = taTarget.MemberAccessors;
             if (whiteList != null && whiteList.Any())
@@ -54,8 +57,14 @@ namespace Replicate
             }
             return target;
         }
+        public static bool Implements(this Type type, Type interfaceType)
+        {
+            return interfaceType == type || type.GetInterfaces().Any(t =>
+                t == interfaceType || (interfaceType.IsGenericTypeDefinition && t.IsSameGeneric(interfaceType)));
+        }
         public static bool IsSameGeneric(this Type compare, Type target)
         {
+            if (!target.IsGenericTypeDefinition) throw new InvalidOperationException("Target must be a generic type definition");
             return (compare.IsGenericTypeDefinition && compare == target) ||
                 (compare.IsGenericType && compare.GetGenericTypeDefinition() == target);
         }

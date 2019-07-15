@@ -14,6 +14,7 @@ namespace ReplicateTest
     public class JSONSerializationTests
     {
         #region Types
+        [ReplicateType]
         public enum JSONEnum
         {
             One = 1,
@@ -156,7 +157,7 @@ namespace ReplicateTest
             Assert.AreEqual("herp", output.Value);
             Assert.AreEqual("derp", output.Prop);
         }
-        [TestCase(null, typeof(object), "null")]
+        [TestCase(null, typeof(string), "null")]
         [TestCase(0, typeof(int?), "0")]
         [TestCase(1, typeof(int?), "1")]
         [TestCase(null, typeof(int?), "null")]

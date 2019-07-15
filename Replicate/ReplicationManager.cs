@@ -79,9 +79,9 @@ namespace Replicate
                 ReplicationMessage message = new ReplicationMessage()
                 {
                     id = metaData.id,
-                    Data = metaData.typeAccessor.MemberAccessors.Select(member => new ReplicationData()
+                    Data = metaData.typeAccessor.MemberAccessors.Select((member, i) => new ReplicationData()
                     {
-                        MemberID = member.Info.ID,
+                        MemberID = (byte)i,
                         Value = member.GetValue(replicated),
                     }).ToList()
                 };

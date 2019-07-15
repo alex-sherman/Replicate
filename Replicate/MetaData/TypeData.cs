@@ -31,7 +31,7 @@ namespace Replicate.MetaData
                 MarshalMethod = MarshalMethod.Primitive;
             else
             {
-                if (type == typeof(ICollection<>) || type.GetInterface("ICollection`1") != null || type == typeof(IEnumerable<>))
+                if (type.Implements(typeof(IEnumerable<>)))
                     MarshalMethod = MarshalMethod.Collection;
                 else
                     MarshalMethod = MarshalMethod.Object;
@@ -40,22 +40,8 @@ namespace Replicate.MetaData
             IsInstanceRPC = TypeAttribute?.IsInstanceRPC ?? false;
             var surrogateType = TypeAttribute?.SurrogateType;
             if (surrogateType != null) SetSurrogate(surrogateType);
-            var autoMembers = TypeAttribute?.AutoMembers ?? AutoAdd.None;
-            var bindingFlags = BindingFlags.Instance | BindingFlags.Public;
-            if (autoMembers != AutoAdd.AllPublic)
-                bindingFlags |= BindingFlags.NonPublic;
-            foreach (var field in type.GetFields(bindingFlags))
-            {
-                if (Include(autoMembers, field))
-                    AddMember(field);
-            }
-            foreach (var property in type.GetProperties(bindingFlags))
-            {
-                if (Include(autoMembers, property))
-                    AddMember(property);
-            }
 
-            bindingFlags = BindingFlags.Instance | BindingFlags.Public;
+            var bindingFlags = BindingFlags.Instance | BindingFlags.Public;
             var autoMethods = TypeAttribute?.AutoMethods ?? AutoAdd.None;
             if (autoMethods != AutoAdd.AllPublic)
                 bindingFlags |= BindingFlags.NonPublic;
@@ -69,6 +55,24 @@ namespace Replicate.MetaData
                 .ToList();
         }
 
+        public void InitializeMembers()
+        {
+            var autoMembers = TypeAttribute?.AutoMembers ?? AutoAdd.None;
+            var bindingFlags = BindingFlags.Instance | BindingFlags.Public;
+            if (autoMembers != AutoAdd.AllPublic)
+                bindingFlags |= BindingFlags.NonPublic;
+            foreach (var field in Type.GetFields(bindingFlags))
+            {
+                if (Include(autoMembers, field))
+                    AddMember(new MemberInfo(Model, field));
+            }
+            foreach (var property in Type.GetProperties(bindingFlags))
+            {
+                if (Include(autoMembers, property))
+                    AddMember(new MemberInfo(Model, property));
+            }
+        }
+
         public bool Include(AutoAdd autoMembers, System.Reflection.MemberInfo member)
         {
             if (member.GetCustomAttribute<ReplicateIgnoreAttribute>() != null)
@@ -80,27 +84,27 @@ namespace Replicate.MetaData
         {
             FieldInfo fieldInfo;
             PropertyInfo propInfo;
+            MemberInfo member = null;
             if ((fieldInfo = Type.GetField(name)) != null)
-                AddMember(fieldInfo);
+                member = new MemberInfo(Model, fieldInfo);
             else if ((propInfo = Type.GetProperty(name)) != null)
-                AddMember(propInfo);
+                member = new MemberInfo(Model, propInfo);
             else
                 throw new KeyNotFoundException(string.Format("Could not find member {0} in type {1}", name, Type.Name));
+            AddMember(member);
             return this;
         }
-        private void AddMember(FieldInfo field)
+        void AddMember(MemberInfo member)
         {
-            ReplicatedMembers.Add(new MemberInfo(Model, field, (byte)ReplicatedMembers.Count));
-        }
-        private void AddMember(PropertyInfo property)
-        {
-            ReplicatedMembers.Add(new MemberInfo(Model, property, (byte)ReplicatedMembers.Count));
+            ReplicatedMembers.Add(member);
+            if (!member.MemberType.IsGenericParameter)
+                Model.Add(member.MemberType);
         }
         public void SetSurrogate(Surrogate surrogate)
         {
             if (IsSurrogate)
                 throw new InvalidOperationException("Cannot set the surrogate of a surrogate type");
-            Model[surrogate.Type].IsSurrogate = true;
+            Model.Add(surrogate.Type).IsSurrogate = true;
             Surrogate = surrogate;
         }
     }

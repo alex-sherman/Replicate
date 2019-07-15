@@ -17,7 +17,7 @@ namespace Replicate
         AllPublic,
         All,
     }
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface)]
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface | AttributeTargets.Enum)]
     public class ReplicateTypeAttribute : Attribute
     {
         public Type SurrogateType;

@@ -11,12 +11,12 @@ namespace Replicate.MetaData
 {
     public class MemberInfo
     {
-        public byte ID { get; private set; }
         public string Name { get { return Property?.Name ?? Field.Name; } }
+        // TODO: Add member key
+        //public MemberKey Key;
         public ReplicationModel Model;
         public Type MemberType { get { return Property?.PropertyType ?? Field.FieldType; } }
         public Type ParentType { get => Property?.DeclaringType ?? Field.DeclaringType; }
-        public TypeData TypeData { get; set; }
         public Surrogate Surrogate { get; private set; }
         public bool IsGenericParameter { get { return MemberType.IsGenericParameter; } }
         public readonly FieldInfo Field;
@@ -26,20 +26,19 @@ namespace Replicate.MetaData
         {
             return Field != null ? Field.GetCustomAttribute<T>() : Property.GetCustomAttribute<T>();
         }
-        public MemberInfo(ReplicationModel model, FieldInfo field, byte id)
+        public MemberInfo(ReplicationModel model, FieldInfo field)
         {
             Field = field;
-            Initialize(model, id);
+            Initialize(model);
         }
-        public MemberInfo(ReplicationModel model, PropertyInfo property, byte id)
+        public MemberInfo(ReplicationModel model, PropertyInfo property)
         {
             Property = property;
-            Initialize(model, id);
+            Initialize(model);
         }
-        private void Initialize(ReplicationModel model, byte id)
+        private void Initialize(ReplicationModel model)
         {
             Model = model;
-            ID = id;
             if (GetAttribute<AsReferenceAttribute>() != null)
                 SetSurrogate(typeof(ReplicatedReference<>).MakeGenericType(MemberType));
         }

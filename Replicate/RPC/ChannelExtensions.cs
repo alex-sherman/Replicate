@@ -51,7 +51,7 @@ namespace Replicate
 
         public static void RegisterSingleton<T>(this IRPCChannel channel, T implementation)
         {
-            foreach (var method in ReplicationModel.Default[typeof(T)].RPCMethods)
+            foreach (var method in ReplicationModel.Default.Add(typeof(T)).RPCMethods)
                 channel.Respond(method, TypeUtil.CreateHandler(method, _ => implementation));
         }
 

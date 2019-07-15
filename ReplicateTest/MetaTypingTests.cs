@@ -28,27 +28,33 @@ namespace ReplicateTest
         [Test]
         public void TestCanSetFields()
         {
-            var newType = Fake.FromType(typeof(MockType));
+            var model = new ReplicationModel();
+            var newType = Fake.FromType(typeof(MockType), model);
+            model.Add(newType);
             var obj = Activator.CreateInstance(newType);
-            var node = ReplicationModel.Default.GetRepNode(obj, newType).AsObject;
+            var node = model.GetRepNode(obj, newType).AsObject;
             node["Derp"] = new RepBackedNode("herp");
             Assert.AreEqual("herp", node["Derp"].RawValue);
         }
         [Test]
         public void TestCanSetReadonlyProperties()
         {
+            var model = new ReplicationModel();
             var newType = Fake.FromType(typeof(MockType));
+            model.Add(newType);
             var obj = Activator.CreateInstance(newType);
-            var node = ReplicationModel.Default.GetRepNode(obj, newType).AsObject;
+            var node = model.GetRepNode(obj, newType).AsObject;
             node["Herp"] = new RepBackedNode(0xFAFF);
             Assert.AreEqual(0xFAFF, node["Herp"].RawValue);
         }
         [Test]
         public void TestCanSetGenerics()
         {
-            var newType = Fake.FromType(typeof(MockTypeGeneric<>)).MakeGenericType(typeof(string));
+            var model = new ReplicationModel();
+            var newType = Fake.FromType(typeof(MockTypeGeneric<>), model).MakeGenericType(typeof(string));
+            model.Add(newType);
             var obj = Activator.CreateInstance(newType);
-            var node = ReplicationModel.Default.GetRepNode(obj, newType).AsObject;
+            var node = model.GetRepNode(obj, newType).AsObject;
             node["Derp"] = new RepBackedNode("herp");
             Assert.AreEqual("herp", node["Derp"].RawValue);
         }

@@ -11,9 +11,9 @@ namespace Replicate.MetaData
     {
         public static void SetTupleSurrogate(this TypeData typeData)
         {
-            var surrogateType = Fake.FromType(typeData.Type, typeData.Model);
+            var surrogateType = typeData.Model.Add(Fake.FromType(typeData.Type, typeData.Model));
             typeData.SetSurrogate(new Surrogate(
-                surrogateType,
+                surrogateType.Type,
                 (orig, surrogate) => obj =>
                 {
                     if (obj == null) return null;

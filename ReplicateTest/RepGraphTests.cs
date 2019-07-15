@@ -68,7 +68,7 @@ namespace ReplicateTest
         [Test]
         public void ObjectStringField()
         {
-            var value = new RepBackedNode(new ObjectType() { Field1 = "hurrdurr", Field2 = null }).AsObject;
+            var value = new RepBackedNode(new ObjectType() { Field1 = "hurrdurr", Field2 = null }, model: new ReplicationModel()).AsObject;
             Assert.AreEqual(MarshalMethod.Object, value.MarshalMethod);
             var field1 = value["Field1"].AsPrimitive;
             Assert.AreEqual(MarshalMethod.Primitive, field1.MarshalMethod);
@@ -88,7 +88,7 @@ namespace ReplicateTest
         public void UpdateStringField()
         {
             var obj = new ObjectType() { Field1 = "hurrdurr", Field2 = null };
-            var objNode = new RepBackedNode(obj).AsObject;
+            var objNode = new RepBackedNode(obj, model: new ReplicationModel()).AsObject;
             var value = objNode["Field1"];
             value.Value = "newvalue";
             objNode["Field1"] = value;
@@ -98,7 +98,7 @@ namespace ReplicateTest
         public void GetEnumerableField()
         {
             var obj = new ObjectType() { EnumerableField = new List<ObjectType>() { new ObjectType() { Field1 = "herp" } } };
-            var listValue = new RepBackedNode(obj).AsObject["EnumerableField"].AsCollection.ToList();
+            var listValue = new RepBackedNode(obj, model: new ReplicationModel()).AsObject["EnumerableField"].AsCollection.ToList();
             Assert.AreEqual(1, listValue.Count);
             Assert.AreEqual("herp", listValue[0].AsObject["Field1"].AsPrimitive.Value);
         }
@@ -106,7 +106,7 @@ namespace ReplicateTest
         public void GetEnumerableFieldValues()
         {
             var obj = new ObjectType() { EnumerableField = new List<ObjectType>() { new ObjectType() { Field1 = "herp" } } };
-            var collection = new RepBackedNode(obj).AsObject["EnumerableField"].AsCollection;
+            var collection = new RepBackedNode(obj, model: new ReplicationModel()).AsObject["EnumerableField"].AsCollection;
             var listValue = collection.Values.ToList();
             Assert.AreEqual(1, listValue.Count);
             Assert.AreEqual("herp", (listValue[0] as ObjectType).Field1);
@@ -119,7 +119,7 @@ namespace ReplicateTest
         public void SetListField()
         {
             var obj = new ObjectType() { ListField = new List<ObjectType>() { new ObjectType() { Field1 = "herp" } } };
-            var objNode = new RepBackedNode(obj).AsObject;
+            var objNode = new RepBackedNode(obj, model: new ReplicationModel()).AsObject;
             var listValue = objNode["ListField"].AsCollection;
             listValue.Values = new[] { new ObjectType() { Field1 = "derp" } };
             objNode["ListField"] = listValue;
@@ -129,7 +129,7 @@ namespace ReplicateTest
         public void SetArrayField()
         {
             var obj = new ObjectType() { ArrayField = new[] { new ObjectType() { Field1 = "herp" } } };
-            var objNode = new RepBackedNode(obj).AsObject;
+            var objNode = new RepBackedNode(obj, model: new ReplicationModel()).AsObject;
             var listValue = objNode["ArrayField"].AsCollection;
             listValue.Values = new List<ObjectType>() { new ObjectType() { Field1 = "derp" } };
             objNode["ArrayField"] = listValue;
@@ -139,7 +139,7 @@ namespace ReplicateTest
         public void SetEnumerableField()
         {
             var obj = new ObjectType() { EnumerableField = new List<ObjectType>() { new ObjectType() { Field1 = "herp" } } };
-            var objNode = new RepBackedNode(obj).AsObject;
+            var objNode = new RepBackedNode(obj, model: new ReplicationModel()).AsObject;
             var listValue = objNode["EnumerableField"].AsCollection;
             listValue.Values = new[] { new ObjectType() { Field1 = "derp" } };
             objNode["EnumerableField"] = listValue;

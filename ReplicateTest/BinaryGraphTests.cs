@@ -87,6 +87,7 @@ namespace ReplicateTest
         public void TestInitMessage()
         {
             var model = new ReplicationModel();
+            model.Add(typeof(InitMessage));
             var ser = new Replicate.Serialization.BinarySerializer(model);
             var stream = new MemoryStream();
             ser.Serialize(stream, new InitMessage()
