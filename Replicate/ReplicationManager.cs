@@ -91,11 +91,17 @@ namespace Replicate
 
         public virtual Task RegisterObject(object replicated)
         {
-            if (Model.GetTypeAccessor(replicated.GetType()).TypeData.Surrogate != null)
+            var type = replicated.GetType();
+            if (!Model.TryGetTypeData(type, out var typeData))
+                throw new InvalidOperationException($"Cannot register an object with unknown type: {type}");
+            if (typeData.Surrogate != null)
                 throw new InvalidOperationException("Cannot register objects which have surrogates");
-            var typeID = Model.GetID(replicated.GetType());
-            if (typeID.id == ushort.MaxValue)
-                throw new InvalidOperationException("Cannot register non [ReplicateType] objects");
+            TypeID typeID;
+            try
+            {
+                typeID = Model.GetID(replicated.GetType());
+            }
+            catch (KeyNotFoundException e) { throw new InvalidOperationException($"Cannot register an object with unknown generic type parameter: {e.Source}"); }
             uint objectId = AllocateObjectID(replicated);
             var id = new ReplicateId()
             {

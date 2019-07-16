@@ -17,7 +17,6 @@ namespace Replicate.MetaData
         public readonly List<MemberInfo> ReplicatedMembers = new List<MemberInfo>();
         public readonly List<MethodInfo> RPCMethods = new List<MethodInfo>();
         public readonly bool IsInstanceRPC;
-        public List<Type> ReplicatedInterfaces;
         public Surrogate Surrogate { get; private set; }
         public ReplicationModel Model { get; private set; }
         private bool IsSurrogate = false;
@@ -49,9 +48,6 @@ namespace Replicate.MetaData
                 .Where(meth => meth.GetCustomAttribute<ReplicateIgnoreAttribute>() == null)
                 .Where(meth => meth.DeclaringType == type)
                 .Where(meth => autoMethods != AutoAdd.None || meth.GetCustomAttribute<ReplicateRPCAttribute>() != null)
-                .ToList();
-            ReplicatedInterfaces = type.GetInterfaces()
-                .Where(interfaceType => interfaceType.GetCustomAttribute<ReplicateAttribute>() != null)
                 .ToList();
         }
 

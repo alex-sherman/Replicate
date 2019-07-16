@@ -1,4 +1,5 @@
 ﻿using Replicate.Messages;
+using Replicate.MetaTyping;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -26,7 +27,12 @@ namespace Replicate.MetaData
         List<TypeData> typeIndex = new List<TypeData>();
         public bool DictionaryAsObject;
         public bool AddOnLookup = false;
-        public ReplicationModel()
+        public ReplicationModel(bool loadTypes = true, bool addBaseTypes = true)
+        {
+            if (addBaseTypes) AddBaseTypes();
+            if (loadTypes) LoadTypes(Assembly.GetCallingAssembly());
+        }
+        private void AddBaseTypes()
         {
             Add(typeof(None));
             Add(typeof(byte));
@@ -50,8 +56,7 @@ namespace Replicate.MetaData
             kvpTD.AddMember("Value");
             kvpTD.SetTupleSurrogate();
             Add(typeof(TypedValue));
-            LoadTypes(Assembly.GetExecutingAssembly());
-            LoadTypes(Assembly.GetCallingAssembly());
+            LoadTypes();
         }
 
         public IRepNode GetRepNode(object backing, Type type) => GetRepNode(backing, GetTypeAccessor(type), null);
@@ -146,7 +151,7 @@ namespace Replicate.MetaData
         {
             if (TryGetTypeData(type, out var typeData)) return typeData;
             if (AddOnLookup) return Add(type);
-            throw new InvalidOperationException(string.Format("The type {0} has not been added to the replication model", type.FullName));
+            throw new KeyNotFoundException(string.Format("The type {0} has not been added to the replication model", type.FullName)) { Source = type.FullName };
         }
         public TypeData this[Type type]
         {
@@ -177,14 +182,46 @@ namespace Replicate.MetaData
                     Add(generic);
             return typeData;
         }
-        static bool IsReplicateType(Type type)
+
+        public ModelDescription GetDescription()
         {
-            return type.GetCustomAttribute<ReplicateTypeAttribute>() != null;
+            return new ModelDescription()
+            {
+                Types = typeIndex.Select(typeData => new TypeDescription()
+                {
+                    Name = typeData.Name,
+                    Members = typeData.ReplicatedMembers.Select(member => member.Name).ToList(),
+                    FakeSourceType = typeData.Type.GetCustomAttribute<FakeTypeAttribute>()?.Source.FullName,
+                }).ToList()
+            };
         }
+        public Type FindType(string typeName, IEnumerable<Assembly> assemblies)
+        {
+            return Type.GetType(typeName)
+                ?? assemblies.Select(a => a.GetType(typeName)).Where(t => t != null).FirstOrDefault()
+                ?? throw new TypeLoadException($"Unable to find type {typeName}");
+        }
+        public void LoadFrom(ModelDescription description)
+        {
+            typeLookup.Clear();
+            stringLookup.Clear();
+            typeIndex.Clear();
+            var assemblies = new[] { Assembly.GetExecutingAssembly(), Assembly.GetCallingAssembly() };
+            foreach (var typeDesc in description.Types)
+            {
+                Type type;
+                if (typeDesc.FakeSourceType != null)
+                    type = Fake.FromType(FindType(typeDesc.FakeSourceType, assemblies));
+                else
+                    type = FindType(typeDesc.Name, assemblies);
+                Add(type);
+            }
+        }
+
         public void LoadTypes(Assembly assembly = null)
         {
             assembly = assembly ?? Assembly.GetExecutingAssembly();
-            foreach (var type in assembly.GetTypes().Where(IsReplicateType))
+            foreach (var type in assembly.GetTypes().Where(t => t.GetCustomAttribute<ReplicateTypeAttribute>() != null))
                 Add(type);
         }
 
