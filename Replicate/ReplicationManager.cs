@@ -62,7 +62,7 @@ namespace Replicate
         {
             var metaData = IDLookup[message.id];
             foreach (var data in message.Data)
-                metaData.typeAccessor.MemberAccessors[data.MemberID].SetValue(metaData.replicated, data.Value);
+                metaData.typeAccessor[data.MemberKey].SetValue(metaData.replicated, data.Value);
         }
 
         private void HandleInit(InitMessage message)
@@ -81,8 +81,8 @@ namespace Replicate
                     id = metaData.id,
                     Data = metaData.typeAccessor.MemberAccessors.Select((member, i) => new ReplicationData()
                     {
-                        MemberID = (byte)i,
-                        Value = member.GetValue(replicated),
+                        MemberKey = i,
+                        Value = new RepBackedNode(member.GetValue(replicated), member.TypeAccessor, member, Model),
                     }).ToList()
                 };
                 return Channel.Request(((Action<ReplicationMessage>)HandleReplication).Method, message);

@@ -62,21 +62,25 @@ namespace Replicate.MetaData
         public IRepNode GetRepNode(object backing, Type type) => GetRepNode(backing, GetTypeAccessor(type), null);
         public IRepNode GetRepNode(object backing, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
+            IRepNode output;
             if (backing == null && typeAccessor == null)
-                return new RepNodeTypeless();
-            typeAccessor = typeAccessor ?? GetTypeAccessor(backing.GetType());
-            if (typeAccessor.IsTypeless)
-                return new RepNodeTypeless(memberAccessor);
-            if (DictionaryAsObject && typeAccessor.Type.IsSameGeneric(typeof(Dictionary<,>))
-                && typeAccessor.Type.GetGenericArguments()[0] == typeof(string))
+                output = new RepNodeTypeless(memberAccessor);
+            else
             {
-                var childType = typeAccessor.Type.GetGenericArguments()[1];
-                var dictObjType = typeof(RepDictObject<>).MakeGenericType(childType);
-                return (IRepNode)Activator.CreateInstance(dictObjType, backing, typeAccessor, memberAccessor, this);
+                typeAccessor = typeAccessor ?? GetTypeAccessor(backing.GetType());
+                if (typeAccessor.IsTypeless)
+                    output = new RepNodeTypeless(memberAccessor);
+                else if (DictionaryAsObject && typeAccessor.Type.IsSameGeneric(typeof(Dictionary<,>))
+                    && typeAccessor.Type.GetGenericArguments()[0] == typeof(string))
+                {
+                    var childType = typeAccessor.Type.GetGenericArguments()[1];
+                    var dictObjType = typeof(RepDictObject<>).MakeGenericType(childType);
+                    output = (IRepNode)Activator.CreateInstance(dictObjType, backing, typeAccessor, memberAccessor, this);
+                }
+                else
+                    output = new RepBackedNode(null, typeAccessor, memberAccessor, this) { RawValue = backing };
             }
-
-            var output = new RepBackedNode(null, typeAccessor, memberAccessor, this);
-            output.RawValue = backing;
+            output.Key = memberAccessor?.Info.Key ?? default(MemberKey);
             return output;
         }
 

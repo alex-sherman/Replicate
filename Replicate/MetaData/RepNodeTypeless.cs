@@ -21,7 +21,8 @@ namespace Replicate.MetaData
         {
             get
             {
-                if (!marshalMethod.HasValue) throw new InvalidOperationException("MarshalMethod has not been set or inferred yet");
+                if (!marshalMethod.HasValue)
+                    throw new InvalidOperationException("MarshalMethod has not been set or inferred yet");
                 return marshalMethod.Value;
             }
             set => marshalMethod = value;

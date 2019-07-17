@@ -22,6 +22,7 @@ namespace Replicate.MetaData
             { typeof(bool),   PrimitiveType.Bool },
             { typeof(byte),   PrimitiveType.Int8 },
             { typeof(int),    PrimitiveType.Int32 },
+            { typeof(ushort),   PrimitiveType.Int32 },
             { typeof(uint),   PrimitiveType.Int32 },
             { typeof(float),  PrimitiveType.Float },
             { typeof(double), PrimitiveType.Double },
@@ -61,10 +62,11 @@ namespace Replicate.MetaData
         TypeAccessor CollectionType { get; }
         IEnumerable<object> Values { get; set; }
     }
+    [ReplicateType]
     public struct MemberKey
     {
-        public readonly int? Index;
-        public readonly string Name;
+        public int? Index;
+        public string Name;
         public MemberKey(string str) { Index = null; Name = str; }
         public MemberKey(int index) { Index = index; Name = null; }
 
@@ -79,18 +81,19 @@ namespace Replicate.MetaData
         public override int GetHashCode()
         {
             var hashCode = -1868479479;
-            //hashCode = hashCode * -1521134295 + EqualityComparer<int?>.Default.GetHashCode(Index);
+            hashCode = hashCode * -1521134295 + EqualityComparer<int?>.Default.GetHashCode(Index);
             hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(Name);
             return hashCode;
         }
 
         public static implicit operator MemberKey(string str) => new MemberKey(str);
         public static implicit operator MemberKey(int index) => new MemberKey(index);
+        public bool IsEmpty => Name != null || Index != null;
         public override string ToString()
         {
             if (Name != null) return Name;
             if (Index != null) return Index.ToString();
-            return "<Invalid MemberKey>";
+            return "<None>";
         }
     }
     public interface IRepObject : IRepNode, IEnumerable<IRepNode>

@@ -93,6 +93,7 @@ namespace Replicate.MetaData
         void AddMember(MemberInfo member)
         {
             ReplicatedMembers.Add(member);
+            member.Key = member.Name;
             if (!member.MemberType.IsGenericParameter)
                 Model.Add(member.MemberType);
         }

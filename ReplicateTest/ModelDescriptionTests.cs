@@ -14,6 +14,7 @@ namespace ReplicateTest
     public class CustomType
     {
         public string Field;
+        public string Property { get; set; }
     }
     [TestFixture]
     class ModelDescriptionTests
@@ -40,6 +41,11 @@ namespace ReplicateTest
             Assert.Catch<KeyNotFoundException>(() => { var derp = secondModel[typeof(CustomType)]; });
             secondModel.LoadFrom(model.GetDescription());
             Assert.NotNull(secondModel[typeof(CustomType)]);
+            var testValue = new CustomType() { Field = "Derp", Property = "Herp" };
+            var fieldValue = secondModel.GetTypeAccessor(typeof(CustomType)).Members["Field"].GetValue(testValue);
+            Assert.AreEqual("Derp", fieldValue);
+            var propertyValue = secondModel.GetTypeAccessor(typeof(CustomType)).Members["Property"].GetValue(testValue);
+            Assert.AreEqual("Herp", propertyValue);
         }
     }
 }

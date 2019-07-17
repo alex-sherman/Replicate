@@ -102,7 +102,6 @@ namespace ReplicateTest
             Assert.IsInstanceOf<ReplicatedType>(cs.client.IDLookup.Values.First().replicated);
         }
         //[Test]
-        // ReplicateMessages are not serializable at the moment
         public void ReplicateObj()
         {
             ReplicatedType replicated = new ReplicatedType()
@@ -110,16 +109,15 @@ namespace ReplicateTest
                 field1 = 3,
                 field2 = "herpderp"
             };
-            var cs = BinarySerializerUtil.MakeClientServer();
+            var cs = BinaryGraphUtil.MakeClientServer();
             cs.server.RegisterObject(replicated);
-            cs.server.Replicate(replicated);
-            cs.server.RegisterObject(replicated).Wait();
+            cs.server.Replicate(replicated).Wait();
             Assert.IsInstanceOf<ReplicatedType>(cs.client.IDLookup.Values.First().replicated);
             ReplicatedType clientValue = (ReplicatedType)cs.client.IDLookup.Values.First().replicated;
             Assert.AreEqual(replicated.field1, clientValue.field1);
             Assert.AreEqual(replicated.field2, clientValue.field2);
         }
-        [Test]
+        //[Test]
         public void ReplicateObjReference()
         {
             ReplicatedType2 child = new ReplicatedType2()
@@ -143,9 +141,10 @@ namespace ReplicateTest
             Assert.IsInstanceOf<ReplicatedType>(cs.client.IDLookup.Values.First().replicated);
             ReplicatedType clientValue = (ReplicatedType)cs.client.IDLookup.Values.First().replicated;
             ReplicatedType clientValue2 = (ReplicatedType)cs.client.IDLookup.Values.Skip(1).First().replicated;
+            Assert.NotNull(clientValue.child1);
             Assert.AreEqual(clientValue.child1, clientValue2.child1);
         }
-        // Not implemented any more, but maybe again in the future?
+        //Not implemented any more, but maybe again in the future?
         //[Test]
         //public void ReplicateDictionary()
         //{

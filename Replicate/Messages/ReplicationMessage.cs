@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Replicate.MetaData;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -13,9 +14,10 @@ namespace Replicate.Messages
         public ReplicateId id;
         public List<ReplicationData> Data;
     }
+    [ReplicateType]
     public struct ReplicationData
     {
-        public byte MemberID;
-        public object Value;
+        public MemberKey MemberKey;
+        public IRepNode Value;
     }
 }

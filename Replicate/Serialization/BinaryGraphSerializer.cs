@@ -88,16 +88,18 @@ namespace Replicate.Serialization
         {
             if (key.Index.HasValue)
                 stream.WriteByte((byte)key.Index.Value);
-            else
+            else if (key.Name != null)
             {
-                stream.WriteByte(255);
+                stream.WriteByte(254);
                 serializers[PrimitiveType.String].Write(key.Name, stream);
             }
+            else stream.WriteByte(255);
         }
         MemberKey ReadKey(Stream stream)
         {
             var b = (byte)stream.ReadByte();
-            if (b != 255) return b;
+            if (b == 255) return default(MemberKey);
+            if (b != 254) return b;
             return (string)serializers[PrimitiveType.String].Read(stream);
         }
         public override void Write(MemoryStream stream, IRepObject value)

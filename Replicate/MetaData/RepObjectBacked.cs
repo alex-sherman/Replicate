@@ -36,7 +36,6 @@ namespace Replicate.MetaData
             MemberAccessor memberAccessor = null, ReplicationModel model = null)
         {
             MemberAccessor = memberAccessor;
-            Key = null;
             Model = model ?? ReplicationModel.Default;
             var originalTypeAccessor = typeAccessor ?? Model.GetTypeAccessor(backing.GetType());
             RawValue = backing;
@@ -70,9 +69,7 @@ namespace Replicate.MetaData
         {
             get
             {
-                var node = Model.GetRepNode(member.GetValue(Value), member.TypeAccessor, member);
-                node.Key = member.Info.Name;
-                return node;
+                return Model.GetRepNode(member.GetValue(Value), member.TypeAccessor, member);
             }
         }
 
@@ -107,7 +104,7 @@ namespace Replicate.MetaData
         public RepBackedCollection(RepBackedNode node)
         {
             Node = node;
-            Key = null;
+            Key = node.Key;
             CollectionType = node.Model.GetCollectionValueAccessor(node.TypeAccessor.Type);
         }
         public TypeAccessor CollectionType { get; private set; }
