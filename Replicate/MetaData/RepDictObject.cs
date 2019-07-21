@@ -28,7 +28,6 @@ namespace Replicate.MetaData
             {
                 Backing.TryGetValue(key.Name, out var value);
                 var node = Model.GetRepNode(value, childTypeAccessor, null);
-                node.Key = key;
                 return node;
             }
             set => Backing[key.Name] = (T)value.Value;
@@ -39,16 +38,16 @@ namespace Replicate.MetaData
         public TypeAccessor TypeAccessor { get; }
         public MemberAccessor MemberAccessor { get; }
 
-        public MarshalMethod MarshalMethod => MarshalMethod.Object;
-        public IRepPrimitive AsPrimitive => throw new NotImplementedException();
-        public IRepCollection AsCollection => throw new NotImplementedException();
+        public MarshallMethod MarshallMethod => MarshallMethod.Object;
+        public IRepPrimitive AsPrimitive => null;
+        public IRepCollection AsCollection => null;
         public IRepObject AsObject => this;
 
-        public IEnumerator<IRepNode> GetEnumerator()
+        public IEnumerator<KeyValuePair<MemberKey, IRepNode>> GetEnumerator()
         {
             var @this = this;
             return Backing.Keys
-                .Select(key => @this[key])
+                .Select(key => new KeyValuePair<MemberKey, IRepNode>(key, @this[key]))
                 .GetEnumerator();
         }
 

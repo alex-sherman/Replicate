@@ -46,20 +46,20 @@ namespace Replicate.Serialization
                 obj = surrogateAccessor.ConvertTo(obj);
                 typeAccessor = surrogateAccessor.TypeAccessor;
             }
-            var marshalMethod = typeAccessor.TypeData.MarshalMethod;
+            var marshalMethod = typeAccessor.TypeData.MarshallMethod;
             switch (marshalMethod)
             {
-                case MarshalMethod.Primitive:
+                case MarshallMethod.Primitive:
                     SerializePrimitive(stream, obj, typeAccessor.Type);
                     break;
-                case MarshalMethod.Collection:
+                case MarshallMethod.Collection:
                     var collectionValueType = Model.GetCollectionValueAccessor(typeAccessor.Type);
                     SerializeCollection(stream, obj, collectionValueType);
                     break;
-                case MarshalMethod.Tuple:
+                case MarshallMethod.Tuple:
                     SerializeTuple(stream, obj, typeAccessor);
                     break;
-                case MarshalMethod.Object:
+                case MarshallMethod.Object:
                     SerializeObject(stream, obj, typeAccessor);
                     break;
             }
@@ -92,16 +92,16 @@ namespace Replicate.Serialization
         private object DeserializeRaw(object obj, TContext stream, TypeAccessor typeAccessor)
         {
             var type = typeAccessor.Type;
-            switch (typeAccessor.TypeData.MarshalMethod)
+            switch (typeAccessor.TypeData.MarshallMethod)
             {
-                case MarshalMethod.Primitive:
+                case MarshallMethod.Primitive:
                     return DeserializePrimitive(stream, type);
-                case MarshalMethod.Collection:
+                case MarshallMethod.Collection:
                     var collectionValueType = Model.GetCollectionValueAccessor(type);
                     return DeserializeCollection(obj, stream, type, collectionValueType);
-                case MarshalMethod.Tuple:
+                case MarshallMethod.Tuple:
                     return DeserializeTuple(stream, type, typeAccessor);
-                case MarshalMethod.Object:
+                case MarshallMethod.Object:
                     return DeserializeObject(obj, stream, type, typeAccessor);
                 default:
                     return Default(type);

@@ -17,7 +17,7 @@ namespace Replicate.MetaData
         public TypeAccessor TypeAccessor => null;
         public MemberAccessor MemberAccessor => null;
 
-        public MarshalMethod MarshalMethod { get => throw new NotImplementedException(); }
+        public MarshallMethod MarshallMethod { get => MarshallMethod.None; }
         public IRepPrimitive AsPrimitive => this;
         public IRepCollection AsCollection => this;
         public IRepObject AsObject => this;
@@ -26,8 +26,8 @@ namespace Replicate.MetaData
 
         public TypeAccessor CollectionType => null;
 
-        static readonly IEnumerable<RepNodeNoop> Children = Enumerable.Empty<RepNodeNoop>();
-        public IEnumerable<object> Values { get => Children; set { } }
+        static readonly IEnumerable<KeyValuePair<MemberKey, RepNodeNoop>> Children = Enumerable.Empty<KeyValuePair<MemberKey, RepNodeNoop>>();
+        public IEnumerable<object> Values { get => Enumerable.Empty<object>(); set { } }
 
         public IRepNode this[MemberKey memberName]
         {
@@ -35,11 +35,13 @@ namespace Replicate.MetaData
             set { }
         }
 
-        public IEnumerator<IRepNode> GetEnumerator() => Children.GetEnumerator();
+        public IEnumerator<KeyValuePair<MemberKey, IRepNode>> GetEnumerator() => Enumerable.Empty<KeyValuePair<MemberKey, IRepNode>>().GetEnumerator();
+        IEnumerator<IRepNode> IEnumerable<IRepNode>.GetEnumerator() => Enumerable.Empty<IRepNode>().GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         public void EnsureConstructed() { }
 
         public bool CanSetMember(MemberKey _) => false;
+
     }
 }

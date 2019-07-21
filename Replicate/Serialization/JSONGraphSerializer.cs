@@ -39,7 +39,11 @@ namespace Replicate.Serialization
         public class JSONFloatSerializer : ITypedSerializer
         {
             Regex rx = new Regex(@"[0-9\.\+\-eE]");
-            public object Read(Stream stream) => double.Parse(stream.ReadAllString(c => rx.IsMatch("" + c)));
+            public object Read(Stream stream)
+            {
+                string s = stream.ReadAllString(c => rx.IsMatch("" + c));
+                return double.Parse(s);
+            }
             public void Write(object obj, Stream stream) => stream.WriteString(obj.ToString());
         }
 
@@ -182,22 +186,22 @@ namespace Replicate.Serialization
         public override IRepPrimitive Read(Stream stream, IRepPrimitive value)
         {
             if (ReadNull(stream)) { value.Value = null; return value; }
-            if (value.TypeAccessor == null)
-            {
-                var primType = ReadPrimitiveType(stream);
-                value.PrimitiveType = primType;
-                value.Value = serializers[value.PrimitiveType].Read(stream);
-                return value;
-            }
-            try
-            {
-                value.Value = value.TypeAccessor.Coerce(serializers[value.PrimitiveType].Read(stream));
-                return value;
-            }
-            catch (Exception e)
-            {
-                throw new SerializationError(null, e);
-            }
+            //if (value.MarshallMethod == MarshallMethod.Typeless)
+            //{
+            //    var primType = ReadPrimitiveType(stream);
+            //    value.PrimitiveType = primType;
+            //    value.Value = serializers[value.PrimitiveType].Read(stream);
+            //    return value;
+            //}
+            //try
+            //{
+            value.Value = serializers[value.PrimitiveType].Read(stream);
+            return value;
+            //}
+            //catch (Exception e)
+            //{
+            //    throw new SerializationError(null, e);
+            //}
         }
 
         public override IRepCollection Read(Stream stream, IRepCollection value)
@@ -287,26 +291,26 @@ namespace Replicate.Serialization
                 bool first = true;
                 foreach (var member in value)
                 {
-                    if (member.IsSkipNull() && member.RawValue == null) continue;
+                    if (member.Value.IsSkipNull() && member.Value.RawValue == null) continue;
                     if (!first) stream.WriteString(", ");
                     else first = false;
                     stream.WriteString("\"");
                     stream.WriteString(member.Key.Name);
                     stream.WriteString("\": ");
-                    Write(stream, member);
+                    Write(stream, member.Value);
                 }
                 stream.WriteString("}");
             }
         }
 
-        public override MarshalMethod ReadMarshallMethod(Stream stream)
+        public override (MarshallMethod, PrimitiveType?) ReadNodeType(Stream stream)
         {
             stream.ReadAllString(IsW);
             var c = stream.ReadCharOne(true);
             // The 'n' is for null, return it as a null object
-            if (c == '{' || c == 'n') return MarshalMethod.Object;
-            if (c == '[') return MarshalMethod.Collection;
-            return MarshalMethod.Primitive;
+            if (c == '{' || c == 'n') return (MarshallMethod.Object, null);
+            if (c == '[') return (MarshallMethod.Collection, null);
+            return (MarshallMethod.Primitive, ReadPrimitiveType(stream));
         }
 
         public PrimitiveType ReadPrimitiveType(Stream stream)

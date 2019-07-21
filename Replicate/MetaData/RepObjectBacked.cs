@@ -30,7 +30,12 @@ namespace Replicate.MetaData
         public MemberAccessor MemberAccessor { get; private set; }
         private readonly SurrogateAccessor surrogate;
         public MemberKey Key { get; set; }
-        public object Value { get; set; }
+        private object _value;
+        public object Value
+        {
+            get => _value;
+            set => _value = MarshallMethod == MarshallMethod.Primitive ? TypeAccessor.Coerce(value) : value;
+        }
 
         public RepBackedNode(object backing, TypeAccessor typeAccessor = null,
             MemberAccessor memberAccessor = null, ReplicationModel model = null)
@@ -38,15 +43,18 @@ namespace Replicate.MetaData
             MemberAccessor = memberAccessor;
             Model = model ?? ReplicationModel.Default;
             var originalTypeAccessor = typeAccessor ?? Model.GetTypeAccessor(backing.GetType());
-            RawValue = backing;
             surrogate = memberAccessor?.Surrogate ?? originalTypeAccessor.Surrogate;
             TypeAccessor = surrogate?.TypeAccessor ?? originalTypeAccessor;
+            RawValue = backing;
+            if (MarshallMethod == MarshallMethod.Primitive)
+                _primitiveType = PrimitiveTypeMap.MapType(TypeAccessor.Type);
         }
-        public MarshalMethod MarshalMethod => TypeAccessor.TypeData.MarshalMethod;
+        public MarshallMethod MarshallMethod => TypeAccessor.TypeData.MarshallMethod;
 
+        private PrimitiveType _primitiveType;
         public PrimitiveType PrimitiveType
         {
-            get => PrimitiveTypeMap.MapType(TypeAccessor.Type);
+            get => _primitiveType;
             set => throw new InvalidOperationException();
         }
         public IRepCollection AsCollection => new RepBackedCollection(this);
@@ -59,7 +67,8 @@ namespace Replicate.MetaData
         public IRepNode this[MemberKey key]
         {
             get => this[TypeAccessor[key]];
-            set {
+            set
+            {
                 var member = TypeAccessor[key];
                 if (member == null) throw new KeyNotFoundException(key.ToString());
                 member.SetValue(Value, value.RawValue);
@@ -73,11 +82,11 @@ namespace Replicate.MetaData
             }
         }
 
-        public IEnumerator<IRepNode> GetEnumerator()
+        public IEnumerator<KeyValuePair<MemberKey, IRepNode>> GetEnumerator()
         {
             var @this = this;
-            return MemberAccessors
-                .Select(m => @this[m])
+            return TypeAccessor.Keys
+                .Select(m => new KeyValuePair<MemberKey, IRepNode>(m, @this[m]))
                 .GetEnumerator();
         }
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
@@ -88,7 +97,7 @@ namespace Replicate.MetaData
         }
         public override string ToString()
         {
-            return $"{Key}: {MarshalMethod.ToString()}";
+            return $"{Key}: {MarshallMethod.ToString()}";
         }
 
         public bool CanSetMember(MemberKey key) => TypeAccessor[key] != null;
@@ -120,7 +129,7 @@ namespace Replicate.MetaData
             }
         }
 
-        public MarshalMethod MarshalMethod => MarshalMethod.Collection;
+        public MarshallMethod MarshallMethod => MarshallMethod.Collection;
         public IRepPrimitive AsPrimitive => throw new InvalidOperationException();
         public IRepObject AsObject => throw new InvalidOperationException();
         public IRepCollection AsCollection => this;

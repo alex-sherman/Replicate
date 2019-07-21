@@ -11,7 +11,7 @@ namespace Replicate.MetaData
 {
     public class TypeData
     {
-        public MarshalMethod MarshalMethod;
+        public MarshallMethod MarshallMethod;
         public string Name { get; private set; }
         public Type Type { get; private set; }
         public readonly List<MemberInfo> ReplicatedMembers = new List<MemberInfo>();
@@ -27,13 +27,13 @@ namespace Replicate.MetaData
             Name = type.FullName;
             Model = model;
             if (type.IsPrimitive || type == typeof(string) || type.IsEnum)
-                MarshalMethod = MarshalMethod.Primitive;
+                MarshallMethod = MarshallMethod.Primitive;
             else
             {
                 if (type.Implements(typeof(IEnumerable<>)))
-                    MarshalMethod = MarshalMethod.Collection;
+                    MarshallMethod = MarshallMethod.Collection;
                 else
-                    MarshalMethod = MarshalMethod.Object;
+                    MarshallMethod = MarshallMethod.Object;
             }
             TypeAttribute = type.GetCustomAttribute<ReplicateTypeAttribute>();
             IsInstanceRPC = TypeAttribute?.IsInstanceRPC ?? false;
@@ -93,7 +93,6 @@ namespace Replicate.MetaData
         void AddMember(MemberInfo member)
         {
             ReplicatedMembers.Add(member);
-            member.Key = member.Name;
             if (!member.MemberType.IsGenericParameter)
                 Model.Add(member.MemberType);
         }

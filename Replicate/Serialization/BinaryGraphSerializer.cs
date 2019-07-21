@@ -115,7 +115,7 @@ namespace Replicate.Serialization
             foreach (var member in value)
             {
                 Write(stream, member.Key);
-                Write(stream, member);
+                Write(stream, member.Value);
                 count++;
             }
             var endPosition = stream.Position;
@@ -124,7 +124,7 @@ namespace Replicate.Serialization
             stream.Position = endPosition;
         }
 
-        public override MarshalMethod ReadMarshallMethod(MemoryStream context)
+        public override (MarshallMethod, PrimitiveType?) ReadNodeType(MemoryStream context)
         {
             throw new NotImplementedException();
         }

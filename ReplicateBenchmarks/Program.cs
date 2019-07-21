@@ -64,6 +64,7 @@ namespace ReplicateBenchmarks
         {
             var model = ReplicationModel.Default;
             model.Add(typeof(Derp));
+            model.Add(typeof(GenericDerp<>));
 
             var ser = new BinarySerializer(model);
             var herp = new Derp() { faff = "faff" };
@@ -87,6 +88,7 @@ namespace ReplicateBenchmarks
         {
             var model = ReplicationModel.Default;
             model.Add(typeof(Derp));
+            model.Add(typeof(GenericDerp<>));
 
             var serGraph = new BinaryGraphSerializer(model);
             var ser = new BinarySerializer(model);

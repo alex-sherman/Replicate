@@ -11,12 +11,13 @@ using System.Threading.Tasks;
 
 namespace Replicate.MetaData
 {
-    public enum MarshalMethod
+    public enum MarshallMethod
     {
-        Primitive = 0,
-        Object = 1,
-        Collection = 2,
-        Tuple = 3,
+        None = 0,
+        Primitive = 1,
+        Object = 2,
+        Collection = 3,
+        Tuple = 4,
     }
     public class ReplicationModel : IEnumerable<TypeData>
     {
@@ -49,9 +50,10 @@ namespace Replicate.MetaData
             Add(typeof(List<>));
             Add(typeof(ICollection<>));
             Add(typeof(IEnumerable<>));
-            Add(typeof(IRepNode));
+            var repNodeTypeData = Add(typeof(IRepNode));
+            repNodeTypeData.MarshallMethod = MarshallMethod.None;
             var kvpTD = Add(typeof(KeyValuePair<,>));
-            kvpTD.MarshalMethod = MarshalMethod.Object;
+            kvpTD.MarshallMethod = MarshallMethod.Object;
             kvpTD.AddMember("Key");
             kvpTD.AddMember("Value");
             kvpTD.SetTupleSurrogate();
@@ -64,23 +66,24 @@ namespace Replicate.MetaData
         {
             IRepNode output;
             if (backing == null && typeAccessor == null)
-                output = new RepNodeTypeless(memberAccessor);
-            else
+                throw new InvalidOperationException($"Must provide either {nameof(backing)} or {nameof(typeAccessor)}");
+            typeAccessor = typeAccessor ?? GetTypeAccessor(backing.GetType());
+            if (typeAccessor.IsTypeless)
             {
-                typeAccessor = typeAccessor ?? GetTypeAccessor(backing.GetType());
-                if (typeAccessor.IsTypeless)
-                    output = new RepNodeTypeless(memberAccessor);
-                else if (DictionaryAsObject && typeAccessor.Type.IsSameGeneric(typeof(Dictionary<,>))
-                    && typeAccessor.Type.GetGenericArguments()[0] == typeof(string))
-                {
-                    var childType = typeAccessor.Type.GetGenericArguments()[1];
-                    var dictObjType = typeof(RepDictObject<>).MakeGenericType(childType);
-                    output = (IRepNode)Activator.CreateInstance(dictObjType, backing, typeAccessor, memberAccessor, this);
-                }
+                if (backing == null)
+                    output = new RepNodeTypeless(this, memberAccessor);
                 else
-                    output = new RepBackedNode(null, typeAccessor, memberAccessor, this) { RawValue = backing };
+                    output = (IRepNode)backing;
             }
-            output.Key = memberAccessor?.Info.Key ?? default(MemberKey);
+            else if (DictionaryAsObject && typeAccessor.Type.IsSameGeneric(typeof(Dictionary<,>))
+                && typeAccessor.Type.GetGenericArguments()[0] == typeof(string))
+            {
+                var childType = typeAccessor.Type.GetGenericArguments()[1];
+                var dictObjType = typeof(RepDictObject<>).MakeGenericType(childType);
+                output = (IRepNode)Activator.CreateInstance(dictObjType, backing, typeAccessor, memberAccessor, this);
+            }
+            else
+                output = new RepBackedNode(backing, typeAccessor, memberAccessor, this);
             return output;
         }
 

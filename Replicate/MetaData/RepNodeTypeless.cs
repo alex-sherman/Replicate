@@ -9,63 +9,70 @@ namespace Replicate.MetaData
 {
     public class RepNodeTypeless : IRepNode, IRepPrimitive, IRepCollection, IRepObject
     {
+        public ReplicationModel Model { get; }
         public object RawValue => this;
         public MemberKey Key { get; set; }
         public object Value { get; set; }
 
-        public TypeAccessor TypeAccessor => null;
+        public TypeAccessor TypeAccessor => Model.GetTypeAccessor(typeof(IRepNode));
         public MemberAccessor MemberAccessor { get; }
 
-        private MarshalMethod? marshalMethod = null;
-        public MarshalMethod MarshalMethod
-        {
-            get
-            {
-                if (!marshalMethod.HasValue)
-                    throw new InvalidOperationException("MarshalMethod has not been set or inferred yet");
-                return marshalMethod.Value;
-            }
-            set => marshalMethod = value;
-        }
-        public IRepPrimitive AsPrimitive { get { MarshalMethod = MarshalMethod.Primitive; return this; } }
-        public IRepCollection AsCollection { get { MarshalMethod = MarshalMethod.Collection; return this; } }
-        public IRepObject AsObject { get { MarshalMethod = MarshalMethod.Object; return this; } }
+        public MarshallMethod MarshallMethod { get; set; } = MarshallMethod.None;
+        public IRepPrimitive AsPrimitive { get { MarshallMethod = MarshallMethod.Primitive; return this; } }
+        public IRepCollection AsCollection { get { MarshallMethod = MarshallMethod.Collection; return this; } }
+        public IRepObject AsObject { get { MarshallMethod = MarshallMethod.Object; return this; } }
         public PrimitiveType PrimitiveType { get; set; }
-        public TypeAccessor CollectionType => null;
+        public TypeAccessor CollectionType => Model.GetTypeAccessor(typeof(IRepNode));
 
-        public List<RepNodeTypeless> Children = new List<RepNodeTypeless>();
-        public IEnumerable<object> Values { get => Children; set => Children = value.Cast<RepNodeTypeless>().ToList(); }
-
-        public RepNodeTypeless(MemberAccessor memberAccessor = null)
+        public List<KeyValuePair<string, IRepNode>> Children = new List<KeyValuePair<string, IRepNode>>();
+        public IEnumerable<object> Values
         {
+            get => Children.Select(c => c.Value);
+            set => Children = value.Select(v => new KeyValuePair<string, IRepNode>(null, (IRepNode)v)).ToList();
+        }
+
+        public RepNodeTypeless(ReplicationModel model, MemberAccessor memberAccessor = null)
+        {
+            Model = model;
             MemberAccessor = memberAccessor;
         }
 
-        public IRepNode this[int memberIndex] { get => Children[memberIndex]; set => Children[memberIndex] = (RepNodeTypeless)value; }
+        public IRepNode this[int memberIndex]
+        {
+            get => Children[memberIndex].Value;
+            set => Children[memberIndex] = new KeyValuePair<string, IRepNode>(null, (IRepNode)value);
+        }
         public IRepNode this[MemberKey memberName]
         {
             get
             {
-                if (memberName.Index.HasValue) return Children[memberName.Index.Value];
-                var child = Children.FirstOrDefault(c => c.Key.Equals(memberName));
-                if (child == null)
+                if (memberName.Index.HasValue) return Children[memberName.Index.Value].Value;
+                if (memberName.Index != null) return Children[memberName.Index.Value].Value;
+                if(memberName.Name != null)
                 {
-                    child = new RepNodeTypeless() { Key = memberName };
-                    Children.Add(child);
+                    var child = Children.Where(c => c.Key == memberName.Name).Select(c => c.Value).FirstOrDefault();
+                    if (child == null)
+                    {
+                        child = new RepNodeTypeless(Model) { Key = memberName };
+                        Children.Add(new KeyValuePair<string, IRepNode>(memberName.Name, child));
+                    }
+                    return child;
                 }
-                return child;
+                return null;
             }
             set => this[memberName].Value = value.Value;
         }
 
-        public IEnumerator<IRepNode> GetEnumerator() => Children.GetEnumerator();
+        public IEnumerator<KeyValuePair<MemberKey, IRepNode>> GetEnumerator()
+            => Children.Select(c => new KeyValuePair<MemberKey, IRepNode>(c.Key, c.Value)).GetEnumerator();
+        IEnumerator<IRepNode> IEnumerable<IRepNode>.GetEnumerator() => Children.Select(c => c.Value).GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         public void EnsureConstructed() { }
 
         public override string ToString()
         {
-            var result = MarshalMethod == MarshalMethod.Primitive ? (Value?.ToString() ?? "null") : $"{MarshalMethod.ToString()}";
+            var result = MarshallMethod == MarshallMethod.Primitive ? (Value?.ToString() ?? "null") : $"{MarshallMethod.ToString()}";
             if (Key.Name != null)
                 result = $"{Key}: {result}";
             return result;

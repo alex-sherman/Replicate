@@ -48,30 +48,30 @@ namespace ReplicateTest
         public void PrimitiveString()
         {
             var value = new RepBackedNode("herpderp").AsPrimitive;
-            Assert.AreEqual(MarshalMethod.Primitive, value.MarshalMethod);
+            Assert.AreEqual(MarshallMethod.Primitive, value.MarshallMethod);
             Assert.AreEqual(PrimitiveType.String, value.PrimitiveType);
         }
         [Test]
         public void PrimitiveNullableInt()
         {
             var value = new RepBackedNode((int?)1).AsPrimitive;
-            Assert.AreEqual(MarshalMethod.Primitive, value.MarshalMethod);
+            Assert.AreEqual(MarshallMethod.Primitive, value.MarshallMethod);
             Assert.AreEqual(PrimitiveType.Int32, value.PrimitiveType);
         }
         [Test]
         public void PrimitiveByte()
         {
             var value = new RepBackedNode((byte)1).AsPrimitive;
-            Assert.AreEqual(MarshalMethod.Primitive, value.MarshalMethod);
+            Assert.AreEqual(MarshallMethod.Primitive, value.MarshallMethod);
             Assert.AreEqual(PrimitiveType.Int8, value.PrimitiveType);
         }
         [Test]
         public void ObjectStringField()
         {
             var value = new RepBackedNode(new ObjectType() { Field1 = "hurrdurr", Field2 = null }, model: new ReplicationModel()).AsObject;
-            Assert.AreEqual(MarshalMethod.Object, value.MarshalMethod);
+            Assert.AreEqual(MarshallMethod.Object, value.MarshallMethod);
             var field1 = value["Field1"].AsPrimitive;
-            Assert.AreEqual(MarshalMethod.Primitive, field1.MarshalMethod);
+            Assert.AreEqual(MarshallMethod.Primitive, field1.MarshallMethod);
             Assert.AreEqual(PrimitiveType.String, field1.PrimitiveType);
             Assert.AreEqual("hurrdurr", field1.Value);
         }
@@ -80,7 +80,7 @@ namespace ReplicateTest
         {
             var model = new ReplicationModel() { DictionaryAsObject = true };
             var node = model.GetRepNode(new Dictionary<string, string>() { { "value", "herp" }, { "prop", "derp" } }, null, null);
-            Assert.AreEqual(MarshalMethod.Object, node.MarshalMethod);
+            Assert.AreEqual(MarshallMethod.Object, node.MarshallMethod);
             Assert.AreEqual("herp", node.AsObject["value"].AsPrimitive.Value);
             Assert.AreEqual("derp", node.AsObject["prop"].AsPrimitive.Value);
         }
@@ -184,9 +184,9 @@ namespace ReplicateTest
         {
             var model = new ReplicationModel();
             var node = model.GetRepNode(null, typeof(ObjectType));
-            Assert.AreEqual(MarshalMethod.Object, node.MarshalMethod);
+            Assert.AreEqual(MarshallMethod.Object, node.MarshallMethod);
             var field1 = node.AsObject["Field1"];
-            Assert.AreEqual(MarshalMethod.Primitive, field1.MarshalMethod);
+            Assert.AreEqual(MarshallMethod.Primitive, field1.MarshallMethod);
             Assert.AreEqual(PrimitiveType.String, field1.AsPrimitive.PrimitiveType);
         }
         [Test]
@@ -206,6 +206,20 @@ namespace ReplicateTest
             node["Field1"] = new RepBackedNode("HERP");
             var value = (ValueType)node.RawValue;
             Assert.AreEqual("HERP", value.Field1);
+        }
+        [Test]
+        public void TestGettingRepNodeOfRepNode()
+        {
+            var model = new ReplicationModel();
+            var node = model.GetRepNode(new RepBackedNode(new ValueType() { Field1 = "DERP" }, model: model), typeof(IRepNode));
+            Assert.IsInstanceOf<RepBackedNode>(node);
+            Assert.IsInstanceOf<RepBackedNode>(node.AsObject["Field1"]);
+        }
+        [Test]
+        public void TestGetRepNodeWithoutBackingAndTypeAccessorFails()
+        {
+            var model = new ReplicationModel();
+            Assert.Throws<InvalidOperationException>(() => model.GetRepNode(null, null, null));
         }
     }
 }

@@ -38,18 +38,18 @@ namespace Replicate.Serialization
         public abstract TWireType GetWireValue(TContext context);
         public void Write(TContext context, IRepNode node)
         {
-            switch (node.MarshalMethod)
+            switch (node.MarshallMethod)
             {
-                case MarshalMethod.Primitive:
+                case MarshallMethod.Primitive:
                     Write(context, node.AsPrimitive);
                     break;
-                case MarshalMethod.Collection:
+                case MarshallMethod.Collection:
                     Write(context, node.AsCollection);
                     break;
                 //case MarshalMethod.Tuple:
                 //    SerializeTuple(stream, obj, typeAccessor);
                 //    break;
-                case MarshalMethod.Object:
+                case MarshallMethod.Object:
                     Write(context, node.AsObject);
                     break;
             }
@@ -57,19 +57,27 @@ namespace Replicate.Serialization
         public abstract void Write(TContext context, IRepPrimitive value);
         public abstract void Write(TContext context, IRepCollection value);
         public abstract void Write(TContext context, IRepObject value);
-        public abstract MarshalMethod ReadMarshallMethod(TContext context);
+        public abstract (MarshallMethod, PrimitiveType?) ReadNodeType(TContext context);
         public IRepNode Read(TContext context, IRepNode node)
         {
-            var marshalMethod = node.TypeAccessor != null ? node.MarshalMethod : ReadMarshallMethod(context);
+            var marshalMethod = node.MarshallMethod;
+            (MarshallMethod, PrimitiveType?) nodeInfo = (node.MarshallMethod, null);
+            if(marshalMethod == MarshallMethod.None)
+            {
+                nodeInfo = ReadNodeType(context);
+                marshalMethod = nodeInfo.Item1;
+            }
             switch (marshalMethod)
             {
-                case MarshalMethod.Primitive:
-                    return Read(context, node.AsPrimitive);
-                case MarshalMethod.Collection:
+                case MarshallMethod.Primitive:
+                    var primitive = node.AsPrimitive;
+                    if (nodeInfo.Item2.HasValue) primitive.PrimitiveType = nodeInfo.Item2.Value;
+                    return Read(context, primitive);
+                case MarshallMethod.Collection:
                     return Read(context, node.AsCollection);
                 //case MarshalMethod.Tuple:
                 //    return node.Value = Read(context, node.AsPrimitive);
-                case MarshalMethod.Object:
+                case MarshallMethod.Object:
                     return Read(context, node.AsObject);
                 default:
                     node.Value = Default(node.TypeAccessor.Type);

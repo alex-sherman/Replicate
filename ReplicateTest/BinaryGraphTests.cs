@@ -56,6 +56,14 @@ namespace ReplicateTest
             Assert.AreEqual(4, output[1].Property);
         }
         [Test]
+        public void TestSerializeRepBackedNode()
+        {
+            var model = new ReplicationModel();
+            var output = SerializeDeserialize((IRepNode)new RepBackedNode(new PropClass() { Property = 3 }, model: model), model);
+            Assert.IsInstanceOf<PropClass>(output.RawValue);
+            Assert.AreEqual(3, ((PropClass)output.RawValue).Property);
+        }
+        [Test]
         public void TestDictionary()
         {
             var output = SerializeDeserialize(new Dictionary<string, PropClass>()

@@ -48,7 +48,7 @@ namespace Replicate.MetaData
         MemberKey Key { get; set; }
         TypeAccessor TypeAccessor { get; }
         MemberAccessor MemberAccessor { get; }
-        MarshalMethod MarshalMethod { get; }
+        MarshallMethod MarshallMethod { get; }
         IRepPrimitive AsPrimitive { get; }
         IRepCollection AsCollection { get; }
         IRepObject AsObject { get; }
@@ -75,7 +75,7 @@ namespace Replicate.MetaData
             if (!(obj is MemberKey)) return false;
 
             var key = (MemberKey)obj;
-            return EqualityComparer<int?>.Default.Equals(Index, key.Index) || Name == key.Name;
+            return EqualityComparer<int?>.Default.Equals(Index, key.Index) && Name == key.Name;
         }
 
         public override int GetHashCode()
@@ -96,7 +96,7 @@ namespace Replicate.MetaData
             return "<None>";
         }
     }
-    public interface IRepObject : IRepNode, IEnumerable<IRepNode>
+    public interface IRepObject : IRepNode, IEnumerable<KeyValuePair<MemberKey, IRepNode>>
     {
         void EnsureConstructed();
         IRepNode this[MemberKey key] { get; set; }

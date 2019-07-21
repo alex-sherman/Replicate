@@ -12,7 +12,6 @@ namespace Replicate.MetaData
     public class MemberInfo
     {
         public string Name { get { return Property?.Name ?? Field.Name; } }
-        public MemberKey Key { get; internal set; }
         public ReplicationModel Model;
         public Type MemberType { get { return Property?.PropertyType ?? Field.FieldType; } }
         public Type ParentType { get => Property?.DeclaringType ?? Field.DeclaringType; }
