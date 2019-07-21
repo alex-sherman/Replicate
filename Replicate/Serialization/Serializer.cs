@@ -27,10 +27,7 @@ namespace Replicate.Serialization
             Serialize(context, type, obj);
             return GetWireValue(context);
         }
-        public void Serialize<T>(TContext stream, T obj)
-        {
-            Serialize(stream, typeof(T), obj);
-        }
+        public TWireType Serialize<T>(T obj) => Serialize(typeof(T), obj);
         public void Serialize(TContext stream, Type type, object obj)
         {
             Serialize(stream, obj, Model.GetTypeAccessor(type), null);
@@ -50,7 +47,7 @@ namespace Replicate.Serialization
             switch (marshalMethod)
             {
                 case MarshallMethod.Primitive:
-                    SerializePrimitive(stream, obj, typeAccessor.Type);
+                    SerializePrimitive(stream, obj, typeAccessor);
                     break;
                 case MarshallMethod.Collection:
                     var collectionValueType = Model.GetCollectionValueAccessor(typeAccessor.Type);
@@ -64,19 +61,12 @@ namespace Replicate.Serialization
                     break;
             }
         }
-        public abstract void SerializePrimitive(TContext stream, object obj, Type type);
+        public abstract void SerializePrimitive(TContext stream, object obj, TypeAccessor type);
         public abstract void SerializeCollection(TContext stream, object obj, TypeAccessor collectionValueType);
         public abstract void SerializeObject(TContext stream, object obj, TypeAccessor typeAccessor);
         public abstract void SerializeTuple(TContext stream, object obj, TypeAccessor typeAccessor);
-        public object Deserialize(Type type, TWireType wire) => Deserialize(type, GetContext(wire));
-        public T Deserialize<T>(TContext stream)
-        {
-            return (T)Deserialize(null, stream, Model.GetTypeAccessor(typeof(T)), null);
-        }
-        public object Deserialize(Type type, TContext stream)
-        {
-            return Deserialize(null, stream, Model.GetTypeAccessor(type), null);
-        }
+        public T Deserialize<T>(TWireType wireValue) => (T)Deserialize(typeof(T), wireValue);
+        public object Deserialize(Type type, TWireType wire) => Deserialize(null, GetContext(wire), Model.GetTypeAccessor(type), null);
         public object Deserialize(object obj, TContext stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
             var surrogateAccessor = memberAccessor?.Surrogate ?? typeAccessor.Surrogate;
@@ -87,24 +77,21 @@ namespace Replicate.Serialization
             }
             obj = DeserializeRaw(obj, stream, typeAccessor);
             return surrogateAccessor == null ? obj : surrogateAccessor.ConvertFrom(obj);
-
         }
         private object DeserializeRaw(object obj, TContext stream, TypeAccessor typeAccessor)
         {
-            var type = typeAccessor.Type;
             switch (typeAccessor.TypeData.MarshallMethod)
             {
                 case MarshallMethod.Primitive:
-                    return DeserializePrimitive(stream, type);
+                    return DeserializePrimitive(stream, typeAccessor);
                 case MarshallMethod.Collection:
-                    var collectionValueType = Model.GetCollectionValueAccessor(type);
-                    return DeserializeCollection(obj, stream, type, collectionValueType);
+                    return DeserializeCollection(obj, stream, typeAccessor, Model.GetCollectionValueAccessor(typeAccessor.Type));
                 case MarshallMethod.Tuple:
-                    return DeserializeTuple(stream, type, typeAccessor);
+                    return DeserializeTuple(stream, typeAccessor);
                 case MarshallMethod.Object:
-                    return DeserializeObject(obj, stream, type, typeAccessor);
+                    return DeserializeObject(obj, stream, typeAccessor);
                 default:
-                    return Default(type);
+                    return Default(typeAccessor.Type);
             }
         }
         protected static object Default(Type type)
@@ -113,9 +100,9 @@ namespace Replicate.Serialization
                 return Activator.CreateInstance(type);
             return null;
         }
-        public abstract object DeserializePrimitive(TContext stream, Type type);
-        public abstract object DeserializeObject(object obj, TContext stream, Type type, TypeAccessor typeAccessor);
-        public abstract object DeserializeCollection(object obj, TContext stream, Type type, TypeAccessor typeAccessor);
-        public abstract object DeserializeTuple(TContext stream, Type type, TypeAccessor typeAccessor);
+        public abstract object DeserializePrimitive(TContext stream, TypeAccessor type);
+        public abstract object DeserializeObject(object obj, TContext stream, TypeAccessor typeAccessor);
+        public abstract object DeserializeCollection(object obj, TContext stream, TypeAccessor typeAccessor, TypeAccessor collectionAccessor);
+        public abstract object DeserializeTuple(TContext stream, TypeAccessor typeAccessor);
     }
 }

@@ -31,7 +31,7 @@ namespace Replicate.Serialization
 
         public void Write(object obj, Stream stream)
         {
-            stream.WriteSingle((float)obj);
+            stream.WriteSingle(Convert.ToSingle(obj));
         }
     }
     public class BinaryStringSerializer : ITypedSerializer
@@ -50,28 +50,37 @@ namespace Replicate.Serialization
     {
         public BinarySerializer(ReplicationModel model) : base(model) { }
         static BinaryIntSerializer intSer = new BinaryIntSerializer();
-        Dictionary<Type, ITypedSerializer> serializers = new Dictionary<Type, ITypedSerializer>()
+        static Dictionary<PrimitiveType, ITypedSerializer> serializers = new Dictionary<PrimitiveType, ITypedSerializer>()
         {
-            {typeof(bool), intSer },
-            {typeof(byte), intSer },
-            {typeof(short), intSer },
-            {typeof(ushort), intSer },
-            {typeof(int), intSer },
-            {typeof(uint), intSer },
-            {typeof(long), intSer },
-            {typeof(ulong), intSer },
-            {typeof(string), new BinaryStringSerializer() },
-            {typeof(float), new BinaryFloatSerializer() },
+            {PrimitiveType.VarInt, intSer },
+            {PrimitiveType.Byte, intSer },
+            {PrimitiveType.Bool, intSer },
+            {PrimitiveType.String, new BinaryStringSerializer() },
+            {PrimitiveType.Double, new BinaryFloatSerializer() },
+            {PrimitiveType.Float, new BinaryFloatSerializer() },
         };
+        //Dictionary<Type, ITypedSerializer> serializers = new Dictionary<Type, ITypedSerializer>()
+        //{
+        //    {typeof(bool), intSer },
+        //    {typeof(byte), intSer },
+        //    {typeof(short), intSer },
+        //    {typeof(ushort), intSer },
+        //    {typeof(int), intSer },
+        //    {typeof(uint), intSer },
+        //    {typeof(long), intSer },
+        //    {typeof(ulong), intSer },
+        //    {typeof(string), new BinaryStringSerializer() },
+        //    {typeof(float), new BinaryFloatSerializer() },
+        //};
 
-        public override void SerializePrimitive(MemoryStream stream, object obj, Type type)
+        public override void SerializePrimitive(MemoryStream stream, object obj, TypeAccessor type)
         {
             if (obj == null)
                 stream.WriteByte(0);
             else
             {
                 stream.WriteByte(1);
-                if (serializers.TryGetValue(type, out var ser))
+                if (serializers.TryGetValue(type.TypeData.PrimitiveType, out var ser))
                     ser.Write(obj, stream);
                 else
                     throw new SerializationError();
@@ -94,6 +103,25 @@ namespace Replicate.Serialization
                 Serialize(stream, item, collectionValueType, null);
         }
 
+        void WriteKey(Stream stream, MemberKey key)
+        {
+            if (key.Index.HasValue)
+                stream.WriteByte((byte)key.Index.Value);
+            else if (key.Name != null)
+            {
+                stream.WriteByte(254);
+                serializers[PrimitiveType.String].Write(key.Name, stream);
+            }
+            else stream.WriteByte(255);
+        }
+        MemberKey ReadKey(Stream stream)
+        {
+            var b = (byte)stream.ReadByte();
+            if (b == 255) return default(MemberKey);
+            if (b != 254) return b;
+            return (string)serializers[PrimitiveType.String].Read(stream);
+        }
+
         public override void SerializeObject(MemoryStream stream, object obj, TypeAccessor typeAccessor)
         {
             if (obj == null)
@@ -101,13 +129,17 @@ namespace Replicate.Serialization
                 stream.WriteInt32(-1);
                 return;
             }
-            stream.WriteInt32(typeAccessor.MemberAccessors.Length);
-            for (int id = 0; id < typeAccessor.MemberAccessors.Length; id++)
+            int count = 0;
+            var countPos = stream.Position; stream.Position += 4;
+            foreach (var key in typeAccessor.Keys)
             {
-                var member = typeAccessor.MemberAccessors[id];
-                stream.WriteByte((byte)id);
+                WriteKey(stream, key);
+                var member = typeAccessor[key];
                 Serialize(stream, member.GetValue(obj), member.TypeAccessor, member);
+                count++;
             }
+            var endPos = stream.Position; stream.Position = countPos;
+            stream.WriteInt32(count); stream.Position = endPos;
         }
 
         public override void SerializeTuple(MemoryStream stream, object obj, TypeAccessor typeAccessor)
@@ -117,21 +149,19 @@ namespace Replicate.Serialization
         }
 
 
-        public override object DeserializePrimitive(MemoryStream stream, Type type)
+        public override object DeserializePrimitive(MemoryStream stream, TypeAccessor typeAccessor)
         {
             var isNull = stream.ReadByte();
             if (isNull == 0) return null;
-            if (serializers.ContainsKey(type))
-                return Convert.ChangeType(serializers[type].Read(stream), type);
-            return null;
+            return typeAccessor.Coerce((serializers[typeAccessor.TypeData.PrimitiveType].Read(stream)));
         }
 
-        public override object DeserializeObject(object obj, MemoryStream stream, Type type, TypeAccessor typeAccessor)
+        public override object DeserializeObject(object obj, MemoryStream stream, TypeAccessor typeAccessor)
         {
             int count = stream.ReadInt32();
             if (count == -1) return null;
             if (obj == null)
-                obj = Activator.CreateInstance(type);
+                obj = typeAccessor.Construct();
             for (int i = 0; i < count; i++)
             {
                 int id = stream.ReadByte();
@@ -141,25 +171,23 @@ namespace Replicate.Serialization
             return obj;
         }
 
-        public override object DeserializeCollection(object obj, MemoryStream stream, Type type, TypeAccessor collectionValueAccessor)
+        public override object DeserializeCollection(object obj, MemoryStream stream, TypeAccessor typeAccessor, TypeAccessor collectionValueAccessor)
         {
             int count = stream.ReadInt32();
             if (count == -1) return null;
-            return CollectionUtil.FillCollection(obj, type, Enumerable.Range(0, count)
+            return CollectionUtil.FillCollection(obj, typeAccessor.Type, Enumerable.Range(0, count)
                 .Select(i => Deserialize(null, stream, collectionValueAccessor, null))
                 .ToList());
         }
 
-        public override object DeserializeTuple(MemoryStream stream, Type type, TypeAccessor typeAccessor)
+        public override object DeserializeTuple(MemoryStream stream, TypeAccessor typeAccessor)
         {
             List<object> parameters = new List<object>();
-            List<Type> paramTypes = new List<Type>();
             foreach (var member in typeAccessor.MemberAccessors)
             {
-                paramTypes.Add(member.Type);
                 parameters.Add(Deserialize(null, stream, member.TypeAccessor, member));
             }
-            return type.GetConstructor(paramTypes.ToArray()).Invoke(parameters.ToArray());
+            return typeAccessor.Construct(parameters.ToArray());
         }
 
         public override MemoryStream GetContext(byte[] wireValue)

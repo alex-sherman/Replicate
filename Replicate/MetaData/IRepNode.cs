@@ -6,35 +6,6 @@ using System.Threading.Tasks;
 
 namespace Replicate.MetaData
 {
-    public enum PrimitiveType
-    {
-        Bool = 1,
-        Int8 = 2,
-        Int32 = 4,
-        Float = 6,
-        Double = 7,
-        String = 8,
-    }
-    public static class PrimitiveTypeMap
-    {
-        static Dictionary<Type, PrimitiveType> Map = new Dictionary<Type, PrimitiveType>()
-        {
-            { typeof(bool),   PrimitiveType.Bool },
-            { typeof(byte),   PrimitiveType.Int8 },
-            { typeof(int),    PrimitiveType.Int32 },
-            { typeof(ushort),   PrimitiveType.Int32 },
-            { typeof(uint),   PrimitiveType.Int32 },
-            { typeof(float),  PrimitiveType.Float },
-            { typeof(double), PrimitiveType.Double },
-            { typeof(string), PrimitiveType.String },
-        };
-        public static PrimitiveType MapType(Type type)
-        {
-            if (type.IsEnum)
-                return PrimitiveType.Int32;
-            return Map[type];
-        }
-    }
     public interface IRepNode
     {
         /// <summary>

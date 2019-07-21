@@ -7,7 +7,7 @@ using System.IO;
 using System.Collections.Generic;
 using Replicate.Messages;
 using NUnit.Framework;
-using static ReplicateTest.BinaryGraphUtil;
+using static ReplicateTest.BinarySerializerUtil;
 
 namespace ReplicateTest
 {
@@ -56,14 +56,6 @@ namespace ReplicateTest
             Assert.AreEqual(4, output[1].Property);
         }
         [Test]
-        public void TestSerializeRepBackedNode()
-        {
-            var model = new ReplicationModel();
-            var output = SerializeDeserialize((IRepNode)new RepBackedNode(new PropClass() { Property = 3 }, model: model), model);
-            Assert.IsInstanceOf<PropClass>(output.RawValue);
-            Assert.AreEqual(3, ((PropClass)output.RawValue).Property);
-        }
-        [Test]
         public void TestDictionary()
         {
             var output = SerializeDeserialize(new Dictionary<string, PropClass>()
@@ -97,8 +89,7 @@ namespace ReplicateTest
             var model = new ReplicationModel();
             model.Add(typeof(InitMessage));
             var ser = new Replicate.Serialization.BinarySerializer(model);
-            var stream = new MemoryStream();
-            ser.Serialize(stream, new InitMessage()
+            var stream = ser.Serialize(new InitMessage()
             {
                 id = new ReplicateId() { ObjectID = 0, Creator = 1 },
                 typeID = new TypeID()
@@ -106,7 +97,6 @@ namespace ReplicateTest
                     id = 12
                 }
             });
-            stream.Seek(0, SeekOrigin.Begin);
             var output = ser.Deserialize<InitMessage>(stream);
             Assert.AreEqual(12, output.typeID.id);
         }

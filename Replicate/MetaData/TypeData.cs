@@ -12,6 +12,7 @@ namespace Replicate.MetaData
     public class TypeData
     {
         public MarshallMethod MarshallMethod;
+        public PrimitiveType PrimitiveType;
         public string Name { get; private set; }
         public Type Type { get; private set; }
         public readonly List<MemberInfo> ReplicatedMembers = new List<MemberInfo>();
@@ -27,7 +28,10 @@ namespace Replicate.MetaData
             Name = type.FullName;
             Model = model;
             if (type.IsPrimitive || type == typeof(string) || type.IsEnum)
+            {
                 MarshallMethod = MarshallMethod.Primitive;
+                PrimitiveType = PrimitiveTypeMap.MapType(type);
+            }
             else
             {
                 if (type.Implements(typeof(IEnumerable<>)))
@@ -102,6 +106,10 @@ namespace Replicate.MetaData
                 throw new InvalidOperationException("Cannot set the surrogate of a surrogate type");
             Model.Add(surrogate.Type).IsSurrogate = true;
             Surrogate = surrogate;
+        }
+        public override string ToString()
+        {
+            return $"TypeData: {Name}";
         }
     }
 }

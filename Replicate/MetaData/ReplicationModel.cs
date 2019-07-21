@@ -19,6 +19,39 @@ namespace Replicate.MetaData
         Collection = 3,
         Tuple = 4,
     }
+    public enum PrimitiveType
+    {
+        None = 0,
+        Bool = 1,
+        Byte = 2,
+        VarInt = 4,
+        Float = 6,
+        Double = 7,
+        String = 8,
+    }
+    public static class PrimitiveTypeMap
+    {
+        static Dictionary<Type, PrimitiveType> Map = new Dictionary<Type, PrimitiveType>()
+        {
+            { typeof(bool),   PrimitiveType.Bool },
+            { typeof(byte),   PrimitiveType.Byte },
+            { typeof(short),  PrimitiveType.VarInt },
+            { typeof(ushort), PrimitiveType.VarInt },
+            { typeof(int),    PrimitiveType.VarInt },
+            { typeof(uint),   PrimitiveType.VarInt },
+            { typeof(long),   PrimitiveType.VarInt },
+            { typeof(ulong),  PrimitiveType.VarInt },
+            { typeof(float),  PrimitiveType.Float },
+            { typeof(double), PrimitiveType.Double },
+            { typeof(string), PrimitiveType.String },
+        };
+        public static PrimitiveType MapType(Type type)
+        {
+            if (type.IsEnum)
+                return PrimitiveType.VarInt;
+            return Map[type];
+        }
+    }
     public class ReplicationModel : IEnumerable<TypeData>
     {
         public static ReplicationModel Default { get; } = new ReplicationModel();
@@ -122,12 +155,11 @@ namespace Replicate.MetaData
         public TypeAccessor GetCollectionValueAccessor(Type collectionType)
         {
             Type interfacedCollectionType = null;
-            if (collectionType.IsSameGeneric(typeof(ICollection<>))
-                || collectionType.IsSameGeneric(typeof(IEnumerable<>)))
+            if (collectionType.IsSameGeneric(typeof(IEnumerable<>)))
             {
                 interfacedCollectionType = collectionType;
             }
-            else
+            else if(collectionType.Implements(typeof(IEnumerable<>)))
             {
                 if (collectionType.GetInterface("ICollection`1") != null)
                     interfacedCollectionType = collectionType.GetInterface("ICollection`1");
@@ -145,14 +177,24 @@ namespace Replicate.MetaData
                 type = type.GetGenericTypeDefinition();
             if (typeLookup.TryGetValue(type, out typeData))
                 return true;
+            if (type.Implements(typeof(IRepNode)))
+            {
+                typeData = ResolveFrom(type, typeof(IRepNode));
+                return true;
+            }
             if (type.Implements(typeof(IEnumerable<>)))
             {
-                typeData = type.Implements(typeof(ICollection<>)) ? this[typeof(ICollection<>)] : this[typeof(IEnumerable<>)];
-                typeLookup.Add(type, typeData);
-                stringLookup.Add(type.FullName, typeData);
+                typeData = ResolveFrom(type, type.Implements(typeof(ICollection<>)) ? typeof(ICollection<>) : typeof(IEnumerable<>));
                 return true;
             }
             return false;
+        }
+        private TypeData ResolveFrom(Type incoming, Type existing)
+        {
+            var typeData = this[existing];
+            typeLookup.Add(incoming, typeData);
+            stringLookup.Add(incoming.FullName, typeData);
+            return typeData;
         }
         public TypeData GetTypeData(Type type)
         {

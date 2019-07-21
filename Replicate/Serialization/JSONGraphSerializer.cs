@@ -139,8 +139,8 @@ namespace Replicate.Serialization
         {
 
             {PrimitiveType.Bool, new JSONBoolSerializer() },
-            {PrimitiveType.Int8, intSer },
-            {PrimitiveType.Int32, intSer },
+            {PrimitiveType.Byte, intSer },
+            {PrimitiveType.VarInt, intSer },
             {PrimitiveType.Float, new JSONFloatSerializer() },
             {PrimitiveType.Double, new JSONFloatSerializer() },
             {PrimitiveType.String, stringSer },

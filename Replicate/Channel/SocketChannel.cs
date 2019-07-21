@@ -97,7 +97,7 @@ namespace Replicate
             }
             else if (currentHeader.Flags.HasFlag(MessageFlags.Request))
             {
-                var endpoint = Serializer.Deserialize<MemoryStream, string>(currentMessage);
+                var endpoint = Serializer.Deserialize<string>(currentMessage);
                 // currentMessage.Position _should_ be updated here, will break if two calls to deserialize happen
                 Receive(endpoint, currentMessage).ContinueWith(task => SendResponse(currentHeader.Sequence, task.Result));
             }

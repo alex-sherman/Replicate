@@ -12,6 +12,7 @@ namespace Replicate.Serialization
         {
             var count = values.Count;
 
+            // Interfaces cannot be constructed, so use a List to implement these interfaces
             if (type.IsSameGeneric(typeof(IEnumerable<>)) || type.IsSameGeneric(typeof(ICollection<>)))
             {
                 type = typeof(List<>).MakeGenericType(type.GetGenericArguments());

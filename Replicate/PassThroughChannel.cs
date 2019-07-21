@@ -11,18 +11,24 @@ using Replicate.Serialization;
 
 namespace Replicate
 {
-    class CastedSerializer<T> : IReplicateSerializer<object>
+    class CastedSerializer<TWireType> : IReplicateSerializer<object>
     {
-        IReplicateSerializer<T> serializer;
-        public CastedSerializer(IReplicateSerializer<T> inner)
+        IReplicateSerializer<TWireType> serializer;
+        public CastedSerializer(IReplicateSerializer<TWireType> inner)
         {
             serializer = inner;
         }
         public object Deserialize(Type type, object message)
         {
-            return serializer.Deserialize(type, (T)message);
+            return serializer.Deserialize(type, (TWireType)message);
         }
 
+        public T Deserialize<T>(object wireValue)
+        {
+            return serializer.Deserialize<T>((TWireType)wireValue);
+        }
+
+        public object Serialize<T>(T obj) => Serialize(typeof(T), obj);
         public object Serialize(Type type, object obj)
         {
             return serializer.Serialize(type, obj);
@@ -31,6 +37,8 @@ namespace Replicate
     public class NonSerializer : IReplicateSerializer<object>
     {
         public object Deserialize(Type type, object wireValue) => wireValue;
+        public T Deserialize<T>(object wireValue) => (T)wireValue;
+        public object Serialize<T>(T obj) => Serialize(typeof(T), obj);
         public object Serialize(Type type, object obj) => obj;
     }
     public class PassThroughChannel

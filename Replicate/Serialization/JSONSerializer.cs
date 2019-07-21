@@ -7,28 +7,25 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Replicate.MetaData;
+using static Replicate.Serialization.JSONGraphSerializer;
 
 namespace Replicate.Serialization
 {
-    [Obsolete("Replaced by JSONGraphSerializer")]
     public class JSONSerializer : Serializer<Stream, string>
     {
         public bool ToLowerFieldNames = false;
         public JSONSerializer(ReplicationModel model) : base(model) { }
-        static JSONGraphSerializer.JSONIntSerializer intSer = new JSONGraphSerializer.JSONIntSerializer();
-        static JSONGraphSerializer.JSONStringSerializer stringSer = new JSONGraphSerializer.JSONStringSerializer();
-        Dictionary<Type, ITypedSerializer> serializers = new Dictionary<Type, ITypedSerializer>()
+        static JSONIntSerializer intSer = new JSONIntSerializer();
+        static JSONStringSerializer stringSer = new JSONStringSerializer();
+        readonly Dictionary<PrimitiveType, ITypedSerializer> serializers = new Dictionary<PrimitiveType, ITypedSerializer>()
         {
-            {typeof(bool), new JSONGraphSerializer.JSONBoolSerializer() },
-            {typeof(byte), intSer },
-            {typeof(short), intSer },
-            {typeof(ushort), intSer },
-            {typeof(int), intSer },
-            {typeof(uint), intSer },
-            {typeof(long), intSer },
-            {typeof(ulong), intSer },
-            {typeof(string), stringSer },
-            {typeof(float), new JSONGraphSerializer.JSONFloatSerializer() },
+
+            {PrimitiveType.Bool, new JSONBoolSerializer() },
+            {PrimitiveType.Byte, intSer },
+            {PrimitiveType.VarInt, intSer },
+            {PrimitiveType.Float, new JSONFloatSerializer() },
+            {PrimitiveType.Double, new JSONFloatSerializer() },
+            {PrimitiveType.String, stringSer },
         };
         static void CheckAndThrow(bool condition)
         {
@@ -39,7 +36,7 @@ namespace Replicate.Serialization
         static Regex ws = new Regex("\\s");
         static bool IsW(char c) => ws.IsMatch("" + c);
 
-        public override object DeserializeCollection(object obj, Stream stream, Type type, TypeAccessor collectionValueAccessor)
+        public override object DeserializeCollection(object obj, Stream stream, TypeAccessor typeAccessor, TypeAccessor collectionValueAccessor)
         {
             if (ReadNull(stream)) return null;
             List<object> values = new List<object>();
@@ -55,7 +52,7 @@ namespace Replicate.Serialization
                 nextChar = stream.ReadCharOne();
                 CheckAndThrow(nextChar == ',' || nextChar == ']');
             };
-            return CollectionUtil.FillCollection(obj, type, values);
+            return CollectionUtil.FillCollection(obj, typeAccessor.Type, values);
         }
         string MapName(string fieldName)
         {
@@ -63,11 +60,11 @@ namespace Replicate.Serialization
                 return fieldName.ToLower();
             return fieldName;
         }
-        public override object DeserializeObject(object obj, Stream stream, Type type, TypeAccessor typeAccessor)
+        public override object DeserializeObject(object obj, Stream stream, TypeAccessor typeAccessor)
         {
             if (ReadNull(stream)) return null;
             if (obj == null)
-                obj = Activator.CreateInstance(type);
+                obj = typeAccessor.Construct();
             if (stream.ReadCharOne() != '{') throw new SerializationError();
             stream.ReadAllString(IsW);
             char nextChar = stream.ReadCharOne(true);
@@ -90,21 +87,17 @@ namespace Replicate.Serialization
             return obj;
         }
 
-        public override object DeserializePrimitive(Stream stream, Type type)
+        public override object DeserializePrimitive(Stream stream, TypeAccessor typeAccessor)
         {
             if (ReadNull(stream)) return null;
-            if (serializers.ContainsKey(type))
+            try
             {
-                try
-                {
-                    return Convert.ChangeType(serializers[type].Read(stream), type);
-                }
-                catch (Exception e)
-                {
-                    throw new SerializationError(null, e);
-                }
+                return typeAccessor.Coerce(serializers[typeAccessor.TypeData.PrimitiveType].Read(stream));
             }
-            return null;
+            catch (Exception e)
+            {
+                throw new SerializationError(null, e);
+            }
         }
 
         bool ReadNull(Stream stream)
@@ -118,7 +111,7 @@ namespace Replicate.Serialization
             return false;
         }
 
-        public override object DeserializeTuple(Stream stream, Type type, TypeAccessor typeAccessor)
+        public override object DeserializeTuple(Stream stream, TypeAccessor typeAccessor)
         {
             throw new NotImplementedException();
         }
@@ -160,12 +153,12 @@ namespace Replicate.Serialization
             }
         }
 
-        public override void SerializePrimitive(Stream stream, object obj, Type type)
+        public override void SerializePrimitive(Stream stream, object obj, TypeAccessor typeAccessor)
         {
             if (obj == null)
                 stream.WriteString("null");
             else
-                serializers[type].Write(obj, stream);
+                serializers[typeAccessor.TypeData.PrimitiveType].Write(obj, stream);
         }
 
         public override void SerializeTuple(Stream stream, object obj, TypeAccessor typeAccessor)
@@ -187,6 +180,9 @@ namespace Replicate.Serialization
         }
 
         public override string GetWireValue(Stream stream)
-            => new StreamReader(stream).ReadToEnd();
+        {
+            stream.Position = 0;
+            return new StreamReader(stream).ReadToEnd();
+        }
     }
 }

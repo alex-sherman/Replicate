@@ -67,5 +67,13 @@ namespace ReplicateTest
             KeyValuePair<string, int> derp = (KeyValuePair<string, int>)node.RawValue;
             Assert.AreEqual("Derp", derp.Key);
         }
+        [Test]
+        public void TestIRepNodeResolve()
+        {
+            var repNodeTypeData = ReplicationModel.Default[typeof(IRepNode)];
+            Assert.AreEqual(repNodeTypeData, ReplicationModel.Default[typeof(RepBackedNode)]);
+            Assert.AreEqual(repNodeTypeData, ReplicationModel.Default[typeof(RepDictObject<>)]);
+            Assert.AreEqual(repNodeTypeData, ReplicationModel.Default[typeof(RepNodeTypeless)]);
+        }
     }
 }

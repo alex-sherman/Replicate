@@ -81,49 +81,49 @@ namespace ReplicateTest
         [Test]
         public void SerializeProperty()
         {
-            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var ser = new JSONSerializer(new ReplicationModel());
             Assert.AreEqual("{\"Property\": 3}", ser.Serialize(new PropClass() { Property = 3 }));
         }
         [Test]
         public void SerializeArray()
         {
-            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var ser = new JSONSerializer(new ReplicationModel());
             Assert.AreEqual("[1, 2, 3, 4]", ser.Serialize(new[] { 1, 2, 3, 4 }));
         }
         [Test]
         public void DeserializeArray()
         {
-            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var ser = new JSONSerializer(new ReplicationModel());
             CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 }, ser.Deserialize<int[]>("[1, 2, 3, 4]"));
         }
         [Test]
         public void DeserializeList()
         {
-            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var ser = new JSONSerializer(new ReplicationModel());
             CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 }, ser.Deserialize<List<int>>("[1, 2, 3, 4]"));
         }
         [Test]
         public void SerializeCollection()
         {
-            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var ser = new JSONSerializer(new ReplicationModel());
             Assert.AreEqual("[1, 2, 3, 4]", ser.Serialize<ICollection<int>>(new[] { 1, 2, 3, 4 }));
         }
         [Test]
         public void DeserializeCollection()
         {
-            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var ser = new JSONSerializer(new ReplicationModel());
             CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 }, ser.Deserialize<ICollection<int>>("[1, 2, 3, 4]"));
         }
         [Test]
         public void SerializeIEnumerable()
         {
-            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var ser = new JSONSerializer(new ReplicationModel());
             CollectionAssert.AreEqual("[1, 2, 3, 4]", ser.Serialize<IEnumerable<int>>(new[] { 1, 2, 3, 4 }));
         }
         [Test]
         public void DeserializeIEnumerable()
         {
-            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var ser = new JSONSerializer(new ReplicationModel());
             CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 },
                 ser.Deserialize<IEnumerable<int>>("[1, 2, 3, 4]").ToArray());
         }
@@ -132,27 +132,27 @@ namespace ReplicateTest
         [Test]
         public void SerializeHashset()
         {
-            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var ser = new JSONSerializer(new ReplicationModel());
             CollectionAssert.AreEqual("[1, 2, 3, 4]", ser.Serialize(new HashSet<int>(new[] { 1, 2, 3, 4 })));
         }
         [Test]
         public void DeserializeHashset()
         {
-            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var ser = new JSONSerializer(new ReplicationModel());
             CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 },
                 ser.Deserialize<HashSet<int>>("[1, 2, 3, 4]").ToArray());
         }
         [Test]
         public void SerializeGeneric()
         {
-            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var ser = new JSONSerializer(new ReplicationModel());
             Assert.AreEqual("{\"Value\": \"herp\", \"Prop\": \"derp\"}",
                 ser.Serialize(new GenericClass<string>() { Value = "herp", Prop = "derp" }));
         }
         [Test]
         public void DeserializeGeneric()
         {
-            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var ser = new JSONSerializer(new ReplicationModel());
             var output = ser.Deserialize<GenericClass<string>>("{\"Value\": \"herp\", \"Prop\": \"derp\"}");
             Assert.AreEqual("herp", output.Value);
             Assert.AreEqual("derp", output.Prop);
@@ -188,7 +188,7 @@ namespace ReplicateTest
             var stream = new MemoryStream();
             var str = ser.Serialize(new SubClass() { Field = "" });
             CollectionAssert.AreEqual("{\"Field\": \"\", \"Property\": 0}", str);
-            var output = ser.Deserialize<string, SubClass>("{\"Field\": \"\"}");
+            var output = ser.Deserialize<SubClass>("{\"Field\": \"\"}");
             Assert.AreEqual("", output.Field);
         }
         [Test]

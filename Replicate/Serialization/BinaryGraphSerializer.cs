@@ -15,8 +15,8 @@ namespace Replicate.Serialization
         static BinaryIntSerializer intSer = new BinaryIntSerializer();
         static Dictionary<PrimitiveType, ITypedSerializer> serializers = new Dictionary<PrimitiveType, ITypedSerializer>()
         {
-            {PrimitiveType.Int32, intSer },
-            {PrimitiveType.Int8, intSer },
+            {PrimitiveType.VarInt, intSer },
+            {PrimitiveType.Byte, intSer },
             {PrimitiveType.Bool, intSer },
             {PrimitiveType.String, new BinaryStringSerializer() },
             {PrimitiveType.Double, new BinaryFloatSerializer() },

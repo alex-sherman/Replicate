@@ -7,6 +7,7 @@ using System.IO;
 using System.Collections.Generic;
 using Replicate.Messages;
 using NUnit.Framework;
+using Replicate.Serialization;
 
 namespace ReplicateTest
 {
@@ -54,6 +55,43 @@ namespace ReplicateTest
             Assert.AreEqual(3, output[0].Property);
             Assert.AreEqual(4, output[1].Property);
         }
+        // TODO: Fix
+        //[Test]
+        //public void TestSerializeRepBackedNode()
+        //{
+        //    var model = new ReplicationModel();
+        //    var output = SerializeDeserialize((IRepNode)new RepBackedNode(new PropClass() { Property = 3 }, model: model), model);
+        //    Assert.IsInstanceOf<PropClass>(output.RawValue);
+        //    Assert.AreEqual(3, ((PropClass)output.RawValue).Property);
+        //}
+        [TestCase(null, typeof(string), "null")]
+        [TestCase(0, typeof(int?), "0")]
+        [TestCase(1, typeof(int?), "1")]
+        [TestCase(1, typeof(short), "1")]
+        [TestCase(1, typeof(ushort), "1")]
+        [TestCase(1, typeof(long), "1")]
+        [TestCase(1, typeof(ulong), "1")]
+        [TestCase(null, typeof(int?), "null")]
+        [TestCase(0.5, typeof(float), "0.5")]
+        [TestCase(0, typeof(float?), "0")]
+        [TestCase(1, typeof(float?), "1")]
+        [TestCase(null, typeof(float?), "null")]
+        [TestCase("", typeof(string), "\"\"")]
+        [TestCase("😈", typeof(string), "\"😈\"")]
+        [TestCase(new double[] { }, typeof(double[]), "[]")]
+        [TestCase(null, typeof(double[]), "null")]
+        [TestCase(true, typeof(bool), "true")]
+        [TestCase(false, typeof(bool), "false")]
+        //[TestCase(JSONEnum.One, typeof(JSONEnum), "1")]
+        public void SerializeDeserialize(object obj, Type type, string serialized)
+        {
+            var ser = new BinarySerializer(new ReplicationModel());
+            var stream = new MemoryStream();
+            var str = ser.Serialize(type, obj);
+            //CollectionAssert.AreEqual(serialized, str);
+            var output = ser.Deserialize(type, str);
+            Assert.AreEqual(obj, output);
+        }
         [Test]
         public void TestDictionary()
         {
@@ -76,8 +114,7 @@ namespace ReplicateTest
         {
             var model = new ReplicationModel();
             var ser = new Replicate.Serialization.BinarySerializer(model);
-            var stream = new MemoryStream();
-            ser.Serialize(stream, new InitMessage()
+            var stream = ser.Serialize(new InitMessage()
             {
                 id = new ReplicateId() { ObjectID = 0, Creator = 1 },
                 typeID = new TypeID()
@@ -85,7 +122,6 @@ namespace ReplicateTest
                     id = 12
                 }
             });
-            stream.Seek(0, SeekOrigin.Begin);
             var output = ser.Deserialize<InitMessage>(stream);
             Assert.AreEqual(12, output.typeID.id);
         }

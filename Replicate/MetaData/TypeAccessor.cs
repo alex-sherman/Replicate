@@ -43,10 +43,10 @@ namespace Replicate.MetaData
         private bool isEnum;
         public object Coerce(object obj)
         {
-            if (TypeData.MarshallMethod == MarshallMethod.None) return obj;
+            if (obj == null || TypeData.MarshallMethod == MarshallMethod.None) return obj;
             if (isEnum && obj is int intValue)
                 return Enum.ToObject(Type, intValue);
-            return obj;
+            return Convert.ChangeType(obj, Type);
         }
         public IEnumerable<MemberKey> Keys => MemberAccessors.Select((m, i) => new MemberKey() { Index = i, Name = m.Info.Name });
         public MemberAccessor this[MemberKey key]

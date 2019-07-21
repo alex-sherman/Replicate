@@ -38,10 +38,8 @@ namespace ReplicateTest
         {
             model = model ?? new ReplicationModel();
             var ser = new BinarySerializer(model);
-            var stream = new MemoryStream();
-            ser.Serialize(stream, data);
-            stream.Seek(0, SeekOrigin.Begin);
-            return ser.Deserialize<T>(stream);
+            var bytes = ser.Serialize(data);
+            return ser.Deserialize<T>(bytes);
         }
     }
     public static class BinaryGraphUtil
