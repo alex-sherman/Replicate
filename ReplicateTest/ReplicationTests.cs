@@ -101,8 +101,7 @@ namespace ReplicateTest
             cs.server.RegisterObject(replicated);
             Assert.IsInstanceOf<ReplicatedType>(cs.client.IDLookup.Values.First().replicated);
         }
-        // TODO: Fix these
-        //[Test]
+        [Test]
         public void ReplicateObj()
         {
             ReplicatedType replicated = new ReplicatedType()
@@ -110,7 +109,7 @@ namespace ReplicateTest
                 field1 = 3,
                 field2 = "herpderp"
             };
-            var cs = BinaryGraphUtil.MakeClientServer();
+            var cs = BinarySerializerUtil.MakeClientServer();
             cs.server.RegisterObject(replicated);
             cs.server.Replicate(replicated).Wait();
             Assert.IsInstanceOf<ReplicatedType>(cs.client.IDLookup.Values.First().replicated);
@@ -118,6 +117,7 @@ namespace ReplicateTest
             Assert.AreEqual(replicated.field1, clientValue.field1);
             Assert.AreEqual(replicated.field2, clientValue.field2);
         }
+        // TODO: Add blobs of serialization to allow deserializing from a message _into_ an object
         //[Test]
         public void ReplicateObjReference()
         {
@@ -145,22 +145,22 @@ namespace ReplicateTest
             Assert.NotNull(clientValue.child1);
             Assert.AreEqual(clientValue.child1, clientValue2.child1);
         }
-        //Not implemented any more, but maybe again in the future?
+        // TODO: Re-enable after fixing above
         //[Test]
-        //public void ReplicateDictionary()
-        //{
-        //    Dictionary<string, int> faff = new Dictionary<string, int>
-        //    {
-        //        ["herp"] = 3
-        //    };
-        //    var cs = Util.MakeClientServer();
-        //    cs.server.RegisterObject(faff);
-        //    cs.server.Replicate(faff).Wait();
-        //    Assert.IsInstanceOfType(cs.client.IDLookup.Values.First().replicated, typeof(Dictionary<string, int>));
-        //    Dictionary<string, int> clientValue = (Dictionary<string, int>)cs.client.IDLookup.Values.First().replicated;
-        //    Assert.AreEqual("herp", clientValue.Keys.First());
-        //    Assert.AreEqual(3, clientValue["herp"]);
-        //}
+        public void ReplicateDictionary()
+        {
+            Dictionary<string, int> faff = new Dictionary<string, int>
+            {
+                ["herp"] = 3
+            };
+            var cs = BinarySerializerUtil.MakeClientServer();
+            cs.server.RegisterObject(faff);
+            cs.server.Replicate(faff).Wait();
+            Assert.IsInstanceOf(typeof(Dictionary<string, int>), cs.client.IDLookup.Values.First().replicated);
+            Dictionary<string, int> clientValue = (Dictionary<string, int>)cs.client.IDLookup.Values.First().replicated;
+            Assert.AreEqual("herp", clientValue.Keys.First());
+            Assert.AreEqual(3, clientValue["herp"]);
+        }
         [ReplicateType]
         public class ClassSurrogate { }
         [ReplicateType(SurrogateType = typeof(ClassSurrogate))]

@@ -10,6 +10,6 @@ namespace Replicate.Messages
     public struct InitMessage
     {
         public ReplicateId id;
-        public TypeID typeID;
+        public TypeId typeID;
     }
 }

@@ -36,7 +36,7 @@ namespace Replicate.Serialization
         static Regex ws = new Regex("\\s");
         static bool IsW(char c) => ws.IsMatch("" + c);
 
-        public override object DeserializeCollection(object obj, Stream stream, TypeAccessor typeAccessor, TypeAccessor collectionValueAccessor)
+        public override object ReadCollection(object obj, Stream stream, TypeAccessor typeAccessor, TypeAccessor collectionValueAccessor)
         {
             if (ReadNull(stream)) return null;
             List<object> values = new List<object>();
@@ -47,7 +47,7 @@ namespace Replicate.Serialization
             while (nextChar != ']')
             {
                 stream.ReadAllString(IsW);
-                values.Add(Deserialize(null, stream, collectionValueAccessor, null));
+                values.Add(Read(null, stream, collectionValueAccessor, null));
                 stream.ReadAllString(IsW);
                 nextChar = stream.ReadCharOne();
                 CheckAndThrow(nextChar == ',' || nextChar == ']');
@@ -60,7 +60,7 @@ namespace Replicate.Serialization
                 return fieldName.ToLower();
             return fieldName;
         }
-        public override object DeserializeObject(object obj, Stream stream, TypeAccessor typeAccessor)
+        public override object ReadObject(object obj, Stream stream, TypeAccessor typeAccessor)
         {
             if (ReadNull(stream)) return null;
             if (obj == null)
@@ -78,7 +78,7 @@ namespace Replicate.Serialization
                 stream.ReadAllString(IsW);
                 var memberAccessor = typeAccessor.MemberAccessors.FirstOrDefault(m => MapName(m.Info.Name) == name);
                 CheckAndThrow(memberAccessor != null);
-                var value = Deserialize(memberAccessor.GetValue(obj), stream, memberAccessor.TypeAccessor, memberAccessor);
+                var value = Read(memberAccessor.GetValue(obj), stream, memberAccessor.TypeAccessor, memberAccessor);
                 memberAccessor.SetValue(obj, value);
                 stream.ReadAllString(IsW);
                 nextChar = stream.ReadCharOne();
@@ -87,7 +87,7 @@ namespace Replicate.Serialization
             return obj;
         }
 
-        public override object DeserializePrimitive(Stream stream, TypeAccessor typeAccessor)
+        public override object ReadPrimitive(Stream stream, TypeAccessor typeAccessor)
         {
             if (ReadNull(stream)) return null;
             try
@@ -111,15 +111,10 @@ namespace Replicate.Serialization
             return false;
         }
 
-        public override object DeserializeTuple(Stream stream, TypeAccessor typeAccessor)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override void SerializeCollection(Stream stream, object obj, TypeAccessor collectionValueType)
+        public override void WriteCollection(Stream stream, object obj, TypeAccessor collectionValueType)
         {
             if (obj == null)
-                SerializePrimitive(stream, null, null);
+                WritePrimitive(stream, null, null);
             else
             {
                 stream.WriteString("[");
@@ -128,16 +123,16 @@ namespace Replicate.Serialization
                 {
                     if (!first) stream.WriteString(", ");
                     else first = false;
-                    Serialize(stream, item, collectionValueType, null);
+                    Write(stream, item, collectionValueType, null);
                 }
                 stream.WriteString("]");
             }
         }
 
-        public override void SerializeObject(Stream stream, object obj, TypeAccessor typeAccessor)
+        public override void WriteObject(Stream stream, object obj, TypeAccessor typeAccessor)
         {
             if (obj == null)
-                SerializePrimitive(stream, null, null);
+                WritePrimitive(stream, null, null);
             else
             {
                 stream.WriteString("{");
@@ -147,23 +142,18 @@ namespace Replicate.Serialization
                     if (!first) stream.WriteString(", ");
                     else first = false;
                     stream.WriteString($"\"{MapName(member.Info.Name)}\": ");
-                    Serialize(stream, member.GetValue(obj), member.TypeAccessor, member);
+                    Write(stream, member.GetValue(obj), member.TypeAccessor, member);
                 }
                 stream.WriteString("}");
             }
         }
 
-        public override void SerializePrimitive(Stream stream, object obj, TypeAccessor typeAccessor)
+        public override void WritePrimitive(Stream stream, object obj, TypeAccessor typeAccessor)
         {
             if (obj == null)
                 stream.WriteString("null");
             else
                 serializers[typeAccessor.TypeData.PrimitiveType].Write(obj, stream);
-        }
-
-        public override void SerializeTuple(Stream stream, object obj, TypeAccessor typeAccessor)
-        {
-            throw new NotImplementedException();
         }
 
         public override Stream GetContext(string wireValue)
@@ -183,6 +173,16 @@ namespace Replicate.Serialization
         {
             stream.Position = 0;
             return new StreamReader(stream).ReadToEnd();
+        }
+
+        public override void WriteWithType(Stream stream, object obj, MemberAccessor memberAccessor)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override object ReadWithType(object obj, Stream stream, MemberAccessor memberAccessor)
+        {
+            throw new NotImplementedException();
         }
     }
 }

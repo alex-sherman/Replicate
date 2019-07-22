@@ -17,7 +17,6 @@ namespace Replicate.MetaData
         Primitive = 1,
         Object = 2,
         Collection = 3,
-        Tuple = 4,
     }
     public enum PrimitiveType
     {
@@ -90,7 +89,6 @@ namespace Replicate.MetaData
             kvpTD.AddMember("Key");
             kvpTD.AddMember("Value");
             kvpTD.SetTupleSurrogate();
-            Add(typeof(TypedValue));
             LoadTypes();
         }
 
@@ -120,9 +118,9 @@ namespace Replicate.MetaData
             return output;
         }
 
-        public TypeID GetID(Type type)
+        public TypeId GetID(Type type)
         {
-            var output = new TypeID()
+            var output = new TypeId()
             {
                 id = (ushort)typeIndex.IndexOf(this[type])
             };
@@ -130,7 +128,7 @@ namespace Replicate.MetaData
                 output.subtypes = type.GetGenericArguments().Select(t => GetID(t)).ToArray();
             return output;
         }
-        public Type GetType(TypeID typeID)
+        public Type GetType(TypeId typeID)
         {
             Type type = typeIndex[typeID.id].Type;
             if (type.IsGenericTypeDefinition)
@@ -141,6 +139,7 @@ namespace Replicate.MetaData
         }
         public TypeAccessor GetTypeAccessor(Type type)
         {
+            if (type == typeof(object)) return null;
             if (type.IsGenericTypeDefinition)
                 throw new InvalidOperationException("Cannot create a type accessor for a generic type definition");
             if (!typeAccessorLookup.TryGetValue(type, out TypeAccessor typeAccessor))

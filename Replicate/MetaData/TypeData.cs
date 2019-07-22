@@ -13,6 +13,7 @@ namespace Replicate.MetaData
     {
         public MarshallMethod MarshallMethod;
         public PrimitiveType PrimitiveType;
+        public readonly bool PrefixWithType;
         public string Name { get; private set; }
         public Type Type { get; private set; }
         public readonly List<MemberInfo> ReplicatedMembers = new List<MemberInfo>();
@@ -27,6 +28,7 @@ namespace Replicate.MetaData
             Type = type;
             Name = type.FullName;
             Model = model;
+            PrefixWithType = type == typeof(object);
             if (type.IsPrimitive || type == typeof(string) || type.IsEnum)
             {
                 MarshallMethod = MarshallMethod.Primitive;

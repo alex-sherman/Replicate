@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 namespace Replicate.Messages
 {
     [ReplicateType]
-    public struct TypeID
+    public struct TypeId
     {
         public ushort id;
-        public TypeID[] subtypes;
+        public TypeId[] subtypes;
     }
 }

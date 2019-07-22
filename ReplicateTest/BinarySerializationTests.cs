@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using Replicate.Messages;
 using NUnit.Framework;
 using Replicate.Serialization;
+using static ReplicateTest.BinarySerializerUtil;
 
 namespace ReplicateTest
 {
@@ -38,24 +39,23 @@ namespace ReplicateTest
         [Test]
         public void TestProperty()
         {
-            var output = BinarySerializerUtil.SerializeDeserialize(new PropClass() { Property = 3 });
+            var output = SerializeDeserialize(new PropClass() { Property = 3 });
             Assert.AreEqual(3, output.Property);
         }
         [Test]
         public void TestGeneric()
         {
-            var output = BinarySerializerUtil.SerializeDeserialize(new GenericClass<string>() { Value = "herp", Prop = "derp" });
+            var output = SerializeDeserialize(new GenericClass<string>() { Value = "herp", Prop = "derp" });
             Assert.AreEqual("herp", output.Value);
             Assert.AreEqual("derp", output.Prop);
         }
         [Test]
         public void TestList()
         {
-            var output = BinarySerializerUtil.SerializeDeserialize(new List<PropClass>() { new PropClass() { Property = 3 }, new PropClass() { Property = 4 } });
+            var output = SerializeDeserialize(new List<PropClass>() { new PropClass() { Property = 3 }, new PropClass() { Property = 4 } });
             Assert.AreEqual(3, output[0].Property);
             Assert.AreEqual(4, output[1].Property);
         }
-        // TODO: Fix
         //[Test]
         //public void TestSerializeRepBackedNode()
         //{
@@ -64,38 +64,39 @@ namespace ReplicateTest
         //    Assert.IsInstanceOf<PropClass>(output.RawValue);
         //    Assert.AreEqual(3, ((PropClass)output.RawValue).Property);
         //}
-        [TestCase(null, typeof(string), "null")]
-        [TestCase(0, typeof(int?), "0")]
-        [TestCase(1, typeof(int?), "1")]
-        [TestCase(1, typeof(short), "1")]
-        [TestCase(1, typeof(ushort), "1")]
-        [TestCase(1, typeof(long), "1")]
-        [TestCase(1, typeof(ulong), "1")]
-        [TestCase(null, typeof(int?), "null")]
-        [TestCase(0.5, typeof(float), "0.5")]
-        [TestCase(0, typeof(float?), "0")]
-        [TestCase(1, typeof(float?), "1")]
-        [TestCase(null, typeof(float?), "null")]
-        [TestCase("", typeof(string), "\"\"")]
-        [TestCase("😈", typeof(string), "\"😈\"")]
-        [TestCase(new double[] { }, typeof(double[]), "[]")]
-        [TestCase(null, typeof(double[]), "null")]
-        [TestCase(true, typeof(bool), "true")]
-        [TestCase(false, typeof(bool), "false")]
+        [TestCase(null, typeof(string), null)]
+        [TestCase(0, typeof(int?), null)]
+        [TestCase(1, typeof(int?), null)]
+        [TestCase(1, typeof(short), null)]
+        [TestCase(1, typeof(ushort), null)]
+        [TestCase(1, typeof(long), null)]
+        [TestCase(1, typeof(ulong), null)]
+        [TestCase(null, typeof(int?), null)]
+        [TestCase(0.5, typeof(float), null)]
+        [TestCase(0, typeof(float?), null)]
+        [TestCase(1, typeof(float?), null)]
+        [TestCase(null, typeof(float?), null)]
+        [TestCase("", typeof(string), null)]
+        [TestCase("😈", typeof(string), null)]
+        [TestCase(new double[] { }, typeof(double[]), null)]
+        [TestCase(null, typeof(double[]), null)]
+        [TestCase(true, typeof(bool), null)]
+        [TestCase(false, typeof(bool), null)]
         //[TestCase(JSONEnum.One, typeof(JSONEnum), "1")]
-        public void SerializeDeserialize(object obj, Type type, string serialized)
+        public void TestSerializeDeserialize(object obj, Type type, byte[] serialized)
         {
             var ser = new BinarySerializer(new ReplicationModel());
             var stream = new MemoryStream();
-            var str = ser.Serialize(type, obj);
-            //CollectionAssert.AreEqual(serialized, str);
-            var output = ser.Deserialize(type, str);
+            var result = ser.Serialize(type, obj);
+            if (serialized != null)
+                CollectionAssert.AreEqual(serialized, result);
+            var output = ser.Deserialize(type, result);
             Assert.AreEqual(obj, output);
         }
         [Test]
         public void TestDictionary()
         {
-            var output = BinarySerializerUtil.SerializeDeserialize(new Dictionary<string, PropClass>()
+            var output = SerializeDeserialize(new Dictionary<string, PropClass>()
             {
                 ["faff"] = new PropClass() { Property = 3 },
                 ["herp"] = new PropClass() { Property = 4 }
@@ -104,9 +105,21 @@ namespace ReplicateTest
             Assert.AreEqual(4, output["herp"].Property);
         }
         [Test]
+        public void TestObjectDictionary()
+        {
+            var output = SerializeDeserialize((object)new Dictionary<string, PropClass>()
+            {
+                ["faff"] = new PropClass() { Property = 3 },
+                ["herp"] = new PropClass() { Property = 4 }
+            });
+            if(!(output is Dictionary<string, PropClass> dict)) throw new AssertionException("Wrong type");
+            Assert.AreEqual(3, dict["faff"].Property);
+            Assert.AreEqual(4, dict["herp"].Property);
+        }
+        [Test]
         public void TestNullObject()
         {
-            var output = BinarySerializerUtil.SerializeDeserialize<PropClass>(null);
+            var output = SerializeDeserialize<PropClass>(null);
             Assert.IsNull(output);
         }
         [Test]
@@ -117,7 +130,7 @@ namespace ReplicateTest
             var stream = ser.Serialize(new InitMessage()
             {
                 id = new ReplicateId() { ObjectID = 0, Creator = 1 },
-                typeID = new TypeID()
+                typeID = new TypeId()
                 {
                     id = 12
                 }

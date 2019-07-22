@@ -92,7 +92,7 @@ namespace ReplicateTest
             var stream = ser.Serialize(new InitMessage()
             {
                 id = new ReplicateId() { ObjectID = 0, Creator = 1 },
-                typeID = new TypeID()
+                typeID = new TypeId()
                 {
                     id = 12
                 }

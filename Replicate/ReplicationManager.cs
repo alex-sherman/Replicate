@@ -82,7 +82,7 @@ namespace Replicate
                     Data = metaData.typeAccessor.MemberAccessors.Select((member, i) => new ReplicationData()
                     {
                         MemberKey = i,
-                        Value = new RepBackedNode(member.GetValue(replicated), member.TypeAccessor, member, Model),
+                        Value = member.GetValue(replicated),
                     }).ToList()
                 };
                 return Channel.Request(((Action<ReplicationMessage>)HandleReplication).Method, message);
@@ -96,7 +96,7 @@ namespace Replicate
                 throw new InvalidOperationException($"Cannot register an object with unknown type: {type}");
             if (typeData.Surrogate != null)
                 throw new InvalidOperationException("Cannot register objects which have surrogates");
-            TypeID typeID;
+            TypeId typeID;
             try
             {
                 typeID = Model.GetID(replicated.GetType());

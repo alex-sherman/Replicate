@@ -24,18 +24,17 @@ namespace Replicate.Serialization
         public TWireType Serialize(Type type, object obj)
         {
             var context = GetContext(default(TWireType));
-            Serialize(context, type, obj);
+            Write(context, obj, Model.GetTypeAccessor(type), null);
             return GetWireValue(context);
         }
         public TWireType Serialize<T>(T obj) => Serialize(typeof(T), obj);
-        public void Serialize(TContext stream, Type type, object obj)
+        public void Write(TContext stream, object obj, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
-            Serialize(stream, obj, Model.GetTypeAccessor(type), null);
-        }
-        public void Serialize(TContext stream, object obj, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
-        {
-            if (obj != null && typeAccessor == null)
-                throw new InvalidOperationException(string.Format("Cannot serialize {0}", obj.GetType().Name));
+            if (typeAccessor == null)
+            {
+                WriteWithType(stream, obj, memberAccessor);
+                return;
+            }
 
             var surrogateAccessor = memberAccessor?.Surrogate ?? typeAccessor.Surrogate;
             if (surrogateAccessor != null)
@@ -47,49 +46,45 @@ namespace Replicate.Serialization
             switch (marshalMethod)
             {
                 case MarshallMethod.Primitive:
-                    SerializePrimitive(stream, obj, typeAccessor);
+                    WritePrimitive(stream, obj, typeAccessor);
                     break;
                 case MarshallMethod.Collection:
                     var collectionValueType = Model.GetCollectionValueAccessor(typeAccessor.Type);
-                    SerializeCollection(stream, obj, collectionValueType);
-                    break;
-                case MarshallMethod.Tuple:
-                    SerializeTuple(stream, obj, typeAccessor);
+                    WriteCollection(stream, obj, collectionValueType);
                     break;
                 case MarshallMethod.Object:
-                    SerializeObject(stream, obj, typeAccessor);
+                    WriteObject(stream, obj, typeAccessor);
                     break;
             }
         }
-        public abstract void SerializePrimitive(TContext stream, object obj, TypeAccessor type);
-        public abstract void SerializeCollection(TContext stream, object obj, TypeAccessor collectionValueType);
-        public abstract void SerializeObject(TContext stream, object obj, TypeAccessor typeAccessor);
-        public abstract void SerializeTuple(TContext stream, object obj, TypeAccessor typeAccessor);
+        public abstract void WriteWithType(TContext stream, object obj, MemberAccessor memberAccessor);
+        public abstract void WritePrimitive(TContext stream, object obj, TypeAccessor type);
+        public abstract void WriteCollection(TContext stream, object obj, TypeAccessor collectionValueType);
+        public abstract void WriteObject(TContext stream, object obj, TypeAccessor typeAccessor);
         public T Deserialize<T>(TWireType wireValue) => (T)Deserialize(typeof(T), wireValue);
-        public object Deserialize(Type type, TWireType wire) => Deserialize(null, GetContext(wire), Model.GetTypeAccessor(type), null);
-        public object Deserialize(object obj, TContext stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
+        public object Deserialize(Type type, TWireType wire) => Read(null, GetContext(wire), Model.GetTypeAccessor(type), null);
+        public object Read(object obj, TContext stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
-            var surrogateAccessor = memberAccessor?.Surrogate ?? typeAccessor.Surrogate;
+            var surrogateAccessor = memberAccessor?.Surrogate ?? typeAccessor?.Surrogate;
             if (surrogateAccessor != null)
             {
                 obj = null;
                 typeAccessor = surrogateAccessor?.TypeAccessor;
             }
-            obj = DeserializeRaw(obj, stream, typeAccessor);
+            if (typeAccessor == null) obj = ReadWithType(obj, stream, memberAccessor);
+            else obj = Read(obj, stream, typeAccessor);
             return surrogateAccessor == null ? obj : surrogateAccessor.ConvertFrom(obj);
         }
-        private object DeserializeRaw(object obj, TContext stream, TypeAccessor typeAccessor)
+        private object Read(object obj, TContext stream, TypeAccessor typeAccessor)
         {
             switch (typeAccessor.TypeData.MarshallMethod)
             {
                 case MarshallMethod.Primitive:
-                    return DeserializePrimitive(stream, typeAccessor);
+                    return ReadPrimitive(stream, typeAccessor);
                 case MarshallMethod.Collection:
-                    return DeserializeCollection(obj, stream, typeAccessor, Model.GetCollectionValueAccessor(typeAccessor.Type));
-                case MarshallMethod.Tuple:
-                    return DeserializeTuple(stream, typeAccessor);
+                    return ReadCollection(obj, stream, typeAccessor, Model.GetCollectionValueAccessor(typeAccessor.Type));
                 case MarshallMethod.Object:
-                    return DeserializeObject(obj, stream, typeAccessor);
+                    return ReadObject(obj, stream, typeAccessor);
                 default:
                     return Default(typeAccessor.Type);
             }
@@ -100,9 +95,9 @@ namespace Replicate.Serialization
                 return Activator.CreateInstance(type);
             return null;
         }
-        public abstract object DeserializePrimitive(TContext stream, TypeAccessor type);
-        public abstract object DeserializeObject(object obj, TContext stream, TypeAccessor typeAccessor);
-        public abstract object DeserializeCollection(object obj, TContext stream, TypeAccessor typeAccessor, TypeAccessor collectionAccessor);
-        public abstract object DeserializeTuple(TContext stream, TypeAccessor typeAccessor);
+        public abstract object ReadWithType(object obj, TContext stream, MemberAccessor memberAccessor);
+        public abstract object ReadPrimitive(TContext stream, TypeAccessor type);
+        public abstract object ReadObject(object obj, TContext stream, TypeAccessor typeAccessor);
+        public abstract object ReadCollection(object obj, TContext stream, TypeAccessor typeAccessor, TypeAccessor collectionAccessor);
     }
 }

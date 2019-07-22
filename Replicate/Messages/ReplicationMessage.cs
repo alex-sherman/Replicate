@@ -18,6 +18,6 @@ namespace Replicate.Messages
     public struct ReplicationData
     {
         public MemberKey MemberKey;
-        public IRepNode Value;
+        public object Value;
     }
 }
