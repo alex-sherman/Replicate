@@ -174,22 +174,30 @@ namespace Replicate.Serialization
 
         public override byte[] GetWireValue(MemoryStream context) => context.ToArray();
 
-        public override void WriteWithType(MemoryStream stream, object obj, MemberAccessor member)
+        public override void WriteBlob(MemoryStream stream, Blob blob, MemberAccessor member)
         {
-            stream.WriteByte(obj == null ? (byte)255 : (byte)0);
-            if (obj != null)
+            stream.WriteByte(blob?.Type == null ? (byte)255 : (byte)0);
+            if (blob?.Type != null)
             {
-                var typeAccessor = Model.GetTypeAccessor(obj.GetType());
-                Write(stream, Model.GetID(typeAccessor.Type), Model.GetTypeAccessor(typeof(TypeId)), null);
-                Write(stream, obj, typeAccessor, member);
+                var typeAccessor = Model.GetTypeAccessor(blob.Type);
+                Write(stream, Model.GetID(blob.Type), Model.GetTypeAccessor(typeof(TypeId)), null);
+                var bytes = Serialize(blob.Type, blob.Value);
+                stream.WriteInt32(bytes.Length);
+                stream.Write(bytes, 0, bytes.Length);
             }
         }
 
-        public override object ReadWithType(object obj, MemoryStream stream, MemberAccessor memberAccessor)
+        public override Blob ReadBlob(Blob obj, MemoryStream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
             if (stream.ReadByte() == 255) return null;
             var typeId = (TypeId)Read(null, stream, Model.GetTypeAccessor(typeof(TypeId)), null);
-            return Read(obj, stream, Model.GetTypeAccessor(Model.GetType(typeId)), memberAccessor);
+            var type = Model.GetType(typeId);
+            var count = stream.ReadInt32();
+            var bytes = new byte[count];
+            stream.Read(bytes, 0, count);
+            obj = obj ?? (Blob)typeAccessor.Construct();
+            obj.SetWireValue(type, bytes, this);
+            return obj;
         }
     }
 }

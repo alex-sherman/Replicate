@@ -18,9 +18,9 @@ namespace Replicate
         {
             serializer = inner;
         }
-        public object Deserialize(Type type, object message)
+        public object Deserialize(Type type, object message, object existing = null)
         {
-            return serializer.Deserialize(type, (TWireType)message);
+            return serializer.Deserialize(type, (TWireType)message, existing);
         }
 
         public T Deserialize<T>(object wireValue)
@@ -36,7 +36,7 @@ namespace Replicate
     }
     public class NonSerializer : IReplicateSerializer<object>
     {
-        public object Deserialize(Type type, object wireValue) => wireValue;
+        public object Deserialize(Type type, object wireValue, object existing = null) => wireValue;
         public T Deserialize<T>(object wireValue) => (T)wireValue;
         public object Serialize<T>(T obj) => Serialize(typeof(T), obj);
         public object Serialize(Type type, object obj) => obj;

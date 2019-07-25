@@ -31,6 +31,8 @@ namespace Replicate.MetaData
                 var castToOp = surrogateType.GetMethod("op_Implicit", new Type[] { originalType });
                 if (castToOp != null)
                     return obj => obj == null ? null : castToOp.Invoke(null, new[] { obj });
+                // TODO: Defaulting to copying members is confusing
+                // should maybe just be explicit for fakes
                 else
                     return obj => TypeUtil.CopyToRaw(obj, originalType, Activator.CreateInstance(surrogateType), surrogateType);
             });

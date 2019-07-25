@@ -30,12 +30,6 @@ namespace Replicate.Serialization
         public TWireType Serialize<T>(T obj) => Serialize(typeof(T), obj);
         public void Write(TContext stream, object obj, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
-            if (typeAccessor == null)
-            {
-                WriteWithType(stream, obj, memberAccessor);
-                return;
-            }
-
             var surrogateAccessor = memberAccessor?.Surrogate ?? typeAccessor.Surrogate;
             if (surrogateAccessor != null)
             {
@@ -55,14 +49,18 @@ namespace Replicate.Serialization
                 case MarshallMethod.Object:
                     WriteObject(stream, obj, typeAccessor);
                     break;
+                case MarshallMethod.Blob:
+                    WriteBlob(stream, obj as Blob ?? Blob.None, memberAccessor);
+                    break;
             }
         }
-        public abstract void WriteWithType(TContext stream, object obj, MemberAccessor memberAccessor);
+        public abstract void WriteBlob(TContext stream, Blob blob, MemberAccessor memberAccessor);
         public abstract void WritePrimitive(TContext stream, object obj, TypeAccessor type);
         public abstract void WriteCollection(TContext stream, object obj, TypeAccessor collectionValueType);
         public abstract void WriteObject(TContext stream, object obj, TypeAccessor typeAccessor);
-        public T Deserialize<T>(TWireType wireValue) => (T)Deserialize(typeof(T), wireValue);
-        public object Deserialize(Type type, TWireType wire) => Read(null, GetContext(wire), Model.GetTypeAccessor(type), null);
+        public T Deserialize<T>(TWireType wireValue) => (T)Deserialize(typeof(T), wireValue, null);
+        public object Deserialize(Type type, TWireType wire, object existing = null)
+             => Read(existing, GetContext(wire), Model.GetTypeAccessor(type), null);
         public object Read(object obj, TContext stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
             var surrogateAccessor = memberAccessor?.Surrogate ?? typeAccessor?.Surrogate;
@@ -71,11 +69,10 @@ namespace Replicate.Serialization
                 obj = null;
                 typeAccessor = surrogateAccessor?.TypeAccessor;
             }
-            if (typeAccessor == null) obj = ReadWithType(obj, stream, memberAccessor);
-            else obj = Read(obj, stream, typeAccessor);
+            obj = _read(obj, stream, typeAccessor, memberAccessor);
             return surrogateAccessor == null ? obj : surrogateAccessor.ConvertFrom(obj);
         }
-        private object Read(object obj, TContext stream, TypeAccessor typeAccessor)
+        private object _read(object obj, TContext stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
             switch (typeAccessor.TypeData.MarshallMethod)
             {
@@ -85,6 +82,8 @@ namespace Replicate.Serialization
                     return ReadCollection(obj, stream, typeAccessor, Model.GetCollectionValueAccessor(typeAccessor.Type));
                 case MarshallMethod.Object:
                     return ReadObject(obj, stream, typeAccessor);
+                case MarshallMethod.Blob:
+                    return ReadBlob((Blob)obj, stream, typeAccessor, memberAccessor);
                 default:
                     return Default(typeAccessor.Type);
             }
@@ -95,7 +94,7 @@ namespace Replicate.Serialization
                 return Activator.CreateInstance(type);
             return null;
         }
-        public abstract object ReadWithType(object obj, TContext stream, MemberAccessor memberAccessor);
+        public abstract Blob ReadBlob(Blob obj, TContext stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor);
         public abstract object ReadPrimitive(TContext stream, TypeAccessor type);
         public abstract object ReadObject(object obj, TContext stream, TypeAccessor typeAccessor);
         public abstract object ReadCollection(object obj, TContext stream, TypeAccessor typeAccessor, TypeAccessor collectionAccessor);

@@ -1,5 +1,6 @@
 ﻿using Replicate.Messages;
 using Replicate.MetaTyping;
+using Replicate.Serialization;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -17,6 +18,7 @@ namespace Replicate.MetaData
         Primitive = 1,
         Object = 2,
         Collection = 3,
+        Blob = 4,
     }
     public enum PrimitiveType
     {
@@ -82,6 +84,12 @@ namespace Replicate.MetaData
             Add(typeof(List<>));
             Add(typeof(ICollection<>));
             Add(typeof(IEnumerable<>));
+            Add(typeof(Blob));
+            Add(typeof(DeferredBlob));
+            Add(typeof(object)).SetSurrogate(new Surrogate(typeof(Blob),
+                (_, __) => obj => obj == null ? null : new Blob(obj),
+                (_, __) => obj => obj == null ? null : ((Blob)obj).Value
+            ));
             var repNodeTypeData = Add(typeof(IRepNode));
             repNodeTypeData.MarshallMethod = MarshallMethod.None;
             var kvpTD = Add(typeof(KeyValuePair<,>));
@@ -139,7 +147,6 @@ namespace Replicate.MetaData
         }
         public TypeAccessor GetTypeAccessor(Type type)
         {
-            if (type == typeof(object)) return null;
             if (type.IsGenericTypeDefinition)
                 throw new InvalidOperationException("Cannot create a type accessor for a generic type definition");
             if (!typeAccessorLookup.TryGetValue(type, out TypeAccessor typeAccessor))

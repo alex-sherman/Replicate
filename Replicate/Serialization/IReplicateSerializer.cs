@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Replicate.MetaData;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -11,7 +12,7 @@ namespace Replicate.Serialization
     {
         TWireType Serialize<T>(T obj);
         TWireType Serialize(Type type, object obj);
-        object Deserialize(Type type, TWireType wireValue);
+        object Deserialize(Type type, TWireType wireValue, object existing = null);
         T Deserialize<T>(TWireType wireValue);
     }
     public interface ITypedSerializer

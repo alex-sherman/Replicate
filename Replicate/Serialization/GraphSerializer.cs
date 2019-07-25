@@ -26,12 +26,11 @@ namespace Replicate.Serialization
         }
 
         public T Deserialize<T>(TWireType wireValue) => (T)Deserialize(typeof(T), wireValue);
-        public object Deserialize(Type type, TWireType wireValue) => Deserialize(null, type, wireValue);
-        public object Deserialize(object existingValue, Type type, TWireType wireValue)
+        public object Deserialize(Type type, TWireType wireValue, object existing = null)
         {
             var context = GetContext(wireValue);
 
-            var node = Model.GetRepNode(existingValue, type);
+            var node = Model.GetRepNode(existing, type);
             return Read(context, node).RawValue;
         }
         public abstract TContext GetContext(TWireType wireValue);

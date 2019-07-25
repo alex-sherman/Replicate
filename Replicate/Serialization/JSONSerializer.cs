@@ -175,12 +175,12 @@ namespace Replicate.Serialization
             return new StreamReader(stream).ReadToEnd();
         }
 
-        public override void WriteWithType(Stream stream, object obj, MemberAccessor memberAccessor)
+        public override void WriteBlob(Stream stream, Blob obj, MemberAccessor memberAccessor)
         {
             throw new NotImplementedException();
         }
 
-        public override object ReadWithType(object obj, Stream stream, MemberAccessor memberAccessor)
+        public override Blob ReadBlob(Blob obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
             throw new NotImplementedException();
         }

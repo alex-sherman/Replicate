@@ -12,6 +12,7 @@ namespace Replicate.Messages
     public struct ReplicationMessage
     {
         public ReplicateId id;
+        // TODO: Change to DeferredBlob
         public List<ReplicationData> Data;
     }
     [ReplicateType]

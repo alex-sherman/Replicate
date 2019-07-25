@@ -1,4 +1,5 @@
 ﻿using Replicate.MetaTyping;
+using Replicate.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -33,6 +34,10 @@ namespace Replicate.MetaData
             {
                 MarshallMethod = MarshallMethod.Primitive;
                 PrimitiveType = PrimitiveTypeMap.MapType(type);
+            }
+            else if (typeof(Blob).IsAssignableFrom(type))
+            {
+                MarshallMethod = MarshallMethod.Blob;
             }
             else
             {
