@@ -11,7 +11,7 @@ using static Replicate.Serialization.JSONGraphSerializer;
 
 namespace Replicate.Serialization
 {
-    public class JSONSerializer : Serializer<Stream, string>
+    public class JSONSerializer : Serializer
     {
         public bool ToLowerFieldNames = false;
         public JSONSerializer(ReplicationModel model) : base(model) { }
@@ -154,25 +154,6 @@ namespace Replicate.Serialization
                 stream.WriteString("null");
             else
                 serializers[typeAccessor.TypeData.PrimitiveType].Write(obj, stream);
-        }
-
-        public override Stream GetContext(string wireValue)
-        {
-            var stream = new MemoryStream();
-            if (wireValue != null)
-            {
-                var sw = new StreamWriter(stream);
-                sw.Write(wireValue);
-                sw.Flush();
-                stream.Position = 0;
-            }
-            return stream;
-        }
-
-        public override string GetWireValue(Stream stream)
-        {
-            stream.Position = 0;
-            return new StreamReader(stream).ReadToEnd();
         }
 
         public override void WriteBlob(Stream stream, Blob obj, MemberAccessor memberAccessor)

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Replicate.Serialization
 {
-    public abstract class GraphSerializer<TContext, TWireType> : IReplicateSerializer<TWireType>
+    public abstract class GraphSerializer : IReplicateSerializer
     {
         public ReplicationModel Model { get; private set; }
         public GraphSerializer(ReplicationModel model)
@@ -17,25 +17,19 @@ namespace Replicate.Serialization
         }
         private GraphSerializer() { }
 
-        public TWireType Serialize<T>(T obj) => Serialize(typeof(T), obj);
-        public TWireType Serialize(Type type, object obj)
+        public Stream Serialize(Type type, object obj, Stream stream)
         {
-            var context = GetContext(default(TWireType));
-            Write(context, Model.GetRepNode(obj, type));
-            return GetWireValue(context);
+            Write(stream, Model.GetRepNode(obj, type));
+            return stream;
         }
 
-        public T Deserialize<T>(TWireType wireValue) => (T)Deserialize(typeof(T), wireValue);
-        public object Deserialize(Type type, TWireType wireValue, object existing = null)
+        public T Deserialize<T>(Stream wireValue) => (T)Deserialize(typeof(T), wireValue);
+        public object Deserialize(Type type, Stream wireValue, object existing = null)
         {
-            var context = GetContext(wireValue);
-
             var node = Model.GetRepNode(existing, type);
-            return Read(context, node).RawValue;
+            return Read(wireValue, node).RawValue;
         }
-        public abstract TContext GetContext(TWireType wireValue);
-        public abstract TWireType GetWireValue(TContext context);
-        public void Write(TContext context, IRepNode node)
+        public void Write(Stream context, IRepNode node)
         {
             switch (node.MarshallMethod)
             {
@@ -53,11 +47,11 @@ namespace Replicate.Serialization
                     break;
             }
         }
-        public abstract void Write(TContext context, IRepPrimitive value);
-        public abstract void Write(TContext context, IRepCollection value);
-        public abstract void Write(TContext context, IRepObject value);
-        public abstract (MarshallMethod, PrimitiveType?) ReadNodeType(TContext context);
-        public IRepNode Read(TContext context, IRepNode node)
+        public abstract void Write(Stream context, IRepPrimitive value);
+        public abstract void Write(Stream context, IRepCollection value);
+        public abstract void Write(Stream context, IRepObject value);
+        public abstract (MarshallMethod, PrimitiveType?) ReadNodeType(Stream context);
+        public IRepNode Read(Stream context, IRepNode node)
         {
             var marshalMethod = node.MarshallMethod;
             (MarshallMethod, PrimitiveType?) nodeInfo = (node.MarshallMethod, null);
@@ -89,8 +83,8 @@ namespace Replicate.Serialization
                 return Activator.CreateInstance(type);
             return null;
         }
-        public abstract IRepPrimitive Read(TContext context, IRepPrimitive value);
-        public abstract IRepCollection Read(TContext context, IRepCollection value);
-        public abstract IRepObject Read(TContext context, IRepObject value);
+        public abstract IRepPrimitive Read(Stream context, IRepPrimitive value);
+        public abstract IRepCollection Read(Stream context, IRepCollection value);
+        public abstract IRepObject Read(Stream context, IRepObject value);
     }
 }

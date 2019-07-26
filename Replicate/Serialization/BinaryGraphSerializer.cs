@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Replicate.Serialization
 {
-    public class BinaryGraphSerializer : GraphSerializer<MemoryStream, MemoryStream>
+    public class BinaryGraphSerializer : GraphSerializer
     {
         public BinaryGraphSerializer(ReplicationModel model) : base(model) { }
         static BinaryIntSerializer intSer = new BinaryIntSerializer();
@@ -23,37 +23,7 @@ namespace Replicate.Serialization
             {PrimitiveType.Float, new BinaryFloatSerializer() },
         };
 
-        //public override void SerializeTuple(Stream stream, object obj, TypeAccessor typeAccessor)
-        //{
-        //    foreach (var member in typeAccessor.MemberAccessors)
-        //        Serialize(stream, member.GetValue(obj), member.TypeAccessor, member);
-        //}
-
-
-        //public override object DeserializeTuple(Stream stream, Type type, TypeAccessor typeAccessor)
-        //{
-        //    List<object> parameters = new List<object>();
-        //    List<Type> paramTypes = new List<Type>();
-        //    foreach (var member in typeAccessor.MemberAccessors)
-        //    {
-        //        paramTypes.Add(member.Type);
-        //        parameters.Add(Deserialize(null, stream, member.TypeAccessor, member));
-        //    }
-        //    return type.GetConstructor(paramTypes.ToArray()).Invoke(parameters.ToArray());
-        //}
-
-        public override MemoryStream GetContext(MemoryStream wireValue)
-        {
-            return wireValue ?? new MemoryStream();
-        }
-
-        public override MemoryStream GetWireValue(MemoryStream context)
-        {
-            context.Position = 0;
-            return context ?? new MemoryStream();
-        }
-
-        public override void Write(MemoryStream stream, IRepPrimitive value)
+        public override void Write(Stream stream, IRepPrimitive value)
         {
             if (value.RawValue == null)
                 stream.WriteByte(0);
@@ -64,7 +34,7 @@ namespace Replicate.Serialization
             }
         }
 
-        public override void Write(MemoryStream stream, IRepCollection value)
+        public override void Write(Stream stream, IRepCollection value)
         {
             if (value.Value == null)
             {
@@ -102,7 +72,7 @@ namespace Replicate.Serialization
             if (b != 254) return b;
             return (string)serializers[PrimitiveType.String].Read(stream);
         }
-        public override void Write(MemoryStream stream, IRepObject value)
+        public override void Write(Stream stream, IRepObject value)
         {
             if (value.Value == null)
             {
@@ -124,19 +94,19 @@ namespace Replicate.Serialization
             stream.Position = endPosition;
         }
 
-        public override (MarshallMethod, PrimitiveType?) ReadNodeType(MemoryStream context)
+        public override (MarshallMethod, PrimitiveType?) ReadNodeType(Stream context)
         {
             throw new NotImplementedException();
         }
 
-        public override IRepPrimitive Read(MemoryStream stream, IRepPrimitive value)
+        public override IRepPrimitive Read(Stream stream, IRepPrimitive value)
         {
             if (stream.ReadByte() == 0) { value.Value = null; return value; }
             value.Value = serializers[value.PrimitiveType].Read(stream);
             return value;
         }
 
-        public override IRepCollection Read(MemoryStream stream, IRepCollection value)
+        public override IRepCollection Read(Stream stream, IRepCollection value)
         {
             int count = stream.ReadInt32();
             if (count == -1) { value.Value = null; return value; }
@@ -145,7 +115,7 @@ namespace Replicate.Serialization
             return value;
         }
 
-        public override IRepObject Read(MemoryStream stream, IRepObject value)
+        public override IRepObject Read(Stream stream, IRepObject value)
         {
             int count = stream.ReadInt32();
             if (count == -1) { value.Value = null; return value; }

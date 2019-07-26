@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -19,24 +20,23 @@ namespace Replicate.Serialization
             Value = obj;
         }
         public Blob() { }
-        public virtual void SetWireValue<T>(Type type, object wire, IReplicateSerializer<T> ser)
+        public virtual void SetWireValue(Type type, Stream wire, IReplicateSerializer ser)
         {
             Type = type;
-            Value = ser.Deserialize(Type, (T)wire, null);
+            Value = ser.Deserialize(Type, wire, null);
         }
     }
     public class DeferredBlob : Blob
     {
-        private object _wireData;
-        public override void SetWireValue<T>(Type type, object wire, IReplicateSerializer<T> ser)
+        private Stream _wireData;
+        public override void SetWireValue(Type type, Stream wire, IReplicateSerializer ser)
         {
             _wireData = wire;
         }
-        public object ReadInto<T>(object existing, IReplicateSerializer<T> ser)
+        public object ReadInto<T>(object existing, IReplicateSerializer ser)
         {
             if (_wireData == null) throw new InvalidOperationException("Must call SetWireValue first");
-            if (!(_wireData is T wire)) throw new InvalidCastException();
-            return Value = ser.Deserialize(Type, wire, existing);
+            return Value = ser.Deserialize(Type, _wireData, existing);
         }
     }
 }

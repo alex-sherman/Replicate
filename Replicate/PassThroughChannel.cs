@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -11,54 +12,34 @@ using Replicate.Serialization;
 
 namespace Replicate
 {
-    class CastedSerializer<TWireType> : IReplicateSerializer<object>
+    public class NonSerializer : IReplicateSerializer
     {
-        IReplicateSerializer<TWireType> serializer;
-        public CastedSerializer(IReplicateSerializer<TWireType> inner)
+        class SecretStream : MemoryStream
         {
-            serializer = inner;
+            public object Obj;
         }
-        public object Deserialize(Type type, object message, object existing = null)
-        {
-            return serializer.Deserialize(type, (TWireType)message, existing);
-        }
-
-        public T Deserialize<T>(object wireValue)
-        {
-            return serializer.Deserialize<T>((TWireType)wireValue);
-        }
-
-        public object Serialize<T>(T obj) => Serialize(typeof(T), obj);
-        public object Serialize(Type type, object obj)
-        {
-            return serializer.Serialize(type, obj);
-        }
-    }
-    public class NonSerializer : IReplicateSerializer<object>
-    {
-        public object Deserialize(Type type, object wireValue, object existing = null) => wireValue;
-        public T Deserialize<T>(object wireValue) => (T)wireValue;
-        public object Serialize<T>(T obj) => Serialize(typeof(T), obj);
-        public object Serialize(Type type, object obj) => obj;
+        public object Deserialize(Type type, Stream wireValue, object existing = null) => (wireValue as SecretStream).Obj;
+        public T Deserialize<T>(Stream wireValue) => (T)(wireValue as SecretStream).Obj;
+        public Stream Serialize(Type type, object obj, Stream _) => new SecretStream() { Obj = obj };
     }
     public class PassThroughChannel
     {
-        public class Endpoint : RPCChannel<string, object>
+        public class Endpoint : RPCChannel<string, Stream>
         {
             public Endpoint target;
 
             public Endpoint() : base(new NonSerializer()) { }
-            public Endpoint(IReplicateSerializer<object> serializer) : base(serializer) { }
+            public Endpoint(IReplicateSerializer serializer) : base(serializer) { }
 
             public override string GetEndpoint(MethodInfo method)
             {
                 return $"{method.DeclaringType}.{method.Name}";
             }
+            public override Stream GetWireValue(Stream stream) => stream;
+            public override Stream GetStream(Stream stream) => stream;
 
-            public override Task<object> Request(string messageId, RPCRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced)
+            public override Task<Stream> Request(string messageId, RPCRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced)
             {
-                if (Serializer == null)
-                    return target.Receive(messageId, request);
                 return target.Receive(messageId, Serializer.Serialize(request.Contract.RequestType, request.Request), request.Target);
             }
         }
@@ -68,11 +49,10 @@ namespace Replicate
         public PassThroughChannel()
         {
         }
-        public void SetSerializer<T>(IReplicateSerializer<T> serializer)
+        public void SetSerializer(IReplicateSerializer serializer)
         {
-            var objectSer = new CastedSerializer<T>(serializer);
-            var pointA = new Endpoint(objectSer);
-            var pointB = new Endpoint(objectSer) { target = pointA };
+            var pointA = new Endpoint(serializer);
+            var pointB = new Endpoint(serializer) { target = pointA };
             pointA.target = pointB;
             PointA = pointA;
             PointB = pointB;

@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Replicate.Serialization
 {
-    public abstract class Serializer<TContext, TWireType> : IReplicateSerializer<TWireType>
+    public abstract class Serializer : IReplicateSerializer
     {
         public ReplicationModel Model { get; private set; }
         public Serializer(ReplicationModel model)
@@ -19,16 +19,12 @@ namespace Replicate.Serialization
             Model = model;
         }
         private Serializer() { }
-        public abstract TContext GetContext(TWireType wireValue);
-        public abstract TWireType GetWireValue(TContext context);
-        public TWireType Serialize(Type type, object obj)
+        public Stream Serialize(Type type, object obj, Stream stream)
         {
-            var context = GetContext(default(TWireType));
-            Write(context, obj, Model.GetTypeAccessor(type), null);
-            return GetWireValue(context);
+            Write(stream, obj, Model.GetTypeAccessor(type), null);
+            return stream;
         }
-        public TWireType Serialize<T>(T obj) => Serialize(typeof(T), obj);
-        public void Write(TContext stream, object obj, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
+        public void Write(Stream stream, object obj, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
             var surrogateAccessor = memberAccessor?.Surrogate ?? typeAccessor.Surrogate;
             if (surrogateAccessor != null)
@@ -54,14 +50,14 @@ namespace Replicate.Serialization
                     break;
             }
         }
-        public abstract void WriteBlob(TContext stream, Blob blob, MemberAccessor memberAccessor);
-        public abstract void WritePrimitive(TContext stream, object obj, TypeAccessor type);
-        public abstract void WriteCollection(TContext stream, object obj, TypeAccessor collectionValueType);
-        public abstract void WriteObject(TContext stream, object obj, TypeAccessor typeAccessor);
-        public T Deserialize<T>(TWireType wireValue) => (T)Deserialize(typeof(T), wireValue, null);
-        public object Deserialize(Type type, TWireType wire, object existing = null)
-             => Read(existing, GetContext(wire), Model.GetTypeAccessor(type), null);
-        public object Read(object obj, TContext stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
+        public abstract void WriteBlob(Stream stream, Blob blob, MemberAccessor memberAccessor);
+        public abstract void WritePrimitive(Stream stream, object obj, TypeAccessor type);
+        public abstract void WriteCollection(Stream stream, object obj, TypeAccessor collectionValueType);
+        public abstract void WriteObject(Stream stream, object obj, TypeAccessor typeAccessor);
+        public T Deserialize<T>(Stream wireValue) => (T)Deserialize(typeof(T), wireValue, null);
+        public object Deserialize(Type type, Stream wire, object existing = null)
+             => Read(existing, wire, Model.GetTypeAccessor(type), null);
+        public object Read(object obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
             var surrogateAccessor = memberAccessor?.Surrogate ?? typeAccessor?.Surrogate;
             if (surrogateAccessor != null)
@@ -72,7 +68,7 @@ namespace Replicate.Serialization
             obj = _read(obj, stream, typeAccessor, memberAccessor);
             return surrogateAccessor == null ? obj : surrogateAccessor.ConvertFrom(obj);
         }
-        private object _read(object obj, TContext stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
+        private object _read(object obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
             switch (typeAccessor.TypeData.MarshallMethod)
             {
@@ -94,9 +90,9 @@ namespace Replicate.Serialization
                 return Activator.CreateInstance(type);
             return null;
         }
-        public abstract Blob ReadBlob(Blob obj, TContext stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor);
-        public abstract object ReadPrimitive(TContext stream, TypeAccessor type);
-        public abstract object ReadObject(object obj, TContext stream, TypeAccessor typeAccessor);
-        public abstract object ReadCollection(object obj, TContext stream, TypeAccessor typeAccessor, TypeAccessor collectionAccessor);
+        public abstract Blob ReadBlob(Blob obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor);
+        public abstract object ReadPrimitive(Stream stream, TypeAccessor type);
+        public abstract object ReadObject(object obj, Stream stream, TypeAccessor typeAccessor);
+        public abstract object ReadCollection(object obj, Stream stream, TypeAccessor typeAccessor, TypeAccessor collectionAccessor);
     }
 }

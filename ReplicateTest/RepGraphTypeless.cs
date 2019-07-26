@@ -39,7 +39,7 @@ namespace ReplicateTest
         public void TestSerialize(object obj, string serialized)
         {
             var ser = new JSONGraphSerializer(new ReplicationModel());
-            var output = ser.Serialize(obj?.GetType() ?? typeof(string), obj);
+            var output = ser.SerializeString(obj?.GetType() ?? typeof(string), obj);
             Assert.AreEqual(serialized, output);
         }
         [Test]

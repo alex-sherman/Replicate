@@ -51,13 +51,13 @@ namespace Replicate
         private MessageHeader currentHeader;
         private int remainingBytes;
         private MemoryStream currentMessage = null;
-        private Dictionary<uint, TaskCompletionSource<MemoryStream>> outStandingMessages = new Dictionary<uint, TaskCompletionSource<MemoryStream>>();
+        private Dictionary<uint, TaskCompletionSource<Stream>> outStandingMessages = new Dictionary<uint, TaskCompletionSource<Stream>>();
         uint sequence = 0xFAFF;
         public readonly Socket Socket;
         private TcpClient client;
         public SocketChannel(Socket socket, ReplicationModel model = null)
             : this(socket, new BinaryGraphSerializer(model ?? ReplicationModel.Default)) { }
-        public SocketChannel(Socket socket, IReplicateSerializer<MemoryStream> serializer)
+        public SocketChannel(Socket socket, IReplicateSerializer serializer)
             : base(serializer)
         {
             Socket = socket;
@@ -117,19 +117,28 @@ namespace Replicate
             }
         }
 
-        public override Task<MemoryStream> Request(string messageId, RPCRequest request, ReliabilityMode reliability)
+        public override Task<Stream> Request(string messageId, RPCRequest request, ReliabilityMode reliability)
         {
             var messageSequence = sequence++;
-            var message = Serializer.Serialize(request.Contract.RequestType, request.Request).ToArray();
-            var endpointBytes = Serializer.Serialize(messageId).ToArray();
-            var header = new MessageHeader() { Flags = MessageFlags.Request, Length = message.Length + endpointBytes.Length, Sequence = messageSequence };
+            var messageStream = new MemoryStream();
+            Serializer.Serialize(messageId, messageStream);
+            Serializer.Serialize(request.Contract.RequestType, request.Request, messageStream);
+            var header = new MessageHeader() { Flags = MessageFlags.Request, Length = (int)messageStream.Length, Sequence = messageSequence };
             lock (this)
             {
                 Socket.Send(header);
-                Socket.Send(endpointBytes);
-                Socket.Send(message);
+                Socket.Send(messageStream.ToArray());
             }
-            return (outStandingMessages[messageSequence] = new TaskCompletionSource<MemoryStream>()).Task;
+            return (outStandingMessages[messageSequence] = new TaskCompletionSource<Stream>()).Task;
+        }
+
+        public override Stream GetStream(MemoryStream wireValue) => wireValue;
+
+        public override MemoryStream GetWireValue(Stream stream)
+        {
+            var output = new MemoryStream();
+            stream.CopyTo(output);
+            return output;
         }
     }
 }

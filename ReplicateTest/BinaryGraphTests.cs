@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using Replicate.Messages;
 using NUnit.Framework;
 using static ReplicateTest.BinarySerializerUtil;
+using Replicate.Serialization;
 
 namespace ReplicateTest
 {
@@ -88,7 +89,7 @@ namespace ReplicateTest
         {
             var model = new ReplicationModel();
             model.Add(typeof(InitMessage));
-            var ser = new Replicate.Serialization.BinarySerializer(model);
+            var ser = new BinarySerializer(model);
             var stream = ser.Serialize(new InitMessage()
             {
                 id = new ReplicateId() { ObjectID = 0, Creator = 1 },

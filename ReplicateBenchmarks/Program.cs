@@ -41,7 +41,7 @@ namespace ReplicateBenchmarks
             s.Stop();
             Console.WriteLine(name + ": " + s.ElapsedTicks * 1.0 / Stopwatch.Frequency);
         }
-        static void TimeSerialize<T, W>(string name, T value, IReplicateSerializer<W> serializer, double count = 1e6)
+        static void TimeSerialize<T>(string name, T value, IReplicateSerializer serializer, double count = 1e6)
         {
             stream.Seek(0, SeekOrigin.Begin);
             var s = Stopwatch.StartNew();
