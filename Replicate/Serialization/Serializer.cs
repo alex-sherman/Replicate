@@ -46,7 +46,7 @@ namespace Replicate.Serialization
                     WriteObject(stream, obj, typeAccessor);
                     break;
                 case MarshallMethod.Blob:
-                    WriteBlob(stream, obj as Blob ?? Blob.None, memberAccessor);
+                    WriteBlob(stream, obj as Blob, memberAccessor);
                     break;
             }
         }

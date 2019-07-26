@@ -117,8 +117,7 @@ namespace ReplicateTest
             Assert.AreEqual(replicated.field1, clientValue.field1);
             Assert.AreEqual(replicated.field2, clientValue.field2);
         }
-        // TODO: Add blobs of serialization to allow deserializing from a message _into_ an object
-        //[Test]
+        [Test]
         public void ReplicateObjReference()
         {
             ReplicatedType2 child = new ReplicatedType2()
@@ -145,8 +144,7 @@ namespace ReplicateTest
             Assert.NotNull(clientValue.child1);
             Assert.AreEqual(clientValue.child1, clientValue2.child1);
         }
-        // TODO: Re-enable after fixing above
-        //[Test]
+        [Test]
         public void ReplicateDictionary()
         {
             Dictionary<string, int> faff = new Dictionary<string, int>

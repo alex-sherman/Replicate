@@ -9,7 +9,6 @@ namespace Replicate.Serialization
 {
     public class Blob
     {
-        public static Blob None { get; } = new Blob();
         public Type Type { get; protected set; }
         public object Value { get; protected set; }
         public Blob(object obj, Type type = null)
@@ -29,14 +28,19 @@ namespace Replicate.Serialization
     public class DeferredBlob : Blob
     {
         private Stream _wireData;
+        private IReplicateSerializer serializer;
+        public DeferredBlob(object obj, Type type = null) : base(obj, type) { }
+        public DeferredBlob() { }
         public override void SetWireValue(Type type, Stream wire, IReplicateSerializer ser)
         {
+            Type = type;
             _wireData = wire;
+            serializer = ser;
         }
-        public object ReadInto<T>(object existing, IReplicateSerializer ser)
+        public object ReadInto(object existing)
         {
             if (_wireData == null) throw new InvalidOperationException("Must call SetWireValue first");
-            return Value = ser.Deserialize(Type, _wireData, existing);
+            return Value = serializer.Deserialize(Type, _wireData, existing);
         }
     }
 }

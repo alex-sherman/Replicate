@@ -165,7 +165,7 @@ namespace Replicate.MetaData
             {
                 interfacedCollectionType = collectionType;
             }
-            else if(collectionType.Implements(typeof(IEnumerable<>)))
+            else if (collectionType.Implements(typeof(IEnumerable<>)))
             {
                 if (collectionType.GetInterface("ICollection`1") != null)
                     interfacedCollectionType = collectionType.GetInterface("ICollection`1");

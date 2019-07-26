@@ -61,8 +61,7 @@ namespace Replicate
         private void HandleReplication(ReplicationMessage message)
         {
             var metaData = IDLookup[message.id];
-            foreach (var data in message.Data)
-                metaData.typeAccessor[data.MemberKey].SetValue(metaData.replicated, data.Value);
+            message.Value.ReadInto(metaData.replicated);
         }
 
         private void HandleInit(InitMessage message)
@@ -79,11 +78,7 @@ namespace Replicate
                 ReplicationMessage message = new ReplicationMessage()
                 {
                     id = metaData.id,
-                    Data = metaData.typeAccessor.MemberAccessors.Select((member, i) => new ReplicationData()
-                    {
-                        MemberKey = i,
-                        Value = member.GetValue(replicated),
-                    }).ToList()
+                    Value = new DeferredBlob(replicated, metaData.typeAccessor.Type),
                 };
                 return Channel.Request(((Action<ReplicationMessage>)HandleReplication).Method, message);
             }

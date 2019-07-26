@@ -1,4 +1,5 @@
 ﻿using Replicate.MetaData;
+using Replicate.Serialization;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,13 +13,6 @@ namespace Replicate.Messages
     public struct ReplicationMessage
     {
         public ReplicateId id;
-        // TODO: Change to DeferredBlob
-        public List<ReplicationData> Data;
-    }
-    [ReplicateType]
-    public struct ReplicationData
-    {
-        public MemberKey MemberKey;
-        public object Value;
+        public DeferredBlob Value;
     }
 }
