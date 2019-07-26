@@ -275,7 +275,7 @@ namespace Replicate.MetaData
 
         public void LoadTypes(Assembly assembly = null)
         {
-            assembly = assembly ?? Assembly.GetExecutingAssembly();
+            assembly = assembly ?? Assembly.GetCallingAssembly();
             foreach (var type in assembly.GetTypes().Where(t => t.GetCustomAttribute<ReplicateTypeAttribute>() != null))
                 Add(type);
         }
