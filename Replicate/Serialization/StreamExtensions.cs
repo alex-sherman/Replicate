@@ -76,6 +76,7 @@ namespace Replicate.Serialization
         }
         public static string ReadAllString(this Stream stream, Func<char, bool> predicate = null)
         {
+            if (predicate == null) return new StreamReader(stream).ReadToEnd();
             StringBuilder output = new StringBuilder();
             char[] current;
             while ((current = stream.ReadChar(out var count)) != null)
