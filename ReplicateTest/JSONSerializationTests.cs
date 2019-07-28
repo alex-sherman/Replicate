@@ -172,6 +172,7 @@ namespace ReplicateTest
         [TestCase(true, typeof(bool), "true")]
         [TestCase(false, typeof(bool), "false")]
         [TestCase(JSONEnum.One, typeof(JSONEnum), "1")]
+        [TestCase("\"", typeof(string), "\"\\\"\"")]
         public void SerializeDeserialize(object obj, Type type, string serialized)
         {
             var ser = new JSONGraphSerializer(new ReplicationModel());

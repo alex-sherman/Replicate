@@ -77,6 +77,8 @@ namespace Replicate.Serialization
                             break;
                         case '\\':
                             sb.Append(@"\\"); break;
+                        case '"':
+                            sb.Append("\\\""); break;
                         default:
                             sb.Append(chars[i]); break;
                     }
@@ -99,6 +101,8 @@ namespace Replicate.Serialization
                                 sb.Append("\n"); break;
                             case '\\':
                                 sb.Append("\\"); break;
+                            case '"':
+                                sb.Append("\""); break;
                             default:
                                 sb.Append(chars[i]); continue;
                         }
