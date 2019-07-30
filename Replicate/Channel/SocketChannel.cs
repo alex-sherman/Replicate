@@ -56,7 +56,7 @@ namespace Replicate
         public readonly Socket Socket;
         private TcpClient client;
         public SocketChannel(Socket socket, ReplicationModel model = null)
-            : this(socket, new BinaryGraphSerializer(model ?? ReplicationModel.Default)) { }
+            : this(socket, new BinarySerializer(model ?? ReplicationModel.Default)) { }
         public SocketChannel(Socket socket, IReplicateSerializer serializer)
             : base(serializer)
         {

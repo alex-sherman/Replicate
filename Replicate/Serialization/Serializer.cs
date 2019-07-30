@@ -40,7 +40,7 @@ namespace Replicate.Serialization
                     break;
                 case MarshallMethod.Collection:
                     var collectionValueType = Model.GetCollectionValueAccessor(typeAccessor.Type);
-                    WriteCollection(stream, obj, collectionValueType);
+                    WriteCollection(stream, obj, typeAccessor, collectionValueType);
                     break;
                 case MarshallMethod.Object:
                     WriteObject(stream, obj, typeAccessor);
@@ -51,8 +51,8 @@ namespace Replicate.Serialization
             }
         }
         public abstract void WriteBlob(Stream stream, Blob blob, MemberAccessor memberAccessor);
-        public abstract void WritePrimitive(Stream stream, object obj, TypeAccessor type);
-        public abstract void WriteCollection(Stream stream, object obj, TypeAccessor collectionValueType);
+        public abstract void WritePrimitive(Stream stream, object obj, TypeAccessor typeAccessor);
+        public abstract void WriteCollection(Stream stream, object obj, TypeAccessor typeAccessor, TypeAccessor collectionValueType);
         public abstract void WriteObject(Stream stream, object obj, TypeAccessor typeAccessor);
         public T Deserialize<T>(Stream wireValue) => (T)Deserialize(typeof(T), wireValue, null);
         public object Deserialize(Type type, Stream wire, object existing = null)

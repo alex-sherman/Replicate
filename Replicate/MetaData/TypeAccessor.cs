@@ -15,6 +15,8 @@ namespace Replicate.MetaData
         public Type Type { get; private set; }
         public MemberAccessor[] MemberAccessors;
         public Dictionary<string, MemberAccessor> Members;
+        private readonly bool isStringDict;
+        public bool IsDictObj => isStringDict && TypeData.Model.DictionaryAsObject;
         public bool IsTypeless = false;
         public TypeData TypeData { get; private set; }
         public SurrogateAccessor Surrogate { get; private set; }
@@ -27,6 +29,8 @@ namespace Replicate.MetaData
             if (typeData.Surrogate != null)
                 Surrogate = new SurrogateAccessor(this, typeData.Surrogate, typeData.Model);
             isEnum = Type.IsEnum;
+            isStringDict = Type.IsSameGeneric(typeof(Dictionary<,>))
+                && Type.GetGenericArguments()[0] == typeof(string);
         }
         internal void InitializeMembers()
         {

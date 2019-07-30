@@ -74,7 +74,7 @@ namespace Replicate.Serialization
             }
         }
 
-        public override void WriteCollection(Stream stream, object obj, TypeAccessor collectionValueType)
+        public override void WriteCollection(Stream stream, object obj, TypeAccessor typeAccessor, TypeAccessor collectionValueType)
         {
             var count = 0;
             if (obj == null)

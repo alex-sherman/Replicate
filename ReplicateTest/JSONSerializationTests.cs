@@ -197,7 +197,7 @@ namespace ReplicateTest
         {
             var serialized = "{\"value\": \"herp\", \"prop\": \"derp\"}";
             var obj = new Dictionary<string, string>() { { "value", "herp" }, { "prop", "derp" } };
-            var ser = new JSONGraphSerializer(new ReplicationModel() { DictionaryAsObject = true });
+            var ser = new JSONSerializer(new ReplicationModel() { DictionaryAsObject = true });
             var stream = new MemoryStream();
             var str = ser.SerializeString(obj);
             Assert.AreEqual(serialized, str);
@@ -222,7 +222,7 @@ namespace ReplicateTest
             var serialized = "{\"Dict\": {\"value\": \"herp\", \"prop\": \"derp\"}}";
             var type = typeof(Dictionary<string, string>);
             var obj = new ObjectWithDictField() { Dict = new Dictionary<string, string>() { { "value", "herp" }, { "prop", "derp" } } };
-            var ser = new JSONGraphSerializer(new ReplicationModel() { DictionaryAsObject = true });
+            var ser = new JSONSerializer(new ReplicationModel() { DictionaryAsObject = true });
             var stream = new MemoryStream();
             var str = ser.SerializeString(obj);
             CollectionAssert.AreEqual(serialized, str);
@@ -263,7 +263,7 @@ namespace ReplicateTest
         {
             var model = new ReplicationModel() { DictionaryAsObject = true };
             model[typeof(ObjectWithDictField)].SetSurrogate(typeof(ObjectWithDictFieldSurrogate));
-            var ser = new JSONGraphSerializer(model);
+            var ser = new JSONSerializer(model);
             var obj = new ObjectWithDictField()
             {
                 Dict = new Dictionary<string, string>()
