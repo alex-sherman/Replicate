@@ -175,7 +175,7 @@ namespace ReplicateTest
         [TestCase("\"", typeof(string), "\"\\\"\"")]
         public void SerializeDeserialize(object obj, Type type, string serialized)
         {
-            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var ser = new JSONSerializer(new ReplicationModel());
             var stream = new MemoryStream();
             var str = ser.SerializeString(type, obj);
             CollectionAssert.AreEqual(serialized, str);
@@ -185,7 +185,7 @@ namespace ReplicateTest
         [Test]
         public void FieldEmptyString()
         {
-            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var ser = new JSONSerializer(new ReplicationModel());
             var stream = new MemoryStream();
             var str = ser.SerializeString(new SubClass() { Field = "" });
             CollectionAssert.AreEqual("{\"Field\": \"\", \"Property\": 0}", str);
@@ -209,7 +209,7 @@ namespace ReplicateTest
         {
             var serialized = "[{\"Key\": 0, \"Value\": \"herp\"}, {\"Key\": 1, \"Value\": \"derp\"}]";
             var obj = new Dictionary<int, string>() { { 0, "herp" }, { 1, "derp" } };
-            var ser = new JSONGraphSerializer(new ReplicationModel() { DictionaryAsObject = true });
+            var ser = new JSONSerializer(new ReplicationModel() { DictionaryAsObject = true });
             var stream = new MemoryStream();
             var str = ser.SerializeString(obj);
             Assert.AreEqual(serialized, str);
@@ -232,7 +232,7 @@ namespace ReplicateTest
         [Test]
         public void NullableNullInt()
         {
-            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var ser = new JSONSerializer(new ReplicationModel());
             var stream = new MemoryStream();
             var str = ser.SerializeString<int?>(null);
             Assert.AreEqual("null", str);
@@ -240,21 +240,21 @@ namespace ReplicateTest
         [Test]
         public void DeserializeNullableNullInt()
         {
-            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var ser = new JSONSerializer(new ReplicationModel());
             var output = ser.Deserialize<int?>("null");
             Assert.AreEqual(null, output);
         }
         [Test]
         public void DeserializeObjectWithEmptyArray()
         {
-            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var ser = new JSONSerializer(new ReplicationModel());
             var output = ser.Deserialize<ObjectWithArrayField>("{\"ArrayField\": [], \"NullableValue\": 1}");
             Assert.AreEqual(1, output.NullableValue);
         }
         [Test]
         public void DeserializeObjectWithEmptyObject()
         {
-            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var ser = new JSONSerializer(new ReplicationModel());
             var output = ser.Deserialize<ObjectWithArrayField>("{\"ObjectField\": {}, \"NullableValue\": 1}");
             Assert.AreEqual(1, output.NullableValue);
         }
@@ -289,14 +289,14 @@ namespace ReplicateTest
         [Test]
         public void SkipsNullFields()
         {
-            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var ser = new JSONSerializer(new ReplicationModel());
             var output = ser.SerializeString(new ObjectWithNullableField());
             Assert.AreEqual("{}", output);
         }
         [Test]
         public void IncludesNotNullFields()
         {
-            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var ser = new JSONSerializer(new ReplicationModel());
             var output = ser.SerializeString(new ObjectWithNullableField() { NullableValue = 1 });
             Assert.AreEqual("{\"NullableValue\": 1}", output);
         }

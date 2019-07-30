@@ -139,10 +139,12 @@ namespace Replicate.Serialization
                 bool first = true;
                 foreach (var member in typeAccessor.MemberAccessors)
                 {
+                    var value = member.GetValue(obj);
+                    if ((member?.SkipNull ?? false) && value == null) continue;
                     if (!first) stream.WriteString(", ");
                     else first = false;
                     stream.WriteString($"\"{MapName(member.Info.Name)}\": ");
-                    Write(stream, member.GetValue(obj), member.TypeAccessor, member);
+                    Write(stream, value, member.TypeAccessor, member);
                 }
                 stream.WriteString("}");
             }

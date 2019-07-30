@@ -9,6 +9,7 @@ using Replicate.MetaData;
 
 namespace Replicate.Serialization
 {
+    [Obsolete("Use JSONSerializer instead")]
     public class JSONGraphSerializer : GraphSerializer
     {
         public class JSONIntSerializer : ITypedSerializer
