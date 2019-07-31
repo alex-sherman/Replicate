@@ -48,7 +48,7 @@ namespace Replicate.Serialization
     }
     public class BinarySerializer : Serializer
     {
-        public BinarySerializer(ReplicationModel model) : base(model) { }
+        public BinarySerializer(ReplicationModel model = null) : base(model) { }
         static BinaryIntSerializer intSer = new BinaryIntSerializer();
         static Dictionary<PrimitiveType, ITypedSerializer> serializers = new Dictionary<PrimitiveType, ITypedSerializer>()
         {

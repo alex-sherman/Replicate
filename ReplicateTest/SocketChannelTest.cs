@@ -1,6 +1,7 @@
 ﻿using NUnit.Framework;
 using Replicate;
 using Replicate.MetaData;
+using Replicate.RPC;
 using Replicate.Serialization;
 using System;
 using System.Collections.Generic;
@@ -20,20 +21,42 @@ namespace ReplicateTest
             return Task.FromResult(input + " TEST");
         }
         [Test]
-        [Timeout(500)]
-        public void PrimitiveString()
+        [Timeout(1000)]
+        public async Task PrimitiveString()
         {
-            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            socket.Bind(new IPEndPoint(IPAddress.Loopback, 0));
-            socket.Listen(2);
-            var clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            clientSocket.Connect(new IPEndPoint(IPAddress.Loopback, ((IPEndPoint)socket.LocalEndPoint).Port));
-            var serverSocket = socket.Accept();
-            var serverChannel = new SocketChannel(serverSocket, new BinaryGraphSerializer(ReplicationModel.Default));
-            var clientChannel = new SocketChannel(clientSocket, new BinaryGraphSerializer(ReplicationModel.Default));
-            serverChannel.Respond<string, string>(TestMethod);
-            var result = clientChannel.Request(() => TestMethod("derp")).GetAwaiter().GetResult();
+            // Server side
+            var server = new RPCServer();
+            server.Respond<string, string>(TestMethod);
+            SocketChannel.Listen(server, 55554, new BinarySerializer());
+            var clientChannel = SocketChannel.Connect("127.0.0.1", 55554, new BinarySerializer());
+            var result = await clientChannel.Request(() => TestMethod("derp"));
             Assert.AreEqual("derp TEST", result);
+        }
+        [ReplicateType]
+        public interface IEchoService
+        {
+            Task<string> Echo(string message);
+        }
+        public class EchoService : IEchoService
+        {
+            public async Task<string> Echo(string message)
+            {
+                await Task.Delay(100); // Do some work
+                return message + " DONE";
+            }
+        }
+        [Test]
+        [Timeout(1000)]
+        public async Task EchoExample()
+        {
+            // Server side
+            var server = new RPCServer();
+            server.RegisterSingleton<IEchoService>(new EchoService());
+            SocketChannel.Listen(server, 55555, new BinarySerializer());
+            // Client side
+            var clientChannel = SocketChannel.Connect("127.0.0.1", 55555, new BinarySerializer());
+            var echoService = clientChannel.CreateProxy<IEchoService>();
+            Assert.AreEqual("Hello! DONE", await echoService.Echo("Hello!"));
         }
     }
 }

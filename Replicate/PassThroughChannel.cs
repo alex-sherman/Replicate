@@ -28,8 +28,8 @@ namespace Replicate
         {
             public Endpoint target;
 
-            public Endpoint() : base(new NonSerializer()) { }
-            public Endpoint(IReplicateSerializer serializer) : base(serializer) { }
+            public Endpoint() : this(new NonSerializer()) { }
+            public Endpoint(IReplicateSerializer serializer) : base(serializer) { Server = new RPCServer(); }
 
             public override string GetEndpoint(MethodInfo method)
             {

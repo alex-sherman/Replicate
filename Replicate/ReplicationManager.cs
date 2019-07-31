@@ -32,10 +32,10 @@ namespace Replicate
         {
             Model = model ?? ReplicationModel.Default;
             Channel = channel;
-            Channel.Respond<ReplicationMessage>(HandleReplication);
-            Channel.Respond<InitMessage>(HandleInit);
+            Channel.Server.Respond<ReplicationMessage>(HandleReplication);
+            Channel.Server.Respond<InitMessage>(HandleInit);
             foreach (var method in Model.Where(typeData => typeData.IsInstanceRPC).SelectMany(typeData => typeData.RPCMethods))
-                Channel.Respond(method, TypeUtil.CreateHandler(method, request => IDLookup[request.Target.Value].replicated));
+                Channel.Server.Respond(method, TypeUtil.CreateHandler(method, request => IDLookup[request.Target.Value].replicated));
         }
 
         ReplicateContext CreateContext()

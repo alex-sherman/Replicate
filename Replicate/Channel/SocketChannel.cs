@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
@@ -55,14 +56,40 @@ namespace Replicate
         uint sequence = 0xFAFF;
         public readonly Socket Socket;
         private TcpClient client;
-        public SocketChannel(Socket socket, ReplicationModel model = null)
-            : this(socket, new BinarySerializer(model ?? ReplicationModel.Default)) { }
+
+        public static SocketChannel Connect(string host, int port, IReplicateSerializer serializer)
+        {
+            var clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            clientSocket.Connect(new IPEndPoint(IPAddress.Parse(host), port));
+            var channel = new SocketChannel(clientSocket, serializer);
+            channel.Start();
+            return channel;
+        }
+
+        public static void Listen(IRPCServer server, int port, IReplicateSerializer serializer) => Listen(null, port, server, serializer);
+        public static void Listen(string host, int port, IRPCServer server, IReplicateSerializer serializer)
+        {
+            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            socket.Bind(new IPEndPoint(host == null ? IPAddress.Any : IPAddress.Parse(host), port));
+            socket.Listen(16);
+            Task.Run(() =>
+            {
+                while (true)
+                {
+                    var client = socket.Accept();
+                    new SocketChannel(client, serializer) { Server = server }.Start();
+                }
+            });
+        }
+
         public SocketChannel(Socket socket, IReplicateSerializer serializer)
             : base(serializer)
         {
             Socket = socket;
-            Socket.BeginReceive(buffer, 0, MessageHeader.SIZE, SocketFlags.None, startMessage, null);
         }
+
+        public void Start() { Socket.BeginReceive(buffer, 0, MessageHeader.SIZE, SocketFlags.None, startMessage, null); }
+        public void Close() { Socket.Close(); }
 
         public override string GetEndpoint(MethodInfo endpoint)
         {
@@ -99,7 +126,8 @@ namespace Replicate
             {
                 var endpoint = Serializer.Deserialize<string>(currentMessage);
                 // currentMessage.Position _should_ be updated here, will break if two calls to deserialize happen
-                Receive(endpoint, currentMessage).ContinueWith(task => SendResponse(currentHeader.Sequence, task.Result));
+                var recvTask = Receive(endpoint, currentMessage);
+                recvTask.ContinueWith(task => SendResponse(currentHeader.Sequence, task.Result), TaskContinuationOptions.OnlyOnRanToCompletion);
             }
             currentMessage = null;
             remainingBytes = 0;

@@ -24,7 +24,7 @@ namespace ReplicateTest
         {
             PassThroughChannel channel = new PassThroughChannel();
             channel.SetSerializer(new NonSerializer());
-            channel.PointB.Respond<string, string>(TestMethod);
+            channel.PointB.Server.Respond<string, string>(TestMethod);
             var variable = "herp";
             var result = channel.PointA.Request(() => TestMethod(variable + " derp")).Result;
             Assert.AreEqual("herp derp TEST", result);

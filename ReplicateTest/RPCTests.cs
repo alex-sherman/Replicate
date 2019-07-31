@@ -190,7 +190,7 @@ namespace ReplicateTest
         {
             var channel = new PassThroughChannel.Endpoint();
             channel.target = channel;
-            channel.RegisterSingleton<IAutoAddNone>(new AddImplementor());
+            channel.Server.RegisterSingleton<IAutoAddNone>(new AddImplementor());
             var proxy = channel.CreateProxy<IAutoAddNone>();
             Assert.IsTrue(proxy.AddModifier());
             Assert.Throws<ContractNotFoundError>(() => proxy.IgnoreModifier());
@@ -201,7 +201,7 @@ namespace ReplicateTest
         {
             var channel = new PassThroughChannel.Endpoint();
             channel.target = channel;
-            channel.RegisterSingleton<IAutoAddAllPublic>(new AddImplementor());
+            channel.Server.RegisterSingleton<IAutoAddAllPublic>(new AddImplementor());
             var proxy = channel.CreateProxy<IAutoAddAllPublic>();
             Assert.IsTrue(proxy.AddModifier());
             Assert.Throws<ContractNotFoundError>(() => proxy.IgnoreModifier());
@@ -212,7 +212,7 @@ namespace ReplicateTest
         {
             var cs = MakeClientServer();
             var target = new TestTarget();
-            cs.server.Channel.RegisterSingleton<ITestInterface>(target);
+            cs.server.Channel.Server.RegisterSingleton<ITestInterface>(target);
             var proxy = cs.client.CreateProxy<ITestInterface>();
             proxy.Derp();
             Assert.IsTrue(target.DerpCalled);
@@ -222,7 +222,7 @@ namespace ReplicateTest
         {
             var cs = MakeClientServer();
             var target = new TestTarget();
-            cs.server.Channel.RegisterSingleton<ITestInterface>(target);
+            cs.server.Channel.Server.RegisterSingleton<ITestInterface>(target);
             var proxy = cs.client.CreateProxy<ITestInterface>();
             proxy.AsyncDerp().Wait();
             Assert.IsTrue(target.DerpCalled);
@@ -232,7 +232,7 @@ namespace ReplicateTest
         {
             var cs = MakeClientServer();
             var target = new TestTarget();
-            cs.server.Channel.RegisterSingleton<ITestInterface>(target);
+            cs.server.Channel.Server.RegisterSingleton<ITestInterface>(target);
             var proxy = cs.client.CreateProxy<ITestInterface>();
             Assert.AreEqual(4, proxy.Herp("derp"));
         }
@@ -241,7 +241,7 @@ namespace ReplicateTest
         {
             var cs = MakeClientServer();
             var target = new TestTarget();
-            cs.server.Channel.RegisterSingleton<ITestInterface>(target);
+            cs.server.Channel.Server.RegisterSingleton<ITestInterface>(target);
             var proxy = cs.client.CreateProxy<ITestInterface>();
             Assert.AreEqual(4, proxy.AsyncHerp("derp").Result);
         }
@@ -250,14 +250,14 @@ namespace ReplicateTest
         {
             var channel = new PassThroughChannel.Endpoint();
             channel.target = channel;
-            Assert.Throws<ReplicateError>(() => channel.RegisterSingleton<IMultipleParameters>(null));
+            Assert.Throws<ReplicateError>(() => channel.Server.RegisterSingleton<IMultipleParameters>(null));
         }
         [Test]
         public void DefaultParametersSuccess()
         {
             var channel = new PassThroughChannel.Endpoint();
             channel.target = channel;
-            channel.RegisterSingleton<IDefaultParameter>(new DefaultParameter());
+            channel.Server.RegisterSingleton<IDefaultParameter>(new DefaultParameter());
             channel.TryGetContract(channel.GetEndpoint(typeof(IDefaultParameter).GetMethods().First()), out var contract);
             Assert.AreEqual(contract.RequestType, typeof(int));
             var proxy = channel.CreateProxy<IDefaultParameter>();

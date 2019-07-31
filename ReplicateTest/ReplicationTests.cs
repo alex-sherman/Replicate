@@ -76,7 +76,7 @@ namespace ReplicateTest
                 Assert.AreEqual(message, testMessage);
                 return Task.FromResult(false);
             });
-            cs.client.Channel.Respond(method);
+            cs.client.Channel.Server.Respond(method);
             cs.server.Channel.Request(method.Method, testMessage).Await();
             Assert.IsTrue(called);
         }

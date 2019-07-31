@@ -16,7 +16,7 @@ namespace Replicate.Serialization
         public ReplicationModel Model { get; private set; }
         public Serializer(ReplicationModel model)
         {
-            Model = model;
+            Model = model ?? ReplicationModel.Default;
         }
         private Serializer() { }
         public Stream Serialize(Type type, object obj, Stream stream)
