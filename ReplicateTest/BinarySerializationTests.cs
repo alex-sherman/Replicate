@@ -132,11 +132,11 @@ namespace ReplicateTest
                 id = new ReplicateId() { ObjectID = 0, Creator = 1 },
                 typeID = new TypeId()
                 {
-                    id = 12
+                    Id = 12
                 }
             });
             var output = ser.Deserialize<InitMessage>(stream);
-            Assert.AreEqual(12, output.typeID.id);
+            Assert.AreEqual(12, output.typeID.Id);
         }
         [Test]
         public void TestInheritedType()

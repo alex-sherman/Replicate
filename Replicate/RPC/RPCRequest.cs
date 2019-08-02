@@ -1,4 +1,5 @@
 ﻿using Replicate.Messages;
+using Replicate.MetaData;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +10,7 @@ namespace Replicate.RPC
 {
     public struct RPCRequest
     {
+        public MethodKey Endpoint;
         public RPCContract Contract;
         public object Request;
         /// <summary>

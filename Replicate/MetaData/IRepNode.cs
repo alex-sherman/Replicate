@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Replicate.Messages;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -65,6 +66,36 @@ namespace Replicate.MetaData
             if (Name != null) return Name;
             if (Index != null) return Index.ToString();
             return "<None>";
+        }
+    }
+    [ReplicateType]
+    public struct MethodKey
+    {
+        public TypeId Type;
+        public MemberKey Method;
+
+        public override bool Equals(object obj)
+        {
+            if (!(obj is MethodKey))
+            {
+                return false;
+            }
+
+            var key = (MethodKey)obj;
+            return EqualityComparer<TypeId>.Default.Equals(Type, key.Type) &&
+                   EqualityComparer<MemberKey>.Default.Equals(Method, key.Method);
+        }
+
+        public override int GetHashCode()
+        {
+            var hashCode = 314988997;
+            hashCode = hashCode * -1521134295 + EqualityComparer<TypeId>.Default.GetHashCode(Type);
+            hashCode = hashCode * -1521134295 + EqualityComparer<MemberKey>.Default.GetHashCode(Method);
+            return hashCode;
+        }
+        public override string ToString()
+        {
+            return $"{Type}.{Method}";
         }
     }
     public interface IRepObject : IRepNode, IEnumerable<KeyValuePair<MemberKey, IRepNode>>

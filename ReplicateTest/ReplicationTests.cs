@@ -26,6 +26,7 @@ namespace ReplicateTest
     }
 
     [TestFixture]
+    [ReplicateType]
     public class ReplicationTests
     {
         static TypeAccessor typeAccessor;
@@ -55,29 +56,33 @@ namespace ReplicateTest
             Assert.AreEqual("exist", members[0].Name);
         }
         [ReplicateType]
-        public struct SimpleMessage
+        public class SimpleMessage
         {
             public float time;
             public string faff;
         }
-        [Test, Timeout(100)]
+        static bool called = false;
+        static SimpleMessage testMessage;
+        [ReplicateRPC]
+        public static Task<bool> messageMethod(SimpleMessage message)
+        {
+            called = true;
+            Assert.AreEqual(message.time, testMessage.time);
+            Assert.AreEqual(message.faff, testMessage.faff);
+            return Task.FromResult(false);
+        }
+        [Test, Timeout(1000)]
         public void TestSendRecv()
         {
-            var testMessage = new SimpleMessage()
+            testMessage = new SimpleMessage()
             {
                 time = 10,
                 faff = "FAFF"
             };
             var cs = BinarySerializerUtil.MakeClientServer();
-            bool called = false;
-            var method = new Func<SimpleMessage, Task<bool>>((message) =>
-            {
-                called = true;
-                Assert.AreEqual(message, testMessage);
-                return Task.FromResult(false);
-            });
-            cs.client.Channel.Server.Respond(method);
-            cs.server.Channel.Request(method.Method, testMessage).Await();
+            called = false;
+            cs.client.Channel.Server.Respond<SimpleMessage, bool>(messageMethod);
+            cs.server.Channel.Request(() => messageMethod(testMessage)).Await();
             Assert.IsTrue(called);
         }
         [Test]

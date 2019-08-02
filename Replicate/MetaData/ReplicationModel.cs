@@ -130,20 +130,29 @@ namespace Replicate.MetaData
         {
             var output = new TypeId()
             {
-                id = (ushort)typeIndex.IndexOf(this[type])
+                Id = (ushort)typeIndex.IndexOf(this[type])
             };
             if (type.IsGenericType)
-                output.subtypes = type.GetGenericArguments().Select(t => GetID(t)).ToArray();
+                output.Subtypes = type.GetGenericArguments().Select(t => GetID(t)).ToArray();
             return output;
         }
         public Type GetType(TypeId typeID)
         {
-            Type type = typeIndex[typeID.id].Type;
+            Type type = typeIndex[typeID.Id].Type;
             if (type.IsGenericTypeDefinition)
             {
-                type = type.MakeGenericType(typeID.subtypes.Select(subType => GetType(subType)).ToArray());
+                type = type.MakeGenericType(typeID.Subtypes.Select(subType => GetType(subType)).ToArray());
             }
             return type;
+        }
+        public MethodKey MethodKey(MethodInfo method)
+        {
+            var type = method.DeclaringType;
+            return new MethodKey() { Method = GetTypeAccessor(method.DeclaringType).MethodKey(method), Type = GetID(type) };
+        }
+        public MethodInfo GetMethod(MethodKey method)
+        {
+            return GetTypeAccessor(GetType(method.Type)).GetMethod(method.Method);
         }
         public TypeAccessor GetTypeAccessor(Type type)
         {

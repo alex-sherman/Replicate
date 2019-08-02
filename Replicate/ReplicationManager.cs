@@ -20,6 +20,7 @@ namespace Replicate
         public HashSet<ushort> relevance;
         public TypeAccessor typeAccessor;
     }
+    [ReplicateType(AutoMembers = AutoAdd.None, AutoMethods = AutoAdd.None)]
     public class ReplicationManager
     {
         public ReplicationModel Model { get; protected set; }
@@ -58,12 +59,15 @@ namespace Replicate
             }
             return Channel.CreateProxy<T>(id);
         }
+
+        [ReplicateRPC]
         private void HandleReplication(ReplicationMessage message)
         {
             var metaData = IDLookup[message.id];
             message.Value.ReadInto(metaData.replicated);
         }
 
+        [ReplicateRPC]
         private void HandleInit(InitMessage message)
         {
             var typeData = Model.GetTypeAccessor(Model.GetType(message.typeID));

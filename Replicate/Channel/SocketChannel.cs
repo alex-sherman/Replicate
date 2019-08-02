@@ -45,7 +45,7 @@ namespace Replicate
             };
         }
     }
-    public class SocketChannel : RPCChannel<string, MemoryStream>
+    public class SocketChannel : RPCChannel<MemoryStream>
     {
         const int BUFFERSIZE = 1024;
         private byte[] buffer = new byte[BUFFERSIZE];
@@ -91,11 +91,6 @@ namespace Replicate
         public void Start() { Socket.BeginReceive(buffer, 0, MessageHeader.SIZE, SocketFlags.None, startMessage, null); }
         public void Close() { Socket.Close(); }
 
-        public override string GetEndpoint(MethodInfo endpoint)
-        {
-            return endpoint.Name;
-        }
-
         private void startMessage(IAsyncResult result)
         {
             var bytes = Socket.EndReceive(result);
@@ -124,7 +119,7 @@ namespace Replicate
             }
             else if (currentHeader.Flags.HasFlag(MessageFlags.Request))
             {
-                var endpoint = Serializer.Deserialize<string>(currentMessage);
+                var endpoint = Serializer.Deserialize<MethodKey>(currentMessage);
                 // currentMessage.Position _should_ be updated here, will break if two calls to deserialize happen
                 var recvTask = Receive(endpoint, currentMessage);
                 recvTask.ContinueWith(task => SendResponse(currentHeader.Sequence, task.Result), TaskContinuationOptions.OnlyOnRanToCompletion);
@@ -145,11 +140,11 @@ namespace Replicate
             }
         }
 
-        public override Task<Stream> Request(string messageId, RPCRequest request, ReliabilityMode reliability)
+        public override Task<Stream> Request(RPCRequest request, ReliabilityMode reliability)
         {
             var messageSequence = sequence++;
             var messageStream = new MemoryStream();
-            Serializer.Serialize(messageId, messageStream);
+            Serializer.Serialize(request.Endpoint, messageStream);
             Serializer.Serialize(request.Contract.RequestType, request.Request, messageStream);
             var header = new MessageHeader() { Flags = MessageFlags.Request, Length = (int)messageStream.Length, Sequence = messageSequence };
             lock (this)

@@ -1,4 +1,5 @@
 ﻿using Replicate.Messages;
+using Replicate.MetaData;
 using Replicate.Serialization;
 using System;
 using System.Collections.Generic;
@@ -20,18 +21,20 @@ namespace Replicate.RPC
     public delegate Task<object> HandlerDelegate(RPCRequest request);
     public interface IRPCChannel
     {
-        Task<object> Request(MethodInfo method, RPCRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced);
-        IRPCServer Server { get; set; }
+        Task<object> Request(RPCRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced);
+        IRPCServer Server { get; }
+        ReplicationModel Model { get; }
     }
 
     public interface IRPCServer
     {
+        ReplicationModel Model { get; }
         /// <summary>
         /// Register a handler to respond to the given method
         /// </summary>
-        void Respond(MethodInfo method, HandlerDelegate handler);
+        void Respond(MethodKey key, HandlerDelegate handler);
         Task<object> Handle(RPCRequest request);
-        IEnumerable<MethodInfo> Methods { get; }
+        IEnumerable<MethodKey> Methods { get; }
     }
 
     public class RPCServer : IRPCServer
@@ -41,52 +44,54 @@ namespace Replicate.RPC
             public RPCContract Contract;
             public HandlerDelegate Handler;
         }
-        Dictionary<MethodInfo, HandlerInfo> responders = new Dictionary<MethodInfo, HandlerInfo>();
-        public IEnumerable<MethodInfo> Methods => responders.Keys;
+        Dictionary<MethodKey, HandlerInfo> responders = new Dictionary<MethodKey, HandlerInfo>();
+        public IEnumerable<MethodKey> Methods => responders.Keys;
+        public ReplicationModel Model { get; }
+        public RPCServer(ReplicationModel model) { Model = model; }
         public virtual async Task<object> Handle(RPCRequest request)
         {
-            if (responders.TryGetValue(request.Contract.Method, out var handlerInfo))
+            if (responders.TryGetValue(request.Endpoint, out var handlerInfo))
             {
                 var task = handlerInfo.Handler(request);
                 if (task != null)
                     return await task;
             }
-            return None.Value;
+            throw new ContractNotFoundError();
         }
-        public void Respond(MethodInfo method, HandlerDelegate handler)
+        public void Respond(MethodKey method, HandlerDelegate handler)
         {
             responders[method] = new HandlerInfo()
             {
                 Handler = handler,
-                Contract = new RPCContract(method),
+                Contract = new RPCContract(Model.GetMethod(method)),
             };
         }
     }
 
-    public abstract class RPCChannel<TEndpoint, TWireType> : IRPCChannel where TEndpoint : class
+    public abstract class RPCChannel<TWireType> : IRPCChannel
     {
         public IRPCServer Server { get; set; }
+        public ReplicationModel Model => Serializer.Model;
         public readonly IReplicateSerializer Serializer;
-        Dictionary<TEndpoint, RPCContract> serverCache = new Dictionary<TEndpoint, RPCContract>();
+        Dictionary<MethodKey, RPCContract> serverCache = new Dictionary<MethodKey, RPCContract>();
 
         public RPCChannel(IReplicateSerializer serializer)
         {
             Serializer = serializer;
         }
 
-        public abstract TEndpoint GetEndpoint(MethodInfo endpoint);
         public abstract Stream GetStream(TWireType wireValue);
         public abstract TWireType GetWireValue(Stream stream);
-        public abstract Task<Stream> Request(TEndpoint messageId, RPCRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced);
-        public async Task<object> Request(MethodInfo method, RPCRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced)
+        public abstract Task<Stream> Request(RPCRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced);
+        async Task<object> IRPCChannel.Request(RPCRequest request, ReliabilityMode reliability)
         {
-            return Serializer.Deserialize(request.Contract.ResponseType, await Request(GetEndpoint(method), request, reliability));
+            return Serializer.Deserialize(request.Contract.ResponseType, await Request(request, reliability));
         }
-        public bool TryGetContract(TEndpoint endpoint, out RPCContract contract)
+        public bool TryGetContract(MethodKey endpoint, out RPCContract contract)
         {
             contract = default(RPCContract);
             if (!serverCache.ContainsKey(endpoint))
-                serverCache = Server.Methods.ToDictionary(m => GetEndpoint(m), m => new RPCContract(m));
+                serverCache = Server.Methods.ToDictionary(m => m, m => new RPCContract(Model.GetMethod(m)));
             if (serverCache.TryGetValue(endpoint, out contract))
             {
                 return true;
@@ -94,19 +99,20 @@ namespace Replicate.RPC
             return false;
         }
 
-        public RPCRequest CreateRequest(TEndpoint endpoint, TWireType request, ReplicateId? target, out RPCContract contract)
+        public RPCRequest CreateRequest(MethodKey endpoint, TWireType request, ReplicateId? target, out RPCContract contract)
         {
             if (!TryGetContract(endpoint, out contract))
                 throw new ContractNotFoundError(endpoint.ToString());
             return new RPCRequest()
             {
+                Endpoint = endpoint,
                 Contract = contract,
                 Request = request == null ? null : Serializer.Deserialize(contract.RequestType, GetStream(request)),
                 Target = target,
             };
         }
 
-        public virtual async Task<TWireType> Receive(TEndpoint endpoint, TWireType request, ReplicateId? target = null)
+        public virtual async Task<TWireType> Receive(MethodKey endpoint, TWireType request, ReplicateId? target = null)
         {
             var rpcRequest = CreateRequest(endpoint, request, target, out var contract);
             return GetWireValue(Serializer.Serialize(contract.ResponseType, (await Server.Handle(rpcRequest))));

@@ -20,9 +20,10 @@ namespace Replicate.RPC
 
         Task<object> RPC(MethodInfo method, object[] args)
         {
-            return Channel.Request(method, new RPCRequest()
+            return Channel.Request(new RPCRequest()
             {
                 // TODO: This might be expensive, should maybe move to ReplicationModel
+                Endpoint = Channel.Model.MethodKey(method),
                 Contract = new RPCContract(method),
                 Target = Target,
                 Request = args.Length > 0 ? args[0] : null,

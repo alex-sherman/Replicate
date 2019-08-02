@@ -51,13 +51,13 @@ namespace Replicate.MetaData
             var surrogateType = TypeAttribute?.SurrogateType;
             if (surrogateType != null) SetSurrogate(surrogateType);
 
-            var bindingFlags = BindingFlags.Instance | BindingFlags.Public;
+            var bindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.Static;
             var autoMethods = TypeAttribute?.AutoMethods ?? AutoAdd.None;
             if (autoMethods != AutoAdd.AllPublic)
                 bindingFlags |= BindingFlags.NonPublic;
+            // TODO: Enforce unique names of methods
             RPCMethods = type.GetMethods(bindingFlags)
                 .Where(meth => meth.GetCustomAttribute<ReplicateIgnoreAttribute>() == null)
-                .Where(meth => meth.DeclaringType == type)
                 .Where(meth => autoMethods != AutoAdd.None || meth.GetCustomAttribute<ReplicateRPCAttribute>() != null)
                 .ToList();
         }

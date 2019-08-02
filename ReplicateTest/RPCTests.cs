@@ -7,6 +7,7 @@ using static ReplicateTest.BinarySerializerUtil;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using Replicate.RPC;
+using Replicate.MetaData;
 
 namespace ReplicateTest
 {
@@ -188,7 +189,7 @@ namespace ReplicateTest
         [Test]
         public void AutoAddNone()
         {
-            var channel = new PassThroughChannel.Endpoint();
+            var channel = new PassThroughChannel.Endpoint(new ReplicationModel());
             channel.target = channel;
             channel.Server.RegisterSingleton<IAutoAddNone>(new AddImplementor());
             var proxy = channel.CreateProxy<IAutoAddNone>();
@@ -199,7 +200,7 @@ namespace ReplicateTest
         [Test]
         public void AutoAddPublic()
         {
-            var channel = new PassThroughChannel.Endpoint();
+            var channel = new PassThroughChannel.Endpoint(new ReplicationModel());
             channel.target = channel;
             channel.Server.RegisterSingleton<IAutoAddAllPublic>(new AddImplementor());
             var proxy = channel.CreateProxy<IAutoAddAllPublic>();
@@ -248,17 +249,17 @@ namespace ReplicateTest
         [Test]
         public void MultipleParametersError()
         {
-            var channel = new PassThroughChannel.Endpoint();
+            var channel = new PassThroughChannel.Endpoint(new ReplicationModel());
             channel.target = channel;
             Assert.Throws<ReplicateError>(() => channel.Server.RegisterSingleton<IMultipleParameters>(null));
         }
         [Test]
         public void DefaultParametersSuccess()
         {
-            var channel = new PassThroughChannel.Endpoint();
+            var channel = new PassThroughChannel.Endpoint(new ReplicationModel());
             channel.target = channel;
             channel.Server.RegisterSingleton<IDefaultParameter>(new DefaultParameter());
-            channel.TryGetContract(channel.GetEndpoint(typeof(IDefaultParameter).GetMethods().First()), out var contract);
+            channel.TryGetContract(channel.Server.Model.MethodKey(typeof(IDefaultParameter).GetMethods().First()), out var contract);
             Assert.AreEqual(contract.RequestType, typeof(int));
             var proxy = channel.CreateProxy<IDefaultParameter>();
             Assert.AreEqual(5, proxy.TwoParameters(5));

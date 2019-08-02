@@ -11,14 +11,7 @@ namespace Replicate.RPC
     {
         public readonly Type RequestType;
         public readonly Type ResponseType;
-        public readonly MethodInfo Method;
 
-        public RPCContract(Type requestType, Type responseType)
-        {
-            RequestType = requestType;
-            ResponseType = responseType.GetTaskReturnType();
-            Method = null;
-        }
         public RPCContract(MethodInfo method)
         {
             var parameters = method.GetParameters().Where(p => !p.IsOptional);
@@ -26,7 +19,6 @@ namespace Replicate.RPC
                 throw new ReplicateError("Invalid contract with multiple required parameters");
             RequestType = parameters.FirstOrDefault()?.ParameterType ?? typeof(None);
             ResponseType = method.ReturnType.GetTaskReturnType();
-            Method = method;
         }
     }
 }

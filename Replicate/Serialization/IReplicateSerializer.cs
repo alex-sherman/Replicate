@@ -10,6 +10,7 @@ namespace Replicate.Serialization
 {
     public interface IReplicateSerializer
     {
+        ReplicationModel Model { get; }
         Stream Serialize(Type type, object obj, Stream stream);
         object Deserialize(Type type, Stream wireValue, object existing = null);
         T Deserialize<T>(Stream wireValue);

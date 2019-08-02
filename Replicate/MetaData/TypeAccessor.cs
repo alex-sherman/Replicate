@@ -14,6 +14,7 @@ namespace Replicate.MetaData
         public string Name { get; private set; }
         public Type Type { get; private set; }
         public MemberAccessor[] MemberAccessors;
+        public MethodInfo[] RPCMethods;
         public Dictionary<string, MemberAccessor> Members;
         private readonly bool isStringDict;
         public bool IsDictObj => isStringDict && TypeData.Model.DictionaryAsObject;
@@ -38,6 +39,8 @@ namespace Replicate.MetaData
                 .Select(member => new MemberAccessor(member, this, TypeData.Model))
                 .ToArray();
             Members = MemberAccessors.ToDictionary(member => member.Info.Name);
+            // TODO: Actually handle generic RPC methods
+            RPCMethods = TypeData.RPCMethods.ToArray();
         }
         public object Construct(params object[] args)
         {
@@ -57,5 +60,16 @@ namespace Replicate.MetaData
             => key.Index.HasValue
                 ? MemberAccessors[key.Index.Value]
                 : Members.TryGetValue(key.Name, out var member) ? member : null;
+
+        public MemberKey MethodKey(MethodInfo method)
+        {
+            // TODO: Fill out index as well
+            return method.Name;
+        }
+        public MethodInfo GetMethod(MemberKey method)
+        {
+            if (method.Index.HasValue) return RPCMethods[method.Index.Value];
+            return RPCMethods.FirstOrDefault(m => m.Name == method.Name);
+        }
     }
 }

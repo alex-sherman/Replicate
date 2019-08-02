@@ -14,6 +14,8 @@ namespace Replicate
 {
     public class NonSerializer : IReplicateSerializer
     {
+        public ReplicationModel Model { get; }
+        public NonSerializer(ReplicationModel model) { Model = model; }
         class SecretStream : MemoryStream
         {
             public object Obj;
@@ -24,23 +26,19 @@ namespace Replicate
     }
     public class PassThroughChannel
     {
-        public class Endpoint : RPCChannel<string, Stream>
+        public class Endpoint : RPCChannel< Stream>
         {
             public Endpoint target;
 
-            public Endpoint() : this(new NonSerializer()) { }
-            public Endpoint(IReplicateSerializer serializer) : base(serializer) { Server = new RPCServer(); }
+            public Endpoint(ReplicationModel model) : this(new NonSerializer(model)) { }
+            public Endpoint(IReplicateSerializer serializer) : base(serializer) { Server = new RPCServer(serializer.Model); }
 
-            public override string GetEndpoint(MethodInfo method)
-            {
-                return $"{method.DeclaringType}.{method.Name}";
-            }
             public override Stream GetWireValue(Stream stream) => stream;
             public override Stream GetStream(Stream stream) => stream;
 
-            public override Task<Stream> Request(string messageId, RPCRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced)
+            public override Task<Stream> Request(RPCRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced)
             {
-                return target.Receive(messageId, Serializer.Serialize(request.Contract.RequestType, request.Request), request.Target);
+                return target.Receive(request.Endpoint, Serializer.Serialize(request.Contract.RequestType, request.Request), request.Target);
             }
         }
 
