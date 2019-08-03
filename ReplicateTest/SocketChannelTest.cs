@@ -35,7 +35,7 @@ namespace ReplicateTest
             // Server side
             var server = new RPCServer(model);
             server.Respond<string, string>(TestMethod);
-            SocketChannel.Listen(server, 55554, new BinarySerializer(model));
+            var serverTask = SocketChannel.Listen(server, 55554, new BinarySerializer(model));
             var clientChannel = SocketChannel.Connect("127.0.0.1", 55554, new BinarySerializer(model));
             var result = await clientChannel.Request(() => TestMethod("derp"));
             Assert.AreEqual("derp TEST", result);
@@ -56,9 +56,9 @@ namespace ReplicateTest
             //Server side
             var server = new RPCServer(model);
             server.RegisterSingleton<IEchoService>(new EchoService());
-            SocketChannel.Listen(server, 55555, new BinarySerializer(model));
+            var serverTask = SocketChannel.Listen(server, 55555, new BinarySerializer(model)).ConfigureAwait(false);
             //Client side
-            var clientChannel = SocketChannel.Connect("127.0.0.1", 55555, new BinarySerializer(model));
+            var clientChannel = SocketChannel.Connect("localhost", 55555, new BinarySerializer(model));
             var echoService = clientChannel.CreateProxy<IEchoService>();
             Assert.AreEqual("Hello! DONE", await echoService.Echo("Hello!"));
         }

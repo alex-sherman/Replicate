@@ -60,19 +60,19 @@ namespace Replicate
         public static SocketChannel Connect(string host, int port, IReplicateSerializer serializer)
         {
             var clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            clientSocket.Connect(new IPEndPoint(IPAddress.Parse(host), port));
+            clientSocket.Connect(host, port);
             var channel = new SocketChannel(clientSocket, serializer);
             channel.Start();
             return channel;
         }
 
-        public static void Listen(IRPCServer server, int port, IReplicateSerializer serializer) => Listen(null, port, server, serializer);
-        public static void Listen(string host, int port, IRPCServer server, IReplicateSerializer serializer)
+        public static Task Listen(IRPCServer server, int port, IReplicateSerializer serializer) => Listen(server, null, port, serializer);
+        public static Task Listen(IRPCServer server, string host, int port, IReplicateSerializer serializer)
         {
             var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             socket.Bind(new IPEndPoint(host == null ? IPAddress.Any : IPAddress.Parse(host), port));
             socket.Listen(16);
-            Task.Run(() =>
+            return Task.Run(() =>
             {
                 while (true)
                 {
@@ -93,20 +93,35 @@ namespace Replicate
 
         private void startMessage(IAsyncResult result)
         {
-            var bytes = Socket.EndReceive(result);
-            Debug.Assert(bytes == 9);
-            currentHeader = buffer;
-            remainingBytes = currentHeader.Length;
-            currentMessage = new MemoryStream(remainingBytes);
-            Socket.BeginReceive(buffer, 0, Math.Min(BUFFERSIZE, remainingBytes), SocketFlags.None, continueMessage, null);
+            try
+            {
+                var bytes = Socket.EndReceive(result);
+                Debug.Assert(bytes == 9);
+                currentHeader = buffer;
+                remainingBytes = currentHeader.Length;
+                currentMessage = new MemoryStream(remainingBytes);
+                Socket.BeginReceive(buffer, 0, Math.Min(BUFFERSIZE, remainingBytes), SocketFlags.None, continueMessage, null);
+            }
+            catch (SocketException)
+            {
+                Socket.Close();
+            }
         }
 
         private void continueMessage(IAsyncResult result)
         {
-            var bytes = Socket.EndReceive(result);
-            currentMessage.Write(buffer, 0, bytes);
-            remainingBytes -= bytes;
-            if (remainingBytes == 0) finishMessage();
+            try
+            {
+                var bytes = Socket.EndReceive(result);
+                currentMessage.Write(buffer, 0, bytes);
+                remainingBytes -= bytes;
+                if (remainingBytes == 0) finishMessage();
+                else Socket.BeginReceive(buffer, 0, Math.Min(BUFFERSIZE, remainingBytes), SocketFlags.None, continueMessage, null);
+            }
+            catch (SocketException)
+            {
+                Socket.Close();
+            }
         }
 
         private void finishMessage()
@@ -133,7 +148,7 @@ namespace Replicate
         {
             var message = response.ToArray();
             var header = new MessageHeader() { Flags = MessageFlags.Response, Length = message.Length, Sequence = sequence };
-            lock(this)
+            lock (this)
             {
                 Socket.Send(header);
                 Socket.Send(message);

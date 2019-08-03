@@ -1,5 +1,6 @@
 ﻿using Replicate;
 using Replicate.MetaData;
+using Replicate.RPC;
 using Replicate.Serialization;
 using System;
 using System.Collections.Generic;
@@ -56,9 +57,19 @@ namespace ReplicateBenchmarks
         static void Main(string[] args)
         {
             //JsonCompare();
-            BinaryCompare();
+            //BinaryCompare();
             //ProtoCompare();
+            ServerTest().GetAwaiter().GetResult();
             Console.ReadLine();
+        }
+        public static async Task ServerTest()
+        {
+            var model = new ReplicationModel(false);
+            //Server side
+            var server = new RPCServer(model);
+            server.WithReflection();
+            var serverTask = SocketChannel.Listen(server, 55555, new BinarySerializer(model));
+            await serverTask;
         }
         static void ProtoCompare()
         {

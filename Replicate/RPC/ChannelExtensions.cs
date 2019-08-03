@@ -63,5 +63,10 @@ namespace Replicate
         {
             return ProxyImplement.HookUp<T>(new ReplicatedProxy(target, channel, typeof(T)));
         }
+
+        public static void WithReflection(this IRPCServer server)
+        {
+            server.RegisterSingleton<IReflectionService>(new ReflectionService(server));
+        }
     }
 }

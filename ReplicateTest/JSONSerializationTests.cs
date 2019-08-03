@@ -160,6 +160,7 @@ namespace ReplicateTest
         [TestCase(null, typeof(string), "null")]
         [TestCase(0, typeof(int?), "0")]
         [TestCase(1, typeof(int?), "1")]
+        [TestCase((ushort)1, typeof(ushort), "1")]
         [TestCase(null, typeof(int?), "null")]
         [TestCase(0.5, typeof(float), "0.5")]
         [TestCase(0, typeof(float?), "0")]

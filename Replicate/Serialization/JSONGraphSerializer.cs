@@ -16,7 +16,7 @@ namespace Replicate.Serialization
         {
             Regex rx = new Regex(@"[0-9\.\+\-eE]");
             public object Read(Stream stream) => int.Parse(stream.ReadAllString(c => rx.IsMatch("" + c)));
-            public void Write(object obj, Stream stream) => stream.WriteString(((int)obj).ToString());
+            public void Write(object obj, Stream stream) => stream.WriteString(Convert.ChangeType(obj, typeof(int)).ToString());
         }
         public class JSONBoolSerializer : ITypedSerializer
         {

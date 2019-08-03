@@ -60,7 +60,8 @@ namespace Replicate.MetaData
 
         public static implicit operator MemberKey(string str) => new MemberKey(str);
         public static implicit operator MemberKey(int index) => new MemberKey(index);
-        public bool IsEmpty => Name != null || Index != null;
+        [ReplicateIgnore]
+        public bool IsEmpty => Name == null && Index == null;
         public override string ToString()
         {
             if (Name != null) return Name;
