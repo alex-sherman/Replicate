@@ -18,7 +18,7 @@ namespace Replicate.MetaData
                 {
                     if (obj == null) return null;
                     var result = surrogate.Construct();
-                    return TypeUtil.CopyToRaw(obj, result);
+                    return TypeUtil.CopyToRaw(obj, orig, result, surrogate);
                 },
                 (orig, surrogate) => obj =>
                 {

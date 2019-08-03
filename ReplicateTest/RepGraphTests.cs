@@ -157,7 +157,7 @@ namespace ReplicateTest
         public void GetSurrogateTypeField()
         {
             var model = new ReplicationModel();
-            model[typeof(ObjectType)].ReplicatedMembers.First(m => m.Name == "Field2")
+            model[typeof(ObjectType)].Members.First(m => m.Name == "Field2")
                 .SetSurrogate(typeof(SurrogateType));
 
             var obj = new ObjectType() { Field2 = new ObjectType() { Field1 = "Herp" } };
@@ -169,7 +169,7 @@ namespace ReplicateTest
         public void SetSurrogateTypeField()
         {
             var model = new ReplicationModel();
-            model[typeof(ObjectType)].ReplicatedMembers.First(m => m.Name == "Field2")
+            model[typeof(ObjectType)].Members.First(m => m.Name == "Field2")
                 .SetSurrogate(typeof(SurrogateType));
 
             var obj = new ObjectType() { Field2 = new ObjectType() { Field1 = "Herp" } };

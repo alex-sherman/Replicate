@@ -39,7 +39,7 @@ namespace ReplicateTest
         [Test]
         public void TypeDataTest()
         {
-            Assert.AreEqual(model[typeof(ReplicatedType)].ReplicatedMembers[0].Name, "field1");
+            Assert.AreEqual(model[typeof(ReplicatedType)].Members[0].Name, "field1");
         }
         [ReplicateType]
         public struct IgnoredFields
@@ -51,7 +51,7 @@ namespace ReplicateTest
         [Test]
         public void TestReplicateIgnore()
         {
-            var members = model[typeof(IgnoredFields)].ReplicatedMembers;
+            var members = model[typeof(IgnoredFields)].Members;
             Assert.AreEqual(1, members.Count);
             Assert.AreEqual("exist", members[0].Name);
         }

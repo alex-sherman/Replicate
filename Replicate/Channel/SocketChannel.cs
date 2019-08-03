@@ -66,22 +66,6 @@ namespace Replicate
             return channel;
         }
 
-        public static Task Listen(IRPCServer server, int port, IReplicateSerializer serializer) => Listen(server, null, port, serializer);
-        public static Task Listen(IRPCServer server, string host, int port, IReplicateSerializer serializer)
-        {
-            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            socket.Bind(new IPEndPoint(host == null ? IPAddress.Any : IPAddress.Parse(host), port));
-            socket.Listen(16);
-            return Task.Run(() =>
-            {
-                while (true)
-                {
-                    var client = socket.Accept();
-                    new SocketChannel(client, serializer) { Server = server }.Start();
-                }
-            });
-        }
-
         public SocketChannel(Socket socket, IReplicateSerializer serializer)
             : base(serializer)
         {
@@ -96,7 +80,7 @@ namespace Replicate
             try
             {
                 var bytes = Socket.EndReceive(result);
-                Debug.Assert(bytes == 9);
+                if (bytes != 9) throw new SocketException();
                 currentHeader = buffer;
                 remainingBytes = currentHeader.Length;
                 currentMessage = new MemoryStream(remainingBytes);

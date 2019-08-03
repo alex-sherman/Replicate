@@ -35,6 +35,7 @@ namespace Replicate.RPC
         void Respond(MethodKey key, HandlerDelegate handler);
         Task<object> Handle(RPCRequest request);
         IEnumerable<MethodKey> Methods { get; }
+        RPCContract Contract(MethodKey method);
     }
 
     public class RPCServer : IRPCServer
@@ -46,6 +47,7 @@ namespace Replicate.RPC
         }
         Dictionary<MethodKey, HandlerInfo> responders = new Dictionary<MethodKey, HandlerInfo>();
         public IEnumerable<MethodKey> Methods => responders.Keys;
+        public RPCContract Contract(MethodKey method) => responders[method].Contract;
         public ReplicationModel Model { get; }
         public RPCServer(ReplicationModel model) { Model = model; }
         public virtual async Task<object> Handle(RPCRequest request)

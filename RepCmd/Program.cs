@@ -36,6 +36,7 @@ namespace RepCmd
                         Console.WriteLine(e.ToString());
                     }
                 });
+            Console.ReadKey();
         }
         static async Task Run(Options options)
         {
@@ -49,10 +50,10 @@ namespace RepCmd
                 var channel = SocketChannel.Connect(match.Groups[1].Value, int.Parse(match.Groups[2].Value), new BinarySerializer());
                 var reflection = channel.CreateProxy<IReflectionService>();
                 model.LoadFrom(await reflection.Model());
+                var services = await reflection.Services();
                 if (options.ListMethods)
                 {
-                    var result = await reflection.Services();
-                    Console.WriteLine(json.SerializeString(result));
+                    Console.WriteLine(json.SerializeString(services));
                     return;
                 }
                 else if (options.Method != null)

@@ -64,12 +64,11 @@ namespace ReplicateBenchmarks
         }
         public static async Task ServerTest()
         {
-            var model = new ReplicationModel(false);
+            var model = new ReplicationModel();
             //Server side
             var server = new RPCServer(model);
             server.WithReflection();
-            var serverTask = SocketChannel.Listen(server, 55555, new BinarySerializer(model));
-            await serverTask;
+            await new SocketListener(server, 55555, new BinarySerializer(model)).Task;
         }
         static void ProtoCompare()
         {

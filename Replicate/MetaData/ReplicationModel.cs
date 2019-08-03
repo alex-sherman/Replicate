@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -60,6 +61,7 @@ namespace Replicate.MetaData
         Dictionary<Type, TypeData> typeLookup = new Dictionary<Type, TypeData>();
         Dictionary<string, TypeData> stringLookup = new Dictionary<string, TypeData>();
         List<TypeData> typeIndex = new List<TypeData>();
+        public readonly ModuleBuilder Builder = DynamicModule.Create();
         public bool DictionaryAsObject;
         public bool AddOnLookup = false;
         public ReplicationModel(bool loadTypes = true, bool addBaseTypes = true)
@@ -126,14 +128,14 @@ namespace Replicate.MetaData
             return output;
         }
 
-        public TypeId GetID(Type type)
+        public TypeId GetId(Type type)
         {
             var output = new TypeId()
             {
                 Id = (ushort)typeIndex.IndexOf(this[type])
             };
             if (type.IsGenericType)
-                output.Subtypes = type.GetGenericArguments().Select(t => GetID(t)).ToArray();
+                output.Subtypes = type.GetGenericArguments().Select(t => GetId(t)).ToArray();
             return output;
         }
         public Type GetType(TypeId typeID)
@@ -148,7 +150,7 @@ namespace Replicate.MetaData
         public MethodKey MethodKey(MethodInfo method)
         {
             var type = method.DeclaringType;
-            return new MethodKey() { Method = GetTypeAccessor(method.DeclaringType).MethodKey(method), Type = GetID(type) };
+            return new MethodKey() { Method = GetTypeAccessor(method.DeclaringType).MethodKey(method), Type = GetId(type) };
         }
         public MethodInfo GetMethod(MethodKey method)
         {
@@ -253,19 +255,34 @@ namespace Replicate.MetaData
             {
                 Types = typeIndex.Select(typeData => new TypeDescription()
                 {
+                    TypeId = (ushort)typeIndex.IndexOf(typeData),
                     Name = typeData.Name,
-                    Members = typeData.ReplicatedMembers.Select(member => member.Name).ToList(),
+                    Members = typeData.Keys.Select(key =>
+                    {
+                        var member = typeData[key];
+                        var desc = new MemberDescription()
+                        {
+                            Key = key,
+                        };
+                        if (member.IsGenericParameter)
+                            desc.GenericPosition = (byte)member.GenericParameterPosition;
+                        else
+                            desc.TypeId = (ushort)typeIndex.IndexOf(this[member.MemberType]);
+                        return desc;
+                    }).ToList(),
                     FakeSourceType = typeData.Type.GetCustomAttribute<FakeTypeAttribute>()?.Source.FullName,
                 }).ToList()
             };
         }
-        public Type FindType(string typeName, IEnumerable<Assembly> assemblies)
+        public Type FindType(string typeName, IEnumerable<Assembly> assemblies, bool fakeMissing)
         {
             return Type.GetType(typeName)
                 ?? assemblies.Select(a => a.GetType(typeName)).Where(t => t != null).FirstOrDefault()
+                // TODO: Build fake instead
+                //?? new Fake(typeName, Builder)
                 ?? throw new TypeLoadException($"Unable to find type {typeName}");
         }
-        public void LoadFrom(ModelDescription description)
+        public void LoadFrom(ModelDescription description, bool fakeMissing = true)
         {
             typeLookup.Clear();
             stringLookup.Clear();
@@ -275,9 +292,9 @@ namespace Replicate.MetaData
             {
                 Type type;
                 if (typeDesc.FakeSourceType != null)
-                    type = Fake.FromType(FindType(typeDesc.FakeSourceType, assemblies));
+                    type = Fake.FromType(FindType(typeDesc.FakeSourceType, assemblies, fakeMissing));
                 else
-                    type = FindType(typeDesc.Name, assemblies);
+                    type = FindType(typeDesc.Name, assemblies, fakeMissing);
                 Add(type);
             }
         }

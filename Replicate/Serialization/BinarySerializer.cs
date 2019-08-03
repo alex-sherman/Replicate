@@ -130,7 +130,7 @@ namespace Replicate.Serialization
 
         public override void WriteObject(Stream stream, object obj, TypeAccessor typeAccessor)
         {
-            var objectSet = obj == null ? null : typeAccessor.Keys.Select(key =>
+            var objectSet = obj == null ? null : typeAccessor.TypeData.Keys.Select(key =>
             {
                 var member = typeAccessor[key];
                 return (key, member.GetValue(obj), member);
@@ -175,7 +175,7 @@ namespace Replicate.Serialization
             if (blob?.Type != null)
             {
                 var typeAccessor = Model.GetTypeAccessor(blob.Type);
-                Write(stream, Model.GetID(blob.Type), Model.GetTypeAccessor(typeof(TypeId)), null);
+                Write(stream, Model.GetId(blob.Type), Model.GetTypeAccessor(typeof(TypeId)), null);
                 var bytes = this.Serialize(blob.Type, blob.Value);
                 stream.WriteInt32((int)bytes.Length);
                 bytes.CopyTo(stream);

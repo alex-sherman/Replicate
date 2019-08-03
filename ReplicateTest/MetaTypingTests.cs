@@ -40,7 +40,7 @@ namespace ReplicateTest
         public void TestCanSetReadonlyProperties()
         {
             var model = new ReplicationModel();
-            var newType = Fake.FromType(typeof(MockType));
+            var newType = Fake.FromType(typeof(MockType), model);
             model.Add(newType);
             var obj = Activator.CreateInstance(newType);
             var node = model.GetRepNode(obj, newType).AsObject;

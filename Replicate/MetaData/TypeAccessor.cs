@@ -35,7 +35,7 @@ namespace Replicate.MetaData
         }
         internal void InitializeMembers()
         {
-            MemberAccessors = TypeData.ReplicatedMembers
+            MemberAccessors = TypeData.Members
                 .Select(member => new MemberAccessor(member, this, TypeData.Model))
                 .ToArray();
             Members = MemberAccessors.ToDictionary(member => member.Info.Name);
@@ -55,7 +55,6 @@ namespace Replicate.MetaData
                 return Enum.ToObject(Type, intValue);
             return Convert.ChangeType(obj, Type);
         }
-        public IEnumerable<MemberKey> Keys => MemberAccessors.Select((m, i) => new MemberKey() { Index = i, Name = m.Info.Name });
         public MemberAccessor this[MemberKey key]
             => key.Index.HasValue
                 ? MemberAccessors[key.Index.Value]

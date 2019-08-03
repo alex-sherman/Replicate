@@ -98,7 +98,7 @@ namespace Replicate
             TypeId typeID;
             try
             {
-                typeID = Model.GetID(replicated.GetType());
+                typeID = Model.GetId(replicated.GetType());
             }
             catch (KeyNotFoundException e) { throw new InvalidOperationException($"Cannot register an object with unknown generic type parameter: {e.Source}"); }
             uint objectId = AllocateObjectID(replicated);

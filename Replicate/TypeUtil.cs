@@ -33,11 +33,15 @@ namespace Replicate
         }
         public static object CopyToRaw(object source, Type sourceType, object target, Type targetType, string[] whiteList = null, string[] blackList = null)
         {
-            if (source == null) return target;
             var taTarget = Model.GetTypeAccessor(targetType);
             var taSource = taTarget;
             if (targetType != sourceType)
                 taSource = Model.GetTypeAccessor(sourceType);
+            return CopyToRaw(source, taSource, target, taTarget, whiteList, blackList);
+        }
+        public static object CopyToRaw(object source, TypeAccessor taSource, object target, TypeAccessor taTarget, string[] whiteList = null, string[] blackList = null)
+        {
+            if (source == null) return target;
             if (target == null) target = taTarget.Construct();
             IEnumerable<MemberAccessor> members = taTarget.MemberAccessors;
             if (whiteList != null && whiteList.Any())

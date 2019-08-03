@@ -19,12 +19,21 @@ namespace Replicate.MetaTyping
         static CustomAttributeBuilder replicateAttrBuilder = new CustomAttributeBuilder(
                 typeof(ReplicateAttribute).GetConstructor(new Type[0]), new object[0]);
         private TypeBuilder builder;
-        public Fake(string name, Type sourceType = null)
+        private GenericTypeParameterBuilder[] genericParameters;
+        public Fake(string name, ModuleBuilder module, Type sourceType = null)
         {
-            builder = DynamicModule.Single.DefineType(name, TypeAttributes.Public);
+            builder = module.DefineType(name, TypeAttributes.Public);
             if (sourceType != null) builder.SetCustomAttribute(new CustomAttributeBuilder(
                  typeof(FakeTypeAttribute).GetConstructor(new Type[0]), new object[0],
                  new[] { typeof(FakeTypeAttribute).GetField("Source") }, new object[] { sourceType }));
+        }
+        public GenericTypeParameterBuilder[] MakeGeneric(params string[] names)
+        {
+            return genericParameters = builder.DefineGenericParameters(names);
+        }
+        public Fake AddField(int genericPosition, string name)
+        {
+            return AddField(genericParameters[genericPosition], name);
         }
         public Fake AddField(Type type, string name)
         {
@@ -37,18 +46,19 @@ namespace Replicate.MetaTyping
         {
             model = model ?? ReplicationModel.Default;
             var typeName = sourceType.FullName.Replace('.', '_').Replace('+', '_') + "_Fake";
-            var existingType = DynamicModule.Single.GetType(typeName);
+            var existingType = model.Builder.GetType(typeName);
             if (existingType != null) return existingType;
-            var fake = new Fake(typeName, sourceType);
+            var fake = new Fake(typeName, model.Builder, sourceType);
             var args = sourceType.GetGenericArguments();
-            GenericTypeParameterBuilder[] parameters = { };
             if (args.Any())
-                parameters = fake.builder.DefineGenericParameters(args.Select(a => a.Name).ToArray());
+                fake.MakeGeneric(args.Select(a => a.Name).ToArray());
             var typeData = model.GetTypeData(sourceType);
-            foreach (var field in typeData.ReplicatedMembers)
+            foreach (var field in typeData.Members)
             {
-                var memberType = field.IsGenericParameter ? parameters[field.GenericParameterPosition] : field.MemberType;
-                fake.AddField(memberType, field.Name);
+                if (field.IsGenericParameter)
+                    fake.AddField(field.GenericParameterPosition, field.Name);
+                else
+                    fake.AddField(field.MemberType, field.Name);
             }
             return fake.Build();
         }

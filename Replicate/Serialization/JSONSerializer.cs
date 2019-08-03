@@ -181,7 +181,7 @@ namespace Replicate.Serialization
 
         public override void WriteObject(Stream stream, object obj, TypeAccessor typeAccessor)
         {
-            var objectSet = obj == null ? null : typeAccessor.Keys.Select(key =>
+            var objectSet = obj == null ? null : typeAccessor.TypeData.Keys.Select(key =>
             {
                 var member = typeAccessor[key];
                 return (key, member.GetValue(obj), member.TypeAccessor, member);

@@ -85,7 +85,7 @@ namespace Replicate.MetaData
         public IEnumerator<KeyValuePair<MemberKey, IRepNode>> GetEnumerator()
         {
             var @this = this;
-            return TypeAccessor.Keys
+            return TypeAccessor.TypeData.Keys
                 .Select(m => new KeyValuePair<MemberKey, IRepNode>(m, @this[m]))
                 .GetEnumerator();
         }
