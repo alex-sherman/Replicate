@@ -29,7 +29,7 @@ namespace Replicate.MetaData
         public TypeAccessor TypeAccessor { get; set; }
         public MemberAccessor MemberAccessor { get; private set; }
         private readonly SurrogateAccessor surrogate;
-        public MemberKey Key { get; set; }
+        public RepKey Key { get; set; }
         private object _value;
         public object Value
         {
@@ -64,7 +64,7 @@ namespace Replicate.MetaData
 
         #region Object Fields
         MemberAccessor[] MemberAccessors => TypeAccessor.MemberAccessors;
-        public IRepNode this[MemberKey key]
+        public IRepNode this[RepKey key]
         {
             get => this[TypeAccessor[key]];
             set
@@ -82,11 +82,11 @@ namespace Replicate.MetaData
             }
         }
 
-        public IEnumerator<KeyValuePair<MemberKey, IRepNode>> GetEnumerator()
+        public IEnumerator<KeyValuePair<RepKey, IRepNode>> GetEnumerator()
         {
             var @this = this;
             return TypeAccessor.TypeData.Keys
-                .Select(m => new KeyValuePair<MemberKey, IRepNode>(m, @this[m]))
+                .Select(m => new KeyValuePair<RepKey, IRepNode>(m, @this[m]))
                 .GetEnumerator();
         }
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
@@ -100,7 +100,7 @@ namespace Replicate.MetaData
             return $"{Key}: {MarshallMethod.ToString()}";
         }
 
-        public bool CanSetMember(MemberKey key) => TypeAccessor[key] != null;
+        public bool CanSetMember(RepKey key) => TypeAccessor[key] != null;
         #endregion
     }
 
@@ -108,7 +108,7 @@ namespace Replicate.MetaData
     {
         private RepBackedNode Node;
         public object RawValue => Node.RawValue;
-        public MemberKey Key { get; set; }
+        public RepKey Key { get; set; }
         public object Value { get => Node.Value; set => Node.Value = value; }
         public RepBackedCollection(RepBackedNode node)
         {

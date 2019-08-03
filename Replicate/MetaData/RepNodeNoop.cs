@@ -11,7 +11,7 @@ namespace Replicate.MetaData
     {
         public static RepNodeNoop Single { get; } = new RepNodeNoop();
         public object RawValue => this;
-        public MemberKey Key { get; set; }
+        public RepKey Key { get; set; }
         public object Value { get; set; }
 
         public TypeAccessor TypeAccessor => null;
@@ -26,22 +26,22 @@ namespace Replicate.MetaData
 
         public TypeAccessor CollectionType => null;
 
-        static readonly IEnumerable<KeyValuePair<MemberKey, RepNodeNoop>> Children = Enumerable.Empty<KeyValuePair<MemberKey, RepNodeNoop>>();
+        static readonly IEnumerable<KeyValuePair<RepKey, RepNodeNoop>> Children = Enumerable.Empty<KeyValuePair<RepKey, RepNodeNoop>>();
         public IEnumerable<object> Values { get => Enumerable.Empty<object>(); set { } }
 
-        public IRepNode this[MemberKey memberName]
+        public IRepNode this[RepKey memberName]
         {
             get => this;
             set { }
         }
 
-        public IEnumerator<KeyValuePair<MemberKey, IRepNode>> GetEnumerator() => Enumerable.Empty<KeyValuePair<MemberKey, IRepNode>>().GetEnumerator();
+        public IEnumerator<KeyValuePair<RepKey, IRepNode>> GetEnumerator() => Enumerable.Empty<KeyValuePair<RepKey, IRepNode>>().GetEnumerator();
         IEnumerator<IRepNode> IEnumerable<IRepNode>.GetEnumerator() => Enumerable.Empty<IRepNode>().GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         public void EnsureConstructed() { }
 
-        public bool CanSetMember(MemberKey _) => false;
+        public bool CanSetMember(RepKey _) => false;
 
     }
 }

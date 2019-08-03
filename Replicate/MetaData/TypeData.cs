@@ -17,8 +17,8 @@ namespace Replicate.MetaData
         public readonly bool PrefixWithType;
         public string Name { get; private set; }
         public Type Type { get; private set; }
-        public IEnumerable<MemberKey> Keys => Members.Select((m, i) => new MemberKey() { Index = i, Name = m.Name });
-        public MemberInfo this[MemberKey key]
+        public IEnumerable<RepKey> Keys => Members.Select((m, i) => new RepKey() { Index = i, Name = m.Name });
+        public MemberInfo this[RepKey key]
             => key.Index.HasValue
                 ? Members[key.Index.Value]
                 : Members.FirstOrDefault(m => m.Name == key.Name);

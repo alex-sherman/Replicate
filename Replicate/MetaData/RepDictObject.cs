@@ -22,7 +22,7 @@ namespace Replicate.MetaData
             TypeAccessor = typeAccessor;
             MemberAccessor = memberAccessor;
         }
-        public IRepNode this[MemberKey key]
+        public IRepNode this[RepKey key]
         {
             get
             {
@@ -33,7 +33,7 @@ namespace Replicate.MetaData
             set => Backing[key.Name] = (T)value.Value;
         }
 
-        public MemberKey Key { get; set; }
+        public RepKey Key { get; set; }
         public object Value { get => Backing; set => Backing = (Dictionary<string, T>)value; }
         public TypeAccessor TypeAccessor { get; }
         public MemberAccessor MemberAccessor { get; }
@@ -43,11 +43,11 @@ namespace Replicate.MetaData
         public IRepCollection AsCollection => null;
         public IRepObject AsObject => this;
 
-        public IEnumerator<KeyValuePair<MemberKey, IRepNode>> GetEnumerator()
+        public IEnumerator<KeyValuePair<RepKey, IRepNode>> GetEnumerator()
         {
             var @this = this;
             return Backing.Keys
-                .Select(key => new KeyValuePair<MemberKey, IRepNode>(key, @this[key]))
+                .Select(key => new KeyValuePair<RepKey, IRepNode>(key, @this[key]))
                 .GetEnumerator();
         }
 
@@ -55,6 +55,6 @@ namespace Replicate.MetaData
 
         public void EnsureConstructed() => Backing = new Dictionary<string, T>();
 
-        public bool CanSetMember(MemberKey _) => true;
+        public bool CanSetMember(RepKey _) => true;
     }
 }

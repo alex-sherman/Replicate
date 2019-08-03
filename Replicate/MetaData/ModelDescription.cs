@@ -10,7 +10,7 @@ namespace Replicate.MetaData
     [ReplicateType]
     public class MemberDescription
     {
-        public MemberKey Key;
+        public RepKey Key;
         public ushort? TypeId;
         public byte? GenericPosition;
     }

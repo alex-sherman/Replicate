@@ -129,7 +129,7 @@ namespace Replicate.Serialization
             }
             return false;
         }
-        IEnumerable<(MemberKey key, object value, TypeAccessor type, MemberAccessor member)> getDictValues(IDictionary dict, TypeAccessor typeAccessor)
+        IEnumerable<(RepKey key, object value, TypeAccessor type, MemberAccessor member)> getDictValues(IDictionary dict, TypeAccessor typeAccessor)
         {
             foreach (var key in dict.Keys)
             {
@@ -159,7 +159,7 @@ namespace Replicate.Serialization
             }
         }
 
-        public void SerializeObject(Stream stream, IEnumerable<(MemberKey key, object value, TypeAccessor type, MemberAccessor member)> obj)
+        public void SerializeObject(Stream stream, IEnumerable<(RepKey key, object value, TypeAccessor type, MemberAccessor member)> obj)
         {
             if (obj == null)
                 WritePrimitive(stream, null, null);

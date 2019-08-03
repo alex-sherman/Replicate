@@ -11,7 +11,7 @@ namespace Replicate.MetaData
     {
         public ReplicationModel Model { get; }
         public object RawValue => this;
-        public MemberKey Key { get; set; }
+        public RepKey Key { get; set; }
         public object Value { get; set; }
 
         public TypeAccessor TypeAccessor => Model.GetTypeAccessor(typeof(IRepNode));
@@ -42,7 +42,7 @@ namespace Replicate.MetaData
             get => Children[memberIndex].Value;
             set => Children[memberIndex] = new KeyValuePair<string, IRepNode>(null, (IRepNode)value);
         }
-        public IRepNode this[MemberKey memberName]
+        public IRepNode this[RepKey memberName]
         {
             get
             {
@@ -63,8 +63,8 @@ namespace Replicate.MetaData
             set => this[memberName].Value = value.Value;
         }
 
-        public IEnumerator<KeyValuePair<MemberKey, IRepNode>> GetEnumerator()
-            => Children.Select(c => new KeyValuePair<MemberKey, IRepNode>(c.Key, c.Value)).GetEnumerator();
+        public IEnumerator<KeyValuePair<RepKey, IRepNode>> GetEnumerator()
+            => Children.Select(c => new KeyValuePair<RepKey, IRepNode>(c.Key, c.Value)).GetEnumerator();
         IEnumerator<IRepNode> IEnumerable<IRepNode>.GetEnumerator() => Children.Select(c => c.Value).GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
@@ -78,6 +78,6 @@ namespace Replicate.MetaData
             return result;
         }
 
-        public bool CanSetMember(MemberKey _) => true;
+        public bool CanSetMember(RepKey _) => true;
     }
 }

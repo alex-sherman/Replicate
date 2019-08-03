@@ -90,7 +90,7 @@ namespace Replicate.Serialization
                 Write(stream, item, collectionValueType, null);
         }
 
-        void WriteKey(Stream stream, MemberKey key)
+        void WriteKey(Stream stream, RepKey key)
         {
             if (key.Index.HasValue)
                 stream.WriteByte((byte)key.Index.Value);
@@ -101,15 +101,15 @@ namespace Replicate.Serialization
             }
             else stream.WriteByte(255);
         }
-        MemberKey ReadKey(Stream stream)
+        RepKey ReadKey(Stream stream)
         {
             var b = (byte)stream.ReadByte();
-            if (b == 255) return default(MemberKey);
+            if (b == 255) return default(RepKey);
             if (b != 254) return b;
             return (string)serializers[PrimitiveType.String].Read(stream);
         }
 
-        public void SerializeObject(Stream stream, IEnumerable<(MemberKey key, object value, MemberAccessor member)> obj)
+        public void SerializeObject(Stream stream, IEnumerable<(RepKey key, object value, MemberAccessor member)> obj)
         {
             if (obj == null)
             {

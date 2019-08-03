@@ -55,17 +55,17 @@ namespace Replicate.MetaData
                 return Enum.ToObject(Type, intValue);
             return Convert.ChangeType(obj, Type);
         }
-        public MemberAccessor this[MemberKey key]
+        public MemberAccessor this[RepKey key]
             => key.Index.HasValue
                 ? MemberAccessors[key.Index.Value]
                 : Members.TryGetValue(key.Name, out var member) ? member : null;
 
-        public MemberKey MethodKey(MethodInfo method)
+        public RepKey MethodKey(MethodInfo method)
         {
             // TODO: Fill out index as well
             return method.Name;
         }
-        public MethodInfo GetMethod(MemberKey method)
+        public MethodInfo GetMethod(RepKey method)
         {
             if (method.Index.HasValue) return RPCMethods[method.Index.Value];
             return RPCMethods.FirstOrDefault(m => m.Name == method.Name);

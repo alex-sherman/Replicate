@@ -54,7 +54,7 @@ namespace Replicate.Serialization
             stream.WriteInt32(count);
             stream.Position = reset;
         }
-        void Write(Stream stream, MemberKey key)
+        void Write(Stream stream, RepKey key)
         {
             if (key.Index.HasValue)
                 stream.WriteByte((byte)key.Index.Value);
@@ -65,10 +65,10 @@ namespace Replicate.Serialization
             }
             else stream.WriteByte(255);
         }
-        MemberKey ReadKey(Stream stream)
+        RepKey ReadKey(Stream stream)
         {
             var b = (byte)stream.ReadByte();
-            if (b == 255) return default(MemberKey);
+            if (b == 255) return default(RepKey);
             if (b != 254) return b;
             return (string)serializers[PrimitiveType.String].Read(stream);
         }

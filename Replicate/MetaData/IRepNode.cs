@@ -17,7 +17,7 @@ namespace Replicate.MetaData
         /// The, potentially surrogatted, value represented by this node
         /// </summary>
         object Value { get; set; }
-        MemberKey Key { get; set; }
+        RepKey Key { get; set; }
         TypeAccessor TypeAccessor { get; }
         MemberAccessor MemberAccessor { get; }
         MarshallMethod MarshallMethod { get; }
@@ -35,18 +35,18 @@ namespace Replicate.MetaData
         IEnumerable<object> Values { get; set; }
     }
     [ReplicateType]
-    public struct MemberKey
+    public struct RepKey
     {
         public int? Index;
         public string Name;
-        public MemberKey(string str) { Index = null; Name = str; }
-        public MemberKey(int index) { Index = index; Name = null; }
+        public RepKey(string str) { Index = null; Name = str; }
+        public RepKey(int index) { Index = index; Name = null; }
 
         public override bool Equals(object obj)
         {
-            if (!(obj is MemberKey)) return false;
+            if (!(obj is RepKey)) return false;
 
-            var key = (MemberKey)obj;
+            var key = (RepKey)obj;
             return EqualityComparer<int?>.Default.Equals(Index, key.Index) && Name == key.Name;
         }
 
@@ -58,8 +58,8 @@ namespace Replicate.MetaData
             return hashCode;
         }
 
-        public static implicit operator MemberKey(string str) => new MemberKey(str);
-        public static implicit operator MemberKey(int index) => new MemberKey(index);
+        public static implicit operator RepKey(string str) => new RepKey(str);
+        public static implicit operator RepKey(int index) => new RepKey(index);
         [ReplicateIgnore]
         public bool IsEmpty => Name == null && Index == null;
         public override string ToString()
@@ -73,7 +73,7 @@ namespace Replicate.MetaData
     public struct MethodKey
     {
         public TypeId Type;
-        public MemberKey Method;
+        public RepKey Method;
 
         public override bool Equals(object obj)
         {
@@ -84,14 +84,14 @@ namespace Replicate.MetaData
 
             var key = (MethodKey)obj;
             return EqualityComparer<TypeId>.Default.Equals(Type, key.Type) &&
-                   EqualityComparer<MemberKey>.Default.Equals(Method, key.Method);
+                   EqualityComparer<RepKey>.Default.Equals(Method, key.Method);
         }
 
         public override int GetHashCode()
         {
             var hashCode = 314988997;
             hashCode = hashCode * -1521134295 + EqualityComparer<TypeId>.Default.GetHashCode(Type);
-            hashCode = hashCode * -1521134295 + EqualityComparer<MemberKey>.Default.GetHashCode(Method);
+            hashCode = hashCode * -1521134295 + EqualityComparer<RepKey>.Default.GetHashCode(Method);
             return hashCode;
         }
         public override string ToString()
@@ -99,11 +99,11 @@ namespace Replicate.MetaData
             return $"{Type}.{Method}";
         }
     }
-    public interface IRepObject : IRepNode, IEnumerable<KeyValuePair<MemberKey, IRepNode>>
+    public interface IRepObject : IRepNode, IEnumerable<KeyValuePair<RepKey, IRepNode>>
     {
         void EnsureConstructed();
-        IRepNode this[MemberKey key] { get; set; }
-        bool CanSetMember(MemberKey key);
+        IRepNode this[RepKey key] { get; set; }
+        bool CanSetMember(RepKey key);
     }
 
 }
