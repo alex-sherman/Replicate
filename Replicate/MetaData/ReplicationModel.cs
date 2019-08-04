@@ -59,7 +59,7 @@ namespace Replicate.MetaData
         public static ReplicationModel Default { get; } = new ReplicationModel();
         Dictionary<Type, TypeAccessor> typeAccessorLookup = new Dictionary<Type, TypeAccessor>();
         Dictionary<Type, TypeData> typeLookup = new Dictionary<Type, TypeData>();
-        RepSet<TypeData> types = new RepSet<TypeData>();
+        public readonly RepSet<TypeData> Types = new RepSet<TypeData>();
         public readonly ModuleBuilder Builder = DynamicModule.Create();
         public bool DictionaryAsObject;
         public bool AddOnLookup = false;
@@ -131,7 +131,7 @@ namespace Replicate.MetaData
         {
             var output = new TypeId()
             {
-                Id = (ushort)types.GetKey(this[type].Name).Index.Value
+                Id = (ushort)Types.GetKey(this[type].Name).Index.Value
             };
             if (type.IsGenericType)
                 output.Subtypes = type.GetGenericArguments().Select(t => GetId(t)).ToArray();
@@ -139,7 +139,7 @@ namespace Replicate.MetaData
         }
         public Type GetType(TypeId typeID)
         {
-            Type type = types[typeID.Id].Type;
+            Type type = Types[typeID.Id].Type;
             if (type.IsGenericTypeDefinition)
             {
                 type = type.MakeGenericType(typeID.Subtypes.Select(subType => GetType(subType)).ToArray());
@@ -241,7 +241,7 @@ namespace Replicate.MetaData
             {
                 typeData = new TypeData(type, this);
                 typeLookup.Add(type, typeData);
-                types.Add(typeData.Name, typeData);
+                Types.Add(typeData.Name, typeData);
                 typeData.InitializeMembers();
             }
             if (genericParameters != null)
@@ -254,10 +254,9 @@ namespace Replicate.MetaData
         {
             return new ModelDescription()
             {
-                Types = types.Values.Select(typeData => new TypeDescription()
+                Types = Types.Values.Select(typeData => new TypeDescription()
                 {
-                    TypeId = (ushort)types.GetKey(typeData.Name).Index.Value,
-                    Name = typeData.Name,
+                    Key = Types.GetKey(typeData.Name),
                     Members = typeData.Keys.Select(key =>
                     {
                         var member = typeData[key];
@@ -268,34 +267,49 @@ namespace Replicate.MetaData
                         if (member.IsGenericParameter)
                             desc.GenericPosition = (byte)member.GenericParameterPosition;
                         else
-                            desc.TypeId = (ushort)types.GetKey(typeData.Name).Index.Value;
+                            desc.TypeId = (ushort)Types.GetKey(typeData.Name).Index.Value;
                         return desc;
                     }).ToList(),
-                    FakeSourceType = typeData.Type.GetCustomAttribute<FakeTypeAttribute>()?.Source.FullName,
+                    IsFake = typeData.Type.GetCustomAttribute<FakeTypeAttribute>() != null,
                 }).ToList()
             };
         }
-        public Type FindType(string typeName, IEnumerable<Assembly> assemblies, bool fakeMissing)
+        public Type FindType(TypeDescription type, IEnumerable<Assembly> assemblies, bool fakeMissing)
         {
-            return Type.GetType(typeName)
-                ?? assemblies.Select(a => a.GetType(typeName)).Where(t => t != null).FirstOrDefault()
-                // TODO: Build fake instead
-                //?? new Fake(typeName, Builder)
-                ?? throw new TypeLoadException($"Unable to find type {typeName}");
+            var typeName = type.Key.Name;
+            if (!type.IsFake)
+            {
+                var found = Type.GetType(typeName)
+                    ?? assemblies.Select(a => a.GetType(typeName)).Where(t => t != null).FirstOrDefault();
+                if (found != null) return found;
+            }
+            else
+            {
+                var found = Builder.GetType(type.Key.Name);
+                if (found != null) return found;
+            }
+            if (type.IsFake || fakeMissing)
+            {
+                var fake = new Fake(type.Key.Name, Builder);
+                foreach (var member in type.Members)
+                {
+                    if (member.GenericPosition != null)
+                        fake.AddField(member.GenericPosition.Value, member.Key.Name);
+                    else
+                        fake.AddField(Types[member.TypeId].Type, member.Key.Name);
+                }
+                return fake.Build();
+            }
+            throw new TypeLoadException($"Unable to load type {type.Key}");
         }
         public void LoadFrom(ModelDescription description, bool fakeMissing = true)
         {
             typeLookup.Clear();
-            types.Clear();
+            Types.Clear();
             var assemblies = new[] { Assembly.GetExecutingAssembly(), Assembly.GetCallingAssembly() };
             foreach (var typeDesc in description.Types)
             {
-                Type type;
-                if (typeDesc.FakeSourceType != null)
-                    type = Fake.FromType(FindType(typeDesc.FakeSourceType, assemblies, fakeMissing));
-                else
-                    type = FindType(typeDesc.Name, assemblies, fakeMissing);
-                Add(type);
+                Add(FindType(typeDesc, assemblies, fakeMissing));
             }
         }
 

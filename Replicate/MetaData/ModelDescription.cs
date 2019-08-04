@@ -11,15 +11,14 @@ namespace Replicate.MetaData
     public class MemberDescription
     {
         public RepKey Key;
-        public ushort? TypeId;
+        public RepKey TypeId;
         public byte? GenericPosition;
     }
     [ReplicateType]
     public class TypeDescription
     {
-        public ushort TypeId;
-        public string Name;
-        public string FakeSourceType;
+        public RepKey Key;
+        public bool IsFake;
         public List<MemberDescription> Members;
     }
     [ReplicateType]

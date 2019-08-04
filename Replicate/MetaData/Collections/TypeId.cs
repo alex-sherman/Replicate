@@ -9,7 +9,7 @@ namespace Replicate.MetaData
     [ReplicateType]
     public struct TypeId
     {
-        public ushort Id;
+        public RepKey Id;
         public TypeId[] Subtypes;
 
         public override bool Equals(object obj)
@@ -20,7 +20,7 @@ namespace Replicate.MetaData
             }
 
             var id = (TypeId)obj;
-            return Id == id.Id &&
+            return Id.Equals(id.Id) &&
                    EqualityComparer<TypeId[]>.Default.Equals(Subtypes, id.Subtypes);
         }
 

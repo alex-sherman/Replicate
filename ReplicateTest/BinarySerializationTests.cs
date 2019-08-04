@@ -136,7 +136,7 @@ namespace ReplicateTest
                 }
             });
             var output = ser.Deserialize<InitMessage>(stream);
-            Assert.AreEqual(12, output.typeID.Id);
+            Assert.AreEqual(12, output.typeID.Id.Index);
         }
         [Test]
         public void TestInheritedType()

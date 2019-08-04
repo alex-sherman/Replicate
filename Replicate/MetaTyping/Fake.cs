@@ -10,22 +10,18 @@ using System.Threading.Tasks;
 namespace Replicate.MetaTyping
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface | AttributeTargets.Enum)]
-    public class FakeTypeAttribute : Attribute
-    {
-        public Type Source;
-    }
+    public class FakeTypeAttribute : Attribute { }
     public class Fake
     {
         static CustomAttributeBuilder replicateAttrBuilder = new CustomAttributeBuilder(
                 typeof(ReplicateAttribute).GetConstructor(new Type[0]), new object[0]);
         private TypeBuilder builder;
         private GenericTypeParameterBuilder[] genericParameters;
-        public Fake(string name, ModuleBuilder module, Type sourceType = null)
+        public Fake(string name, ModuleBuilder module)
         {
             builder = module.DefineType(name, TypeAttributes.Public);
-            if (sourceType != null) builder.SetCustomAttribute(new CustomAttributeBuilder(
-                 typeof(FakeTypeAttribute).GetConstructor(new Type[0]), new object[0],
-                 new[] { typeof(FakeTypeAttribute).GetField("Source") }, new object[] { sourceType }));
+            builder.SetCustomAttribute(new CustomAttributeBuilder(
+                 typeof(FakeTypeAttribute).GetConstructor(new Type[0]), new object[0]));
         }
         public GenericTypeParameterBuilder[] MakeGeneric(params string[] names)
         {
@@ -48,7 +44,7 @@ namespace Replicate.MetaTyping
             var typeName = sourceType.FullName.Replace('.', '_').Replace('+', '_') + "_Fake";
             var existingType = model.Builder.GetType(typeName);
             if (existingType != null) return existingType;
-            var fake = new Fake(typeName, model.Builder, sourceType);
+            var fake = new Fake(typeName, model.Builder);
             var args = sourceType.GetGenericArguments();
             if (args.Any())
                 fake.MakeGeneric(args.Select(a => a.Name).ToArray());
