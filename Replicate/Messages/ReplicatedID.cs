@@ -9,9 +9,7 @@ namespace Replicate.Messages
     [ReplicateType]
     public struct ReplicateId
     {
-        [Replicate]
         public ushort Creator;
-        [Replicate]
         public uint ObjectID;
 
         public override int GetHashCode()

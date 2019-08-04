@@ -93,10 +93,10 @@ namespace ReplicateTest
                 field1 = 3,
                 field2 = "herpderp"
             };
-            Assert.AreEqual(typeAccessor.MemberAccessors[1].GetValue(replicated), "herpderp");
-            Assert.AreEqual(typeAccessor.MemberAccessors[0].GetValue(replicated), 3);
-            typeAccessor.MemberAccessors[1].SetValue(replicated, "FAFF");
-            Assert.AreEqual(typeAccessor.MemberAccessors[1].GetValue(replicated), "FAFF");
+            Assert.AreEqual(typeAccessor.Members[1].GetValue(replicated), "herpderp");
+            Assert.AreEqual(typeAccessor.Members[0].GetValue(replicated), 3);
+            typeAccessor.Members[1].SetValue(replicated, "FAFF");
+            Assert.AreEqual(typeAccessor.Members[1].GetValue(replicated), "FAFF");
         }
         [Test]
         public void RegisterObj()

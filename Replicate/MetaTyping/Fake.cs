@@ -53,7 +53,7 @@ namespace Replicate.MetaTyping
             if (args.Any())
                 fake.MakeGeneric(args.Select(a => a.Name).ToArray());
             var typeData = model.GetTypeData(sourceType);
-            foreach (var field in typeData.Members)
+            foreach (var field in typeData.Members.Values)
             {
                 if (field.IsGenericParameter)
                     fake.AddField(field.GenericParameterPosition, field.Name);

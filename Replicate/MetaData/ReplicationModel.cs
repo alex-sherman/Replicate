@@ -59,8 +59,7 @@ namespace Replicate.MetaData
         public static ReplicationModel Default { get; } = new ReplicationModel();
         Dictionary<Type, TypeAccessor> typeAccessorLookup = new Dictionary<Type, TypeAccessor>();
         Dictionary<Type, TypeData> typeLookup = new Dictionary<Type, TypeData>();
-        Dictionary<string, TypeData> stringLookup = new Dictionary<string, TypeData>();
-        List<TypeData> typeIndex = new List<TypeData>();
+        RepSet<TypeData> types = new RepSet<TypeData>();
         public readonly ModuleBuilder Builder = DynamicModule.Create();
         public bool DictionaryAsObject;
         public bool AddOnLookup = false;
@@ -132,7 +131,7 @@ namespace Replicate.MetaData
         {
             var output = new TypeId()
             {
-                Id = (ushort)typeIndex.IndexOf(this[type])
+                Id = (ushort)types.GetKey(this[type].Name).Index.Value
             };
             if (type.IsGenericType)
                 output.Subtypes = type.GetGenericArguments().Select(t => GetId(t)).ToArray();
@@ -140,7 +139,7 @@ namespace Replicate.MetaData
         }
         public Type GetType(TypeId typeID)
         {
-            Type type = typeIndex[typeID.Id].Type;
+            Type type = types[typeID.Id].Type;
             if (type.IsGenericTypeDefinition)
             {
                 type = type.MakeGenericType(typeID.Subtypes.Select(subType => GetType(subType)).ToArray());
@@ -150,11 +149,15 @@ namespace Replicate.MetaData
         public MethodKey MethodKey(MethodInfo method)
         {
             var type = method.DeclaringType;
-            return new MethodKey() { Method = GetTypeAccessor(method.DeclaringType).MethodKey(method), Type = GetId(type) };
+            var methods = GetTypeAccessor(method.DeclaringType).RPCMethods;
+            if (!methods.ContainsKey(method.Name)) throw new ContractNotFoundError(method.Name);
+            return new MethodKey() { Method = methods.GetKey(method.Name), Type = GetId(type) };
         }
         public MethodInfo GetMethod(MethodKey method)
         {
-            return GetTypeAccessor(GetType(method.Type)).GetMethod(method.Method);
+            var methods = GetTypeAccessor(GetType(method.Type)).RPCMethods;
+            if (!methods.ContainsKey(method.Method)) throw new ContractNotFoundError(method.Method.ToString());
+            return methods[method.Method];
         }
         public TypeAccessor GetTypeAccessor(Type type)
         {
@@ -210,7 +213,6 @@ namespace Replicate.MetaData
         {
             var typeData = this[existing];
             typeLookup.Add(incoming, typeData);
-            stringLookup.Add(incoming.FullName, typeData);
             return typeData;
         }
         public TypeData GetTypeData(Type type)
@@ -238,9 +240,8 @@ namespace Replicate.MetaData
             if (!typeLookup.TryGetValue(type, out var typeData))
             {
                 typeData = new TypeData(type, this);
-                typeIndex.Add(typeData);
                 typeLookup.Add(type, typeData);
-                stringLookup.Add(type.FullName, typeData);
+                types.Add(typeData.Name, typeData);
                 typeData.InitializeMembers();
             }
             if (genericParameters != null)
@@ -253,9 +254,9 @@ namespace Replicate.MetaData
         {
             return new ModelDescription()
             {
-                Types = typeIndex.Select(typeData => new TypeDescription()
+                Types = types.Values.Select(typeData => new TypeDescription()
                 {
-                    TypeId = (ushort)typeIndex.IndexOf(typeData),
+                    TypeId = (ushort)types.GetKey(typeData.Name).Index.Value,
                     Name = typeData.Name,
                     Members = typeData.Keys.Select(key =>
                     {
@@ -267,7 +268,7 @@ namespace Replicate.MetaData
                         if (member.IsGenericParameter)
                             desc.GenericPosition = (byte)member.GenericParameterPosition;
                         else
-                            desc.TypeId = (ushort)typeIndex.IndexOf(this[member.MemberType]);
+                            desc.TypeId = (ushort)types.GetKey(typeData.Name).Index.Value;
                         return desc;
                     }).ToList(),
                     FakeSourceType = typeData.Type.GetCustomAttribute<FakeTypeAttribute>()?.Source.FullName,
@@ -285,8 +286,7 @@ namespace Replicate.MetaData
         public void LoadFrom(ModelDescription description, bool fakeMissing = true)
         {
             typeLookup.Clear();
-            stringLookup.Clear();
-            typeIndex.Clear();
+            types.Clear();
             var assemblies = new[] { Assembly.GetExecutingAssembly(), Assembly.GetCallingAssembly() };
             foreach (var typeDesc in description.Types)
             {

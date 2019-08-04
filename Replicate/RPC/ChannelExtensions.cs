@@ -40,6 +40,7 @@ namespace Replicate
             foreach (var method in channel.Model[typeof(T)].RPCMethods)
                 channel.Respond(method, TypeUtil.CreateHandler(method, _ => implementation));
         }
+        [Obsolete]
         public static async Task<T> Request<T>(this IRPCChannel channel, Expression<Func<Task<T>>> call)
         {
             var methodCall = call.Body as MethodCallExpression;

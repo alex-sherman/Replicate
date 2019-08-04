@@ -17,12 +17,9 @@ namespace Replicate.MetaData
         public readonly bool PrefixWithType;
         public string Name { get; private set; }
         public Type Type { get; private set; }
-        public IEnumerable<RepKey> Keys => Members.Select((m, i) => new RepKey() { Index = i, Name = m.Name });
-        public MemberInfo this[RepKey key]
-            => key.Index.HasValue
-                ? Members[key.Index.Value]
-                : Members.FirstOrDefault(m => m.Name == key.Name);
-        public readonly List<MemberInfo> Members = new List<MemberInfo>();
+        public IEnumerable<RepKey> Keys => Members.Keys;
+        public MemberInfo this[RepKey key] => Members[key];
+        public readonly RepSet<MemberInfo> Members = new RepSet<MemberInfo>();
         public readonly List<MethodInfo> RPCMethods = new List<MethodInfo>();
         public readonly bool IsInstanceRPC;
         public Surrogate Surrogate { get; private set; }
@@ -108,7 +105,7 @@ namespace Replicate.MetaData
         }
         void AddMember(MemberInfo member)
         {
-            Members.Add(member);
+            Members.Add(member.Name, member);
             if (!member.MemberType.IsGenericParameter)
                 Model.Add(member.MemberType);
         }

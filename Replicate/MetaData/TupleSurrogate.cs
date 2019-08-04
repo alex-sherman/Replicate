@@ -23,7 +23,7 @@ namespace Replicate.MetaData
                 (orig, surrogate) => obj =>
                 {
                     if (obj == null) return null;
-                    return orig.Construct(surrogate.MemberAccessors.Select(member => member.GetValue(obj)).ToArray());
+                    return orig.Construct(surrogate.Members.Values.Select(member => member.GetValue(obj)).ToArray());
                 }
             ));
         }

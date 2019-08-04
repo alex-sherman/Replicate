@@ -63,7 +63,6 @@ namespace Replicate.MetaData
         public IRepPrimitive AsPrimitive => this;
 
         #region Object Fields
-        MemberAccessor[] MemberAccessors => TypeAccessor.MemberAccessors;
         public IRepNode this[RepKey key]
         {
             get => this[TypeAccessor[key]];

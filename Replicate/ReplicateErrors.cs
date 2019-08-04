@@ -18,7 +18,7 @@ namespace Replicate
         public ReplicatedReferenceError(string message, Exception exception) : base(message, exception) { }
         public ReplicatedReferenceError() { }
     }
-    public class ContractNotFoundError : ReplicateError
+    public class ContractNotFoundError : ArgumentOutOfRangeException
     {
         public ContractNotFoundError(string message) : base(message) { }
         public ContractNotFoundError(string message, Exception exception) : base(message, exception) { }

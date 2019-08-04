@@ -1,4 +1,5 @@
 ﻿using Replicate.Messages;
+using Replicate.MetaData;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -13,9 +14,8 @@ namespace Replicate.MetaData
     {
         public string Name { get; private set; }
         public Type Type { get; private set; }
-        public MemberAccessor[] MemberAccessors;
-        public MethodInfo[] RPCMethods;
-        public Dictionary<string, MemberAccessor> Members;
+        public RepSet<MethodInfo> RPCMethods;
+        public RepSet<MemberAccessor> Members;
         private readonly bool isStringDict;
         public bool IsDictObj => isStringDict && TypeData.Model.DictionaryAsObject;
         public bool IsTypeless = false;
@@ -35,12 +35,11 @@ namespace Replicate.MetaData
         }
         internal void InitializeMembers()
         {
-            MemberAccessors = TypeData.Members
-                .Select(member => new MemberAccessor(member, this, TypeData.Model))
-                .ToArray();
-            Members = MemberAccessors.ToDictionary(member => member.Info.Name);
+            Members = TypeData.Members
+                .Select(kvp => new KeyValuePair<RepKey, MemberAccessor>(kvp.Key, new MemberAccessor(kvp.Value, this, TypeData.Model)))
+                .ToRepSet();
             // TODO: Actually handle generic RPC methods
-            RPCMethods = TypeData.RPCMethods.ToArray();
+            RPCMethods = TypeData.RPCMethods.Select((m, i) => new KeyValuePair<RepKey, MethodInfo>(new RepKey(i, m.Name), m)).ToRepSet();
         }
         public object Construct(params object[] args)
         {
@@ -55,20 +54,6 @@ namespace Replicate.MetaData
                 return Enum.ToObject(Type, intValue);
             return Convert.ChangeType(obj, Type);
         }
-        public MemberAccessor this[RepKey key]
-            => key.Index.HasValue
-                ? MemberAccessors[key.Index.Value]
-                : Members.TryGetValue(key.Name, out var member) ? member : null;
-
-        public RepKey MethodKey(MethodInfo method)
-        {
-            // TODO: Fill out index as well
-            return method.Name;
-        }
-        public MethodInfo GetMethod(RepKey method)
-        {
-            if (method.Index.HasValue) return RPCMethods[method.Index.Value];
-            return RPCMethods.FirstOrDefault(m => m.Name == method.Name);
-        }
+        public MemberAccessor this[RepKey key] => Members[key];
     }
 }

@@ -43,7 +43,7 @@ namespace Replicate
         {
             if (source == null) return target;
             if (target == null) target = taTarget.Construct();
-            IEnumerable<MemberAccessor> members = taTarget.MemberAccessors;
+            IEnumerable<MemberAccessor> members = taTarget.Members.Values;
             if (whiteList != null && whiteList.Any())
                 members = members.Where(mem => whiteList.Contains(mem.Info.Name));
             if (blackList != null && blackList.Any())

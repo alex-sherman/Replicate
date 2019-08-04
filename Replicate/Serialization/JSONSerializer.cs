@@ -98,7 +98,7 @@ namespace Replicate.Serialization
             if (obj == null) obj = typeAccessor.Construct();
             ReadObject(stream, name =>
             {
-                var memberAccessor = typeAccessor.MemberAccessors.FirstOrDefault(m => MapName(m.Info.Name) == name);
+                var memberAccessor = typeAccessor.Members.Values.FirstOrDefault(m => MapName(m.Info.Name) == name);
                 CheckAndThrow(memberAccessor != null);
                 var value = Read(memberAccessor.GetValue(obj), stream, memberAccessor.TypeAccessor, memberAccessor);
                 memberAccessor.SetValue(obj, value);

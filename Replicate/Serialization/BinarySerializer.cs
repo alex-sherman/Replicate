@@ -154,7 +154,7 @@ namespace Replicate.Serialization
             for (int i = 0; i < count; i++)
             {
                 int id = stream.ReadByte();
-                var member = typeAccessor.MemberAccessors[id];
+                var member = typeAccessor.Members[id];
                 member.SetValue(obj, Read(member.GetValue(obj), stream, member.TypeAccessor, member));
             }
             return obj;
