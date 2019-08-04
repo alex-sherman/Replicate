@@ -59,5 +59,14 @@ namespace Replicate.MetaData
             }
             return output;
         }
+        public static RepSet<U> ToRepSet<T, U>(this IEnumerable<KeyValuePair<RepKey, T>> enumerable, Func<T, U> conversion) where T : class where U : class
+        {
+            var output = new RepSet<U>();
+            foreach (var kvp in enumerable)
+            {
+                output[kvp.Key] = conversion(kvp.Value);
+            }
+            return output;
+        }
     }
 }

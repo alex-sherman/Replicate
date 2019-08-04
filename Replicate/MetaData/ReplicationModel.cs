@@ -274,7 +274,7 @@ namespace Replicate.MetaData
                 }).ToList()
             };
         }
-        public Type FindType(TypeDescription type, IEnumerable<Assembly> assemblies, bool fakeMissing)
+        private Type FindType(TypeDescription type, IEnumerable<Assembly> assemblies, List<(TypeDescription, Fake)> deferred, bool fakeMissing)
         {
             var typeName = type.Key.Name;
             if (!type.IsFake)
@@ -291,14 +291,8 @@ namespace Replicate.MetaData
             if (type.IsFake || fakeMissing)
             {
                 var fake = new Fake(type.Key.Name, Builder);
-                foreach (var member in type.Members)
-                {
-                    if (member.GenericPosition != null)
-                        fake.AddField(member.GenericPosition.Value, member.Key.Name);
-                    else
-                        fake.AddField(Types[member.TypeId].Type, member.Key.Name);
-                }
-                return fake.Build();
+                deferred.Add((type, fake));
+                return fake.IntermediateType;
             }
             throw new TypeLoadException($"Unable to load type {type.Key}");
         }
@@ -307,9 +301,30 @@ namespace Replicate.MetaData
             typeLookup.Clear();
             Types.Clear();
             var assemblies = new[] { Assembly.GetExecutingAssembly(), Assembly.GetCallingAssembly() };
+            var deferred = new List<(TypeDescription, Fake)>();
             foreach (var typeDesc in description.Types)
             {
-                Add(FindType(typeDesc, assemblies, fakeMissing));
+                var type = FindType(typeDesc, assemblies, deferred, fakeMissing);
+                Types[typeDesc.Key] = new TypeData(type, this);
+            }
+            foreach (var (typeDesc, fake) in deferred)
+            {
+                foreach (var member in typeDesc.Members)
+                {
+                    if (member.GenericPosition != null)
+                        fake.AddField(member.GenericPosition.Value, member.Key.Name);
+                    else
+                        fake.AddField(Types[member.TypeId].Type, member.Key.Name);
+                }
+                Types[typeDesc.Key] = new TypeData(fake.Build(), this);
+            }
+            foreach (var td in Types.Values)
+            {
+                typeLookup[td.Type] = td;
+            }
+            foreach (var type in Types.Values)
+            {
+                type.InitializeMembers();
             }
         }
 

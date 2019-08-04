@@ -79,7 +79,7 @@ namespace ReplicateTest
             Assert.AreEqual(typeof(string), derpMember.MemberType);
         }
         [Test]
-        public void CreatesRecursiveFakeForMissingTypes()
+        public void CreatesFakeForRecursiveMissingTypes()
         {
             var model1 = new ReplicationModel(false);
             var desc = model1.GetDescription();
@@ -102,7 +102,38 @@ namespace ReplicateTest
             Assert.NotNull(faffType);
             var derpMember = faffType["Derp"];
             Assert.NotNull(derpMember);
-            Assert.AreEqual(typeof(string), derpMember.MemberType);
+            Assert.AreEqual("Faff", derpMember.MemberType.Name);
+        }
+        [Test]
+        public void CreatesFakeForLaterMissingTypes()
+        {
+            var model1 = new ReplicationModel(false);
+            var desc = model1.GetDescription();
+            var stringId = model1.GetId(typeof(string));
+            desc.Types.Add(new TypeDescription()
+            {
+                Key = new RepKey(model1.Types.Count, "Faff"),
+                Members = new List<MemberDescription>()
+                {
+                    new MemberDescription()
+                    {
+                        Key = new RepKey(0, "Derp"),
+                        TypeId = new RepKey(model1.Types.Count + 1, "Faff"),
+                    }
+                }
+            });
+            desc.Types.Add(new TypeDescription()
+            {
+                Key = new RepKey(model1.Types.Count + 1, "Herp"),
+                Members = new List<MemberDescription>(),
+            });
+            var model2 = new ReplicationModel(false);
+            model2.LoadFrom(desc);
+            var faffType = model2.Types["Faff"];
+            Assert.NotNull(faffType);
+            var derpMember = faffType["Derp"];
+            Assert.NotNull(derpMember);
+            Assert.AreEqual("Herp", derpMember.MemberType.Name);
         }
         [Test]
         public void InvalidSetKey()

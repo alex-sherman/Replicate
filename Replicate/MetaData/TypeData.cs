@@ -20,12 +20,12 @@ namespace Replicate.MetaData
         public IEnumerable<RepKey> Keys => Members.Keys;
         public MemberInfo this[RepKey key] => Members[key];
         public readonly RepSet<MemberInfo> Members = new RepSet<MemberInfo>();
-        public readonly List<MethodInfo> RPCMethods = new List<MethodInfo>();
-        public readonly bool IsInstanceRPC;
+        public List<MethodInfo> RPCMethods = new List<MethodInfo>();
+        public bool IsInstanceRPC;
         public Surrogate Surrogate { get; private set; }
         public ReplicationModel Model { get; private set; }
         private bool IsSurrogate = false;
-        public readonly ReplicateTypeAttribute TypeAttribute;
+        public ReplicateTypeAttribute TypeAttribute;
         public TypeData(Type type, ReplicationModel model)
         {
             Type = type;
@@ -48,7 +48,11 @@ namespace Replicate.MetaData
                 else
                     MarshallMethod = MarshallMethod.Object;
             }
-            TypeAttribute = type.GetCustomAttribute<ReplicateTypeAttribute>();
+        }
+
+        public void InitializeMembers()
+        {
+            TypeAttribute = Type.GetCustomAttribute<ReplicateTypeAttribute>();
             IsInstanceRPC = TypeAttribute?.IsInstanceRPC ?? false;
             var surrogateType = TypeAttribute?.SurrogateType;
             if (surrogateType != null) SetSurrogate(surrogateType);
@@ -58,16 +62,12 @@ namespace Replicate.MetaData
             if (autoMethods != AutoAdd.AllPublic)
                 bindingFlags |= BindingFlags.NonPublic;
             // TODO: Enforce unique names of methods
-            RPCMethods = type.GetMethods(bindingFlags)
+            RPCMethods = Type.GetMethods(bindingFlags)
                 .Where(meth => meth.GetCustomAttribute<ReplicateIgnoreAttribute>() == null)
                 .Where(meth => autoMethods != AutoAdd.None || meth.GetCustomAttribute<ReplicateRPCAttribute>() != null)
                 .ToList();
-        }
-
-        public void InitializeMembers()
-        {
             var autoMembers = TypeAttribute?.AutoMembers ?? AutoAdd.None;
-            var bindingFlags = BindingFlags.Instance | BindingFlags.Public;
+            bindingFlags = BindingFlags.Instance | BindingFlags.Public;
             if (autoMembers != AutoAdd.AllPublic)
                 bindingFlags |= BindingFlags.NonPublic;
             foreach (var field in Type.GetFields(bindingFlags))

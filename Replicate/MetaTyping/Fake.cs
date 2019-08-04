@@ -38,6 +38,7 @@ namespace Replicate.MetaTyping
             return this;
         }
         public Type Build() => builder.CreateType();
+        public Type IntermediateType => builder;
         public static Type FromType(Type sourceType, ReplicationModel model = null)
         {
             model = model ?? ReplicationModel.Default;
