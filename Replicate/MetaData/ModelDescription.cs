@@ -19,6 +19,7 @@ namespace Replicate.MetaData
     {
         public RepKey Key;
         public bool IsFake;
+        public string[] GenericParameters;
         public List<MemberDescription> Members;
     }
     [ReplicateType]

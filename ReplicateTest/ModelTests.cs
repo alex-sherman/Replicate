@@ -105,6 +105,33 @@ namespace ReplicateTest
             Assert.AreEqual("Faff", derpMember.MemberType.Name);
         }
         [Test]
+        public void CreatesFakeForGenericMissingTypes()
+        {
+            var model1 = new ReplicationModel(false);
+            var desc = model1.GetDescription();
+            var stringId = model1.GetId(typeof(string));
+            desc.Types.Add(new TypeDescription()
+            {
+                Key = new RepKey(model1.Types.Count, "Faff"),
+                GenericParameters = new [] { "T" },
+                Members = new List<MemberDescription>()
+                {
+                    new MemberDescription()
+                    {
+                        Key = new RepKey(0, "Derp"),
+                        GenericPosition = 0,
+                    }
+                }
+            });
+            var model2 = new ReplicationModel(false);
+            model2.LoadFrom(desc);
+            var faffType = model2.Types["Faff"];
+            Assert.NotNull(faffType);
+            var genType = faffType.Type.MakeGenericType(typeof(string));
+            var faffStr = model2.GetTypeAccessor(genType);
+            Assert.AreEqual(typeof(string), faffStr.Members["Derp"].Type);
+        }
+        [Test]
         public void CreatesFakeForLaterMissingTypes()
         {
             var model1 = new ReplicationModel(false);

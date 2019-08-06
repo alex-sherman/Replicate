@@ -22,6 +22,8 @@ namespace RepCmd
             public string Socket { get; set; }
             [Option('m', "method", Required = false, HelpText = "Method to request from")]
             public string Method { get; set; }
+            [Option('r', "request", Required = false, HelpText = "Request value")]
+            public string Request { get; set; }
             [Option('l', "list", Required = false, HelpText = "List methods")]
             public bool ListMethods { get; set; }
         }
@@ -58,7 +60,18 @@ namespace RepCmd
                 }
                 else if (options.Method != null)
                 {
+                    var splitted = options.Method.Split(':');
+                    var type = model.Types[splitted[0]];
+
+                    var service = services.FirstOrDefault(s =>
+                        s.Key.Type.Id.Name == splitted[0] && s.Key.Method.Name == splitted[1]);
+                    var requestType = model.GetType(service.Request);
+                    var request = json.Deserialize(requestType, options.Request ?? "null");
                     // TODO
+                    //channel.Request(new RPCRequest()
+                    //{
+                        
+                    //})
                 }
             }
         }

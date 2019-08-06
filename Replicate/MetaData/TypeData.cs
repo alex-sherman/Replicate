@@ -20,6 +20,7 @@ namespace Replicate.MetaData
         public IEnumerable<RepKey> Keys => Members.Keys;
         public MemberInfo this[RepKey key] => Members[key];
         public readonly RepSet<MemberInfo> Members = new RepSet<MemberInfo>();
+        public readonly string[] GenericTypeParameters = null;
         public List<MethodInfo> RPCMethods = new List<MethodInfo>();
         public bool IsInstanceRPC;
         public Surrogate Surrogate { get; private set; }
@@ -48,6 +49,8 @@ namespace Replicate.MetaData
                 else
                     MarshallMethod = MarshallMethod.Object;
             }
+            if (type.IsGenericTypeDefinition)
+                GenericTypeParameters = type.GetTypeInfo().GenericTypeParameters.Select(v => v.Name).ToArray();
         }
 
         public void InitializeMembers()

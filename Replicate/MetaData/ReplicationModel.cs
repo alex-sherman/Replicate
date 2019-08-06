@@ -131,7 +131,7 @@ namespace Replicate.MetaData
         {
             var output = new TypeId()
             {
-                Id = (ushort)Types.GetKey(this[type].Name).Index.Value
+                Id = Types.GetKey(this[type].Name),
             };
             if (type.IsGenericType)
                 output.Subtypes = type.GetGenericArguments().Select(t => GetId(t)).ToArray();
@@ -257,6 +257,7 @@ namespace Replicate.MetaData
                 Types = Types.Values.Select(typeData => new TypeDescription()
                 {
                     Key = Types.GetKey(typeData.Name),
+                    GenericParameters = typeData.GenericTypeParameters?.ToArray(),
                     Members = typeData.Keys.Select(key =>
                     {
                         var member = typeData[key];
@@ -291,6 +292,8 @@ namespace Replicate.MetaData
             if (type.IsFake || fakeMissing)
             {
                 var fake = new Fake(type.Key.Name, Builder);
+                if (type.GenericParameters != null)
+                    fake.MakeGeneric(type.GenericParameters.ToArray());
                 deferred.Add((type, fake));
                 return fake.IntermediateType;
             }
