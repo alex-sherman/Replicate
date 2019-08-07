@@ -11,7 +11,11 @@ namespace Replicate.RPC
     {
         public readonly Type RequestType;
         public readonly Type ResponseType;
-
+        public RPCContract(Type requestType, Type responseType)
+        {
+            RequestType = requestType;
+            ResponseType = responseType;
+        }
         public RPCContract(MethodInfo method)
         {
             var parameters = method.GetParameters().Where(p => !p.IsOptional);

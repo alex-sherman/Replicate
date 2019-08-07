@@ -38,7 +38,6 @@ namespace RepCmd
                         Console.WriteLine(e.ToString());
                     }
                 });
-            Console.ReadKey();
         }
         static async Task Run(Options options)
         {
@@ -55,7 +54,10 @@ namespace RepCmd
                 var services = await reflection.Services();
                 if (options.ListMethods)
                 {
-                    Console.WriteLine(json.SerializeString(services));
+                    foreach (var service in services)
+                    {
+                        Console.WriteLine($"{service.Key.Type.Id}:{service.Key.Method}");
+                    }
                     return;
                 }
                 else if (options.Method != null)
@@ -66,12 +68,16 @@ namespace RepCmd
                     var service = services.FirstOrDefault(s =>
                         s.Key.Type.Id.Name == splitted[0] && s.Key.Method.Name == splitted[1]);
                     var requestType = model.GetType(service.Request);
+                    var responseType = model.GetType(service.Response);
                     var request = json.Deserialize(requestType, options.Request ?? "null");
-                    // TODO
-                    //channel.Request(new RPCRequest()
-                    //{
-                        
-                    //})
+                    var resultStream = await channel.Request(new RPCRequest()
+                    {
+                        Request = request,
+                        Contract = new RPCContract(requestType, responseType),
+                        Endpoint = service.Key,
+                    }, ReliabilityMode.Reliable);
+                    var result = channel.Serializer.Deserialize(responseType, resultStream);
+                    Console.WriteLine(json.SerializeString(responseType, result));
                 }
             }
         }
