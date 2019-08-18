@@ -18,6 +18,7 @@ namespace Replicate
             : this(server, null, port, serializer) { }
         public Task Task { get; private set; }
         private Socket socket;
+        public int Port => (socket?.LocalEndPoint as IPEndPoint)?.Port ?? 0;
         public SocketListener(IRPCServer server, string host, int port, IReplicateSerializer serializer)
         {
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
