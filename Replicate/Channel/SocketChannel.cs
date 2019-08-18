@@ -20,6 +20,7 @@ namespace Replicate
         None,
         Request = 1,
         Response = 2,
+        Error = 4,
     }
     struct MessageHeader
     {
@@ -72,10 +73,10 @@ namespace Replicate
             Socket = socket;
         }
 
-        public void Start() { Socket.BeginReceive(buffer, 0, MessageHeader.SIZE, SocketFlags.None, startMessage, null); }
+        public void Start() { Socket.BeginReceive(buffer, 0, MessageHeader.SIZE, SocketFlags.None, StartMessage, null); }
         public void Close() { Socket.Close(); }
 
-        private void startMessage(IAsyncResult result)
+        private void StartMessage(IAsyncResult result)
         {
             try
             {
@@ -84,7 +85,7 @@ namespace Replicate
                 currentHeader = buffer;
                 remainingBytes = currentHeader.Length;
                 currentMessage = new MemoryStream(remainingBytes);
-                Socket.BeginReceive(buffer, 0, Math.Min(BUFFERSIZE, remainingBytes), SocketFlags.None, continueMessage, null);
+                Socket.BeginReceive(buffer, 0, Math.Min(BUFFERSIZE, remainingBytes), SocketFlags.None, ContinueMessage, null);
             }
             catch (SocketException)
             {
@@ -92,15 +93,15 @@ namespace Replicate
             }
         }
 
-        private void continueMessage(IAsyncResult result)
+        private void ContinueMessage(IAsyncResult result)
         {
             try
             {
                 var bytes = Socket.EndReceive(result);
                 currentMessage.Write(buffer, 0, bytes);
                 remainingBytes -= bytes;
-                if (remainingBytes == 0) finishMessage();
-                else Socket.BeginReceive(buffer, 0, Math.Min(BUFFERSIZE, remainingBytes), SocketFlags.None, continueMessage, null);
+                if (remainingBytes == 0) FinishMessage();
+                else Socket.BeginReceive(buffer, 0, Math.Min(BUFFERSIZE, remainingBytes), SocketFlags.None, ContinueMessage, null);
             }
             catch (SocketException)
             {
@@ -108,30 +109,57 @@ namespace Replicate
             }
         }
 
-        private void finishMessage()
+        private void FinishMessage()
         {
             currentMessage.Position = 0;
             if (currentHeader.Flags.HasFlag(MessageFlags.Response))
             {
-                outStandingMessages[currentHeader.Sequence].SetResult(currentMessage);
-                outStandingMessages.Remove(currentHeader.Sequence);
+                HandleResponse(currentHeader, currentMessage);
             }
             else if (currentHeader.Flags.HasFlag(MessageFlags.Request))
             {
                 var endpoint = Serializer.Deserialize<MethodKey>(currentMessage);
                 // currentMessage.Position _should_ be updated here, will break if two calls to deserialize happen
-                var recvTask = Receive(endpoint, currentMessage);
-                recvTask.ContinueWith(task => SendResponse(currentHeader.Sequence, task.Result), TaskContinuationOptions.OnlyOnRanToCompletion);
+                HandleRequest(endpoint, currentMessage).ConfigureAwait(false);
             }
             currentMessage = null;
             remainingBytes = 0;
-            Socket.BeginReceive(buffer, 0, MessageHeader.SIZE, SocketFlags.None, startMessage, null);
+            Socket.BeginReceive(buffer, 0, MessageHeader.SIZE, SocketFlags.None, StartMessage, null);
         }
 
-        protected void SendResponse(uint sequence, MemoryStream response)
+        private void HandleResponse(MessageHeader header, MemoryStream currentMessage)
         {
-            var message = response.ToArray();
-            var header = new MessageHeader() { Flags = MessageFlags.Response, Length = message.Length, Sequence = sequence };
+            if (header.Flags.HasFlag(MessageFlags.Error))
+            {
+                var message = Serializer.Deserialize<string>(currentMessage);
+                outStandingMessages[header.Sequence].SetException(new ReplicateError(message));
+            }
+            else
+                outStandingMessages[header.Sequence].SetResult(currentMessage);
+            outStandingMessages.Remove(header.Sequence);
+        }
+
+        private async Task HandleRequest(MethodKey endpoint, MemoryStream currentMessage)
+        {
+            var header = new MessageHeader()
+            {
+                Flags = MessageFlags.Response,
+                Sequence = sequence
+            };
+            byte[] message;
+            try
+            {
+                var result = await Receive(endpoint, currentMessage);
+                message = result.ToArray();
+            }
+            catch (Exception e)
+            {
+                header.Flags |= MessageFlags.Error;
+                var errorStream = new MemoryStream();
+                Serializer.Serialize(typeof(string), e.Message, errorStream);
+                message = errorStream.ToArray();
+            }
+            header.Length = message.Length;
             lock (this)
             {
                 Socket.Send(header);

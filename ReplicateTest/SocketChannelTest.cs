@@ -17,6 +17,7 @@ namespace ReplicateTest
     public interface IEchoService
     {
         Task<string> Echo(string message);
+        Task Error();
     }
     [ReplicateType]
     [TestFixture]
@@ -38,7 +39,8 @@ namespace ReplicateTest
             using (var sl = new SocketListener(server, 55554, new BinarySerializer(model)))
             {
                 var clientChannel = SocketChannel.Connect("127.0.0.1", sl.Port, new BinarySerializer(model));
-                var result = await clientChannel.Request(() => TestMethod("derp"));
+                var result = await clientChannel.Request(
+                    typeof(SocketChannelTest).GetMethod("TestMethod"), "derp");
                 Assert.AreEqual("derp TEST", result);
             }
         }
@@ -48,6 +50,10 @@ namespace ReplicateTest
             {
                 await Task.Delay(100); // Do some work
                 return message + " DONE";
+            }
+            public Task Error()
+            {
+                throw new InvalidOperationException();
             }
         }
         [Test]
@@ -64,6 +70,22 @@ namespace ReplicateTest
                 var clientChannel = SocketChannel.Connect("localhost", sl.Port, new BinarySerializer(model));
                 var echoService = clientChannel.CreateProxy<IEchoService>();
                 Assert.AreEqual("Hello! DONE", await echoService.Echo("Hello!"));
+            }
+        }
+        [Test]
+        [Timeout(1000)]
+        public void ErrorExample()
+        {
+            var model = new ReplicationModel();
+            //Server side
+            var server = new RPCServer(model);
+            server.RegisterSingleton<IEchoService>(new EchoService());
+            using (var sl = new SocketListener(server, 0, new BinarySerializer(model)))
+            {
+                //Client side
+                var clientChannel = SocketChannel.Connect("localhost", sl.Port, new BinarySerializer(model));
+                var echoService = clientChannel.CreateProxy<IEchoService>();
+                Assert.ThrowsAsync<ReplicateError>(async () => await echoService.Error());
             }
         }
     }
