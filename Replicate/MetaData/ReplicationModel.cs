@@ -129,9 +129,13 @@ namespace Replicate.MetaData
 
         public TypeId GetId(Type type)
         {
+            var typeData = this[type];
+            // This might be only a subset of such resolutions, possibly also do for subclasses?
+            if (typeData.Type.IsInterface && !type.IsSameGeneric(typeData.Type))
+                type = type.GetInterfaces().First(i => i.IsSameGeneric(typeData.Type));
             var output = new TypeId()
             {
-                Id = Types.GetKey(this[type].Name),
+                Id = Types.GetKey(typeData.Name),
             };
             if (type.IsGenericType)
                 output.Subtypes = type.GetGenericArguments().Select(t => GetId(t)).ToArray();

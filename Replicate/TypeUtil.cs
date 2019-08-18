@@ -66,11 +66,14 @@ namespace Replicate
             return interfaceType == type || type.GetInterfaces().Any(t =>
                 t == interfaceType || (interfaceType.IsGenericTypeDefinition && t.IsSameGeneric(interfaceType)));
         }
+        /// <summary>
+        /// Checks whether the types are the same, or have the same generic type definition,
+        /// ignoring generic type arguments
+        /// </summary>
         public static bool IsSameGeneric(this Type compare, Type target)
         {
-            if (!target.IsGenericTypeDefinition) throw new InvalidOperationException("Target must be a generic type definition");
-            return (compare.IsGenericTypeDefinition && compare == target) ||
-                (compare.IsGenericType && compare.GetGenericTypeDefinition() == target);
+            return compare == target ||
+                (compare.IsGenericType && target.IsGenericType && compare.GetGenericTypeDefinition() == target.GetGenericTypeDefinition());
         }
         public static async Task<object> Taskify(Type type, object obj)
         {

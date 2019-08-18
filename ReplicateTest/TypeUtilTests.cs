@@ -49,7 +49,7 @@ namespace ReplicateTest
         {
             Assert.IsTrue(typeof(List<>).IsSameGeneric(typeof(List<>)));
             Assert.IsTrue(typeof(List<string>).IsSameGeneric(typeof(List<>)));
-            Assert.Throws<InvalidOperationException>(() => typeof(List<>).IsSameGeneric(typeof(List<string>)));
+            Assert.IsTrue(typeof(List<>).IsSameGeneric(typeof(List<string>)));
         }
         [Test]
         public void ImplementsInterface()

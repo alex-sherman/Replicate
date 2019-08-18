@@ -19,8 +19,7 @@ namespace ReplicateTest
     [TestFixture]
     public class ModelTests
     {
-        // TODO: Fix this
-        //[Test]
+        [Test]
         public void TestGetsByteArrayTypeId()
         {
             var model = new ReplicationModel();
