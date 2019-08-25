@@ -20,7 +20,7 @@ namespace Replicate.RPC
         {
             var parameters = method.GetParameters().Where(p => !p.IsOptional);
             if (parameters.Skip(1).Any())
-                throw new ReplicateError("Invalid contract with multiple required parameters");
+                throw new ReplicateError($"Invalid contract {method} with multiple required parameters");
             RequestType = parameters.FirstOrDefault()?.ParameterType ?? typeof(None);
             ResponseType = method.ReturnType.GetTaskReturnType();
         }

@@ -39,7 +39,8 @@ namespace Replicate.MetaData
                 .Select(kvp => new KeyValuePair<RepKey, MemberAccessor>(kvp.Key, new MemberAccessor(kvp.Value, this, TypeData.Model)))
                 .ToRepSet();
             // TODO: Actually handle generic RPC methods
-            RPCMethods = TypeData.RPCMethods.Select((m, i) => new KeyValuePair<RepKey, MethodInfo>(new RepKey(i, m.Name), m)).ToRepSet();
+            RPCMethods = TypeData.RPCMethods
+                .Select((m, i) => new KeyValuePair<RepKey, MethodInfo>(new RepKey(i, m.Name), m)).ToRepSet();
         }
         public object Construct(params object[] args)
         {

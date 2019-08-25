@@ -66,6 +66,8 @@ namespace Replicate.MetaData
                 bindingFlags |= BindingFlags.NonPublic;
             // TODO: Enforce unique names of methods
             RPCMethods = Type.GetMethods(bindingFlags)
+                // This hides inherited methods
+                .Where(m => m.DeclaringType == Type)
                 .Where(meth => meth.GetCustomAttribute<ReplicateIgnoreAttribute>() == null)
                 .Where(meth => autoMethods != AutoAdd.None || meth.GetCustomAttribute<ReplicateRPCAttribute>() != null)
                 .ToList();
