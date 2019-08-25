@@ -70,7 +70,6 @@ namespace Replicate.Serialization
         }
         private object _read(object obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
-            if (stream.Length == stream.Position) return null;
             switch (typeAccessor.TypeData.MarshallMethod)
             {
                 case MarshallMethod.Primitive:

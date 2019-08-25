@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -98,6 +99,9 @@ namespace Replicate.Web
 
             try
             {
+                var stream = new MemoryStream();
+                await Request.Body.CopyToAsync(stream);
+                stream.Position = 0;
                 var methodKey = Server.GetKey(path);
                 var method = Server.Model.GetMethod(methodKey);
                 method.GetCustomAttribute<CustomAuthAttribute>()?.ThrowIfUnverified();
@@ -106,7 +110,7 @@ namespace Replicate.Web
                 {
                     Contract = contract,
                     Endpoint = methodKey,
-                    Request = Serializer.Deserialize(contract.RequestType, Request.Body)
+                    Request = stream.Length == 0 ? null : Serializer.Deserialize(contract.RequestType, stream)
                 });
                 if (result is ActionResult actionResult)
                     return actionResult;
