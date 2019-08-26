@@ -3,7 +3,7 @@
     <AssemblyName>Replicate</AssemblyName>
     <Title>Replicate</Title>
     <Description></Description>
-    <TargetFrameworks>net46;netcoreapp2.0</TargetFrameworks>
+    <TargetFrameworks>net46;netcoreapp2.0;netcoreapp2.2</TargetFrameworks>
     <Version>0.1.5.1</Version>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>Alex Sherman</Authors>

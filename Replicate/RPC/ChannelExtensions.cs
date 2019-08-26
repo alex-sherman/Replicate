@@ -34,11 +34,14 @@ namespace Replicate
                 return Task.FromResult<object>(None.Value);
             });
         }
-
+        public static void RegisterSingleton(this IRPCServer channel, Type type, object implementation)
+        {
+            foreach (var method in channel.Model[type].RPCMethods)
+                channel.Respond(method, TypeUtil.CreateHandler(method, _ => implementation));
+        }
         public static void RegisterSingleton<T>(this IRPCServer channel, T implementation)
         {
-            foreach (var method in channel.Model[typeof(T)].RPCMethods)
-                channel.Respond(method, TypeUtil.CreateHandler(method, _ => implementation));
+            RegisterSingleton(channel, typeof(T), implementation);
         }
         [Obsolete]
         public static async Task<T> Request<T>(this IRPCChannel channel, Expression<Func<Task<T>>> call)

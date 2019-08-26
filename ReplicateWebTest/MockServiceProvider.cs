@@ -2,7 +2,9 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
+using Replicate;
 using Replicate.MetaData;
 using Replicate.Serialization;
 using Replicate.Web;
@@ -13,7 +15,7 @@ using System.Text;
 
 namespace ReplicateWebTest
 {
-    public class MockServiceProvider : IServiceProvider
+    public class MockServiceProvider : List<ServiceDescriptor>, IServiceProvider, IServiceCollection
     {
         class Env : IHostingEnvironment
         {
@@ -56,8 +58,11 @@ namespace ReplicateWebTest
 
         public MockServiceProvider()
         {
-            var model = new ReplicationModel() { DictionaryAsObject = true };
+            var model = new ReplicationModel(false) { DictionaryAsObject = true };
             Serializer = new JSONSerializer(model);
+            Add(new ServiceDescriptor(typeof(IReplicateSerializer), Serializer));
+            Add(new ServiceDescriptor(typeof(IConfiguration), Config.Build()));
+            Add(new ServiceDescriptor(typeof(IServiceScopeFactory), new ScopeFactory(this)));
         }
 
         public void Resolve(Type type, Func<object> getter)
@@ -68,15 +73,15 @@ namespace ReplicateWebTest
         public object GetService(Type serviceType)
         {
             if (getters.TryGetValue(serviceType, out var getter)) return getter();
-            if (serviceType == typeof(IReplicateSerializer) || serviceType == typeof(JSONSerializer))
-                return Serializer;
-            if (serviceType == typeof(IConfiguration))
-                return Config.Build();
-            if (serviceType == typeof(WebRPCServer))
-                return new WebRPCServer(Serializer.Model);
-            if (serviceType == typeof(IServiceScopeFactory))
-                return new ScopeFactory(this);
-            return null;
+            if (serviceType.IsSameGeneric(typeof(ILogger<>)))
+                return Activator.CreateInstance(typeof(Logger<>).MakeGenericType(serviceType.GetGenericArguments()[0]));
+            var descriptor = this.FirstOrDefault(s => s.ServiceType == serviceType);
+            if (descriptor == null) return null;
+            if (descriptor.ImplementationInstance != null)
+                return descriptor.ImplementationInstance;
+            if (descriptor.ImplementationType != null)
+                return ActivatorUtilities.CreateInstance(this, descriptor.ImplementationType);
+            return descriptor.ImplementationFactory(this);
         }
     }
 }

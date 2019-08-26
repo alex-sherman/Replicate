@@ -1,8 +1,12 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Builder.Internal;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Internal;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using Replicate.MetaData;
 using Replicate.Serialization;
 using Replicate.Web;
 using System;
@@ -14,36 +18,47 @@ using System.Threading.Tasks;
 
 namespace ReplicateWebTest
 {
-    public static class BaseTest
+    public class BaseTest
     {
-        public static ControllerContext SetContext(ReplicateController controller, string body)
+        protected JSONSerializer serializer;
+        protected ReplicationModel model;
+        protected MockServiceProvider services;
+        [SetUp]
+        public virtual void Setup()
         {
-            RouteData routeData = new RouteData();
+            services = new MockServiceProvider();
+            model = services.Serializer.Model;
+            serializer = services.Serializer;
+            services.AddRouting();
+            services.AddReplicate(serializer);
+        }
+        public RequestDelegate ReplicateHandler()
+        {
+            var builder = new ApplicationBuilder(services);
+            builder.UseEndpointRouting();
+            builder.UseErrorHandling(services.GetRequiredService<IReplicateSerializer>());
+            builder.UseEndpoint();
+            return builder.Build();
+        }
+        public static HttpContext MakeContext(string url, string body)
+        {
             HttpContext httpContextMock = new DefaultHttpContext();
+            httpContextMock.Request.Path = url;
             var bytes = Encoding.UTF8.GetBytes(body);
             (httpContextMock.Request.Body = new MemoryStream()).Write(bytes, 0, bytes.Length);
             httpContextMock.Request.Body.Position = 0;
-            return controller.ControllerContext = new ControllerContext()
-            {
-                RouteData = routeData,
-                HttpContext = httpContextMock,
-            };
+            return httpContextMock;
         }
-        public static async Task<string> Post(ReplicateController controller, string url, string body)
+        public async Task<string> Post(RequestDelegate del, string url, string body)
         {
-            SetContext(controller, body);
-            return ((ContentResult)(await controller.Post(url))).Content;
+            var context = MakeContext(url, body);
+            await del(context);
+            context.Response.Body.Position = 0;
+            return context.Response.Body.ReadAllString();
         }
-        public static async Task<T> Post<T, U>(ReplicateController controller, string url, U request)
+        public async Task<T> Post<T, U>(RequestDelegate del, string url, U request)
         {
-            var serializer = controller.Serializer;
-            return serializer.Deserialize<T>(await Post(controller, url, serializer.Serialize(request).ReadAllString()));
-        }
-        public static async Task<ActionResult> PostRaw<U>(ReplicateController controller, string url, U request)
-        {
-            var serializer = controller.Serializer;
-            SetContext(controller, serializer.Serialize(request).ReadAllString());
-            return await controller.Post(url);
+            return serializer.Deserialize<T>(await Post(del, url, serializer.Serialize(request).ReadAllString()));
         }
     }
 }
