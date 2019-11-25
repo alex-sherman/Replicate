@@ -36,7 +36,7 @@ namespace Replicate
         }
         public static void RegisterSingleton(this IRPCServer channel, Type type, object implementation)
         {
-            foreach (var method in channel.Model[type].RPCMethods)
+            foreach (var method in channel.Model[type].Methods)
                 channel.Respond(method, TypeUtil.CreateHandler(method, _ => implementation));
         }
         public static void RegisterSingleton<T>(this IRPCServer channel, T implementation)

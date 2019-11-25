@@ -111,7 +111,7 @@ namespace Replicate.Serialization
             if (ReadNull(stream)) return null;
             try
             {
-                return typeAccessor.Coerce(serializers[typeAccessor.TypeData.PrimitiveType].Read(stream));
+                return Model.Coerce(typeAccessor, serializers[typeAccessor.TypeData.PrimitiveType].Read(stream));
             }
             catch (Exception e)
             {

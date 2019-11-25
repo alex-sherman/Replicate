@@ -21,7 +21,7 @@ namespace Replicate.MetaData
         public MemberInfo this[RepKey key] => Members[key];
         public readonly RepSet<MemberInfo> Members = new RepSet<MemberInfo>();
         public readonly string[] GenericTypeParameters = null;
-        public List<MethodInfo> RPCMethods = new List<MethodInfo>();
+        public List<MethodInfo> Methods = new List<MethodInfo>();
         public bool IsInstanceRPC;
         public Surrogate Surrogate { get; private set; }
         public ReplicationModel Model { get; private set; }
@@ -55,7 +55,7 @@ namespace Replicate.MetaData
 
         public void InitializeMembers()
         {
-            TypeAttribute = Type.GetCustomAttribute<ReplicateTypeAttribute>();
+            if (TypeAttribute == null) TypeAttribute = Type.GetCustomAttribute<ReplicateTypeAttribute>();
             IsInstanceRPC = TypeAttribute?.IsInstanceRPC ?? false;
             var surrogateType = TypeAttribute?.SurrogateType;
             if (surrogateType != null) SetSurrogate(surrogateType);
@@ -65,9 +65,9 @@ namespace Replicate.MetaData
             if (autoMethods != AutoAdd.AllPublic)
                 bindingFlags |= BindingFlags.NonPublic;
             // TODO: Enforce unique names of methods
-            RPCMethods = Type.GetMethods(bindingFlags)
-                // This hides inherited methods
-                .Where(m => m.DeclaringType == Type)
+            Methods = Type.GetMethods(bindingFlags)
+                .Where(meth => meth.DeclaringType.Namespace != "System")
+                .Where(meth => !meth.IsSpecialName)
                 .Where(meth => meth.GetCustomAttribute<ReplicateIgnoreAttribute>() == null)
                 .Where(meth => autoMethods != AutoAdd.None || meth.GetCustomAttribute<ReplicateRPCAttribute>() != null)
                 .ToList();
@@ -75,6 +75,7 @@ namespace Replicate.MetaData
             bindingFlags = BindingFlags.Instance | BindingFlags.Public;
             if (autoMembers != AutoAdd.AllPublic)
                 bindingFlags |= BindingFlags.NonPublic;
+            Members.Clear();
             foreach (var field in Type.GetFields(bindingFlags))
             {
                 if (Include(autoMembers, field))
@@ -89,6 +90,7 @@ namespace Replicate.MetaData
 
         public bool Include(AutoAdd autoMembers, System.Reflection.MemberInfo member)
         {
+            if (member.DeclaringType.Namespace == "System") return false;
             if (member.GetCustomAttribute<ReplicateIgnoreAttribute>() != null)
                 return false;
             return autoMembers != AutoAdd.None || member.GetCustomAttribute<ReplicateAttribute>() != null;
@@ -98,7 +100,7 @@ namespace Replicate.MetaData
         {
             FieldInfo fieldInfo;
             PropertyInfo propInfo;
-            MemberInfo member = null;
+            MemberInfo member;
             if ((fieldInfo = Type.GetField(name)) != null)
                 member = new MemberInfo(Model, fieldInfo);
             else if ((propInfo = Type.GetProperty(name)) != null)

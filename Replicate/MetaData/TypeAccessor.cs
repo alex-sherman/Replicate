@@ -14,7 +14,7 @@ namespace Replicate.MetaData
     {
         public string Name { get; private set; }
         public Type Type { get; private set; }
-        public RepSet<MethodInfo> RPCMethods;
+        public RepSet<MethodInfo> Methods;
         public RepSet<MemberAccessor> Members;
         private readonly bool isStringDict;
         public bool IsDictObj => isStringDict && TypeData.Model.DictionaryAsObject;
@@ -29,7 +29,6 @@ namespace Replicate.MetaData
             Name = type.FullName;
             if (typeData.Surrogate != null)
                 Surrogate = new SurrogateAccessor(this, typeData.Surrogate, typeData.Model);
-            isEnum = Type.IsEnum;
             isStringDict = Type.IsSameGeneric(typeof(Dictionary<,>))
                 && Type.GetGenericArguments()[0] == typeof(string);
         }
@@ -39,21 +38,13 @@ namespace Replicate.MetaData
                 .Select(kvp => new KeyValuePair<RepKey, MemberAccessor>(kvp.Key, new MemberAccessor(kvp.Value, this, TypeData.Model)))
                 .ToRepSet();
             // TODO: Actually handle generic RPC methods
-            RPCMethods = TypeData.RPCMethods
+            Methods = TypeData.Methods
                 .Select((m, i) => new KeyValuePair<RepKey, MethodInfo>(new RepKey(i, m.Name), m)).ToRepSet();
         }
         public object Construct(params object[] args)
         {
             if (TypeData.MarshallMethod == MarshallMethod.None) return null;
             return Activator.CreateInstance(Type, args);
-        }
-        private bool isEnum;
-        public object Coerce(object obj)
-        {
-            if (obj == null || TypeData.MarshallMethod == MarshallMethod.None) return obj;
-            if (isEnum && obj is int intValue)
-                return Enum.ToObject(Type, intValue);
-            return Convert.ChangeType(obj, Type);
         }
         public MemberAccessor this[RepKey key] => Members[key];
     }

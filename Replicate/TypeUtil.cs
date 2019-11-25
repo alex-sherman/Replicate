@@ -17,15 +17,13 @@ namespace Replicate
         // The downside to having it is there might be cases where a user expects the TypeData to be used from ReplicationModel.Default
         public static ReplicationModel Model { get; } = new ReplicationModel() { AddOnLookup = true };
         [Obsolete]
-        public static T CopyFrom<T, U>(T target, U newFields, string[] whiteList = null, string[] blackList = null) where T : class
+        public static T CopyFrom<T, U>(T target, U newFields, string[] whiteList = null, string[] blackList = null)
         {
-            CopyToRaw(newFields, typeof(U), target, typeof(T), whiteList, blackList);
-            return target;
+            return (T)CopyToRaw(newFields, typeof(U), target, typeof(T), whiteList, blackList);
         }
-        public static T CopyTo<S, T>(S source, T target, string[] whiteList = null, string[] blackList = null) where T : class
+        public static T CopyTo<S, T>(S source, T target, string[] whiteList = null, string[] blackList = null)
         {
-            CopyToRaw(source, typeof(S), target, typeof(T), whiteList, blackList);
-            return target;
+            return (T)CopyToRaw(source, typeof(S), target, typeof(T), whiteList, blackList);
         }
         public static object CopyToRaw(object source, object target, string[] whiteList = null, string[] blackList = null)
         {
@@ -51,8 +49,7 @@ namespace Replicate
             var memberTuples = members
                 .Where(m => taSource.Members.ContainsKey(m.Info.Name))
                 .Select(tMember => new { tMember, uMember = taSource.Members[tMember.Info.Name] })
-                .Where(tuple => tuple.tMember.Type.IsAssignableFrom(tuple.uMember.Type)
-                || (tuple.uMember.Type.IsSameGeneric(typeof(Nullable<>)) && tuple.tMember.Type == tuple.uMember.Type.GetGenericArguments()[0]));
+                .Where(tuple => tuple.tMember.Type.IsAssignableFrom(tuple.uMember.Type.DeNullable()));
             foreach (var tuple in memberTuples)
             {
                 var newValue = tuple.uMember.GetValue(source);
@@ -74,6 +71,11 @@ namespace Replicate
         {
             return compare == target ||
                 (compare.IsGenericType && target.IsGenericType && compare.GetGenericTypeDefinition() == target.GetGenericTypeDefinition());
+        }
+        public static Type DeNullable(this Type type)
+        {
+            if (type.IsSameGeneric(typeof(Nullable<>))) return type.GetGenericArguments()[0];
+            return type;
         }
         public static async Task<object> Taskify(Type type, object obj)
         {

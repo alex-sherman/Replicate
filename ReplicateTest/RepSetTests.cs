@@ -15,7 +15,7 @@ namespace ReplicateTest
         public void InvalidSetKey()
         {
             var set = new RepSet<string>();
-            Assert.Throws<InvalidOperationException>(() => set["derp"] = null);
+            Assert.Throws<InvalidOperationException>(() => set[null] = null);
         }
         [Test]
         public void ValidSetKeyRetrieves()

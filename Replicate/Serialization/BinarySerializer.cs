@@ -142,7 +142,7 @@ namespace Replicate.Serialization
         {
             var isNull = stream.ReadByte();
             if (isNull == 0) return null;
-            return typeAccessor.Coerce((serializers[typeAccessor.TypeData.PrimitiveType].Read(stream)));
+            return Model.Coerce(typeAccessor, (serializers[typeAccessor.TypeData.PrimitiveType].Read(stream)));
         }
 
         public override object ReadObject(object obj, Stream stream, TypeAccessor typeAccessor)

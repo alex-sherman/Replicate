@@ -15,6 +15,7 @@ namespace Replicate.MetaData
         public ReplicationModel Model;
         public Type MemberType { get { return Property?.PropertyType ?? Field.FieldType; } }
         public Type ParentType { get => Property?.DeclaringType ?? Field.DeclaringType; }
+        public bool IsStatic { get => Field?.IsStatic ?? (Property?.GetGetMethod() ?? Property.GetSetMethod())?.IsStatic ?? false; }
         public Surrogate Surrogate { get; private set; }
         public bool IsGenericParameter { get { return MemberType.IsGenericParameter; } }
         public readonly FieldInfo Field;

@@ -42,7 +42,7 @@ namespace Replicate.Web
                     ? model.Types.Values.FirstOrDefault(mt => mt.Type.Implements(st.Type))
                     : st)
                 .Where(t => t != null).ToList();
-            var routes = implTypes.SelectMany(t => t.RPCMethods).Select(m =>
+            var routes = implTypes.SelectMany(t => t.Methods).Select(m =>
             {
                 var route = GetEndpoint(m);
                 return (Route: route, Key: model.MethodKey(m));

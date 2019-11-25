@@ -37,6 +37,7 @@ namespace Replicate.MetaData
         {
             { typeof(bool),   PrimitiveType.Bool },
             { typeof(byte),   PrimitiveType.Byte },
+            { typeof(char),   PrimitiveType.Byte },
             { typeof(short),  PrimitiveType.VarInt },
             { typeof(ushort), PrimitiveType.VarInt },
             { typeof(int),    PrimitiveType.VarInt },
@@ -53,6 +54,10 @@ namespace Replicate.MetaData
                 return PrimitiveType.VarInt;
             return Map[type];
         }
+        public static bool Contains(Type type)
+        {
+            return type.IsEnum || Map.ContainsKey(type);
+        }
     }
     public class ReplicationModel : IEnumerable<TypeData>
     {
@@ -63,6 +68,14 @@ namespace Replicate.MetaData
         public readonly ModuleBuilder Builder = DynamicModule.Create();
         public bool DictionaryAsObject;
         public bool AddOnLookup = false;
+        public Func<TypeAccessor, object, object> Coerce = DefaultCoercion;
+        public static object DefaultCoercion(TypeAccessor dest, object value)
+        {
+            if (value == null || dest.TypeData.MarshallMethod == MarshallMethod.None) return value;
+            if (dest.Type.IsEnum && value is int intValue)
+                return Enum.ToObject(dest.Type, intValue);
+            return Convert.ChangeType(value, dest.Type);
+        }
         public ReplicationModel(bool loadTypes = true, bool addBaseTypes = true)
         {
             if (addBaseTypes) AddBaseTypes();
@@ -153,16 +166,17 @@ namespace Replicate.MetaData
         public MethodKey MethodKey(MethodInfo method)
         {
             var type = method.DeclaringType;
-            var methods = GetTypeAccessor(method.DeclaringType).RPCMethods;
+            var methods = GetTypeAccessor(method.DeclaringType).Methods;
             if (!methods.ContainsKey(method.Name)) throw new ContractNotFoundError(method.Name);
             return new MethodKey() { Method = methods.GetKey(method.Name), Type = GetId(type) };
         }
         public MethodInfo GetMethod(MethodKey method)
         {
-            var methods = GetTypeAccessor(GetType(method.Type)).RPCMethods;
+            var methods = GetTypeAccessor(GetType(method.Type)).Methods;
             if (!methods.ContainsKey(method.Method)) throw new ContractNotFoundError(method.Method.ToString());
             return methods[method.Method];
         }
+        public void ClearTypeAccessorCache() => typeAccessorLookup.Clear();
         public TypeAccessor GetTypeAccessor(Type type)
         {
             if (type.IsGenericTypeDefinition)
@@ -229,7 +243,7 @@ namespace Replicate.MetaData
         {
             get { return GetTypeData(type); }
         }
-        public TypeData Add(Type type)
+        public TypeData Add(Type type, ReplicateTypeAttribute attr = null)
         {
             if (type.IsNotPublic)
                 throw new InvalidOperationException("Cannot add a non public type to the replication model");
@@ -244,8 +258,11 @@ namespace Replicate.MetaData
             if (!typeLookup.TryGetValue(type, out var typeData))
             {
                 typeData = new TypeData(type, this);
+                typeData.TypeAttribute = attr;
                 typeLookup.Add(type, typeData);
                 Types.Add(typeData.Name, typeData);
+                if (typeData.Type.Name != typeData.Name)
+                    Types.AddAlias(typeData.Type.Name, typeData);
                 typeData.InitializeMembers();
             }
             if (genericParameters != null)

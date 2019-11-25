@@ -34,7 +34,7 @@ namespace Replicate.MetaData
         public object Value
         {
             get => _value;
-            set => _value = MarshallMethod == MarshallMethod.Primitive ? TypeAccessor.Coerce(value) : value;
+            set => _value = MarshallMethod == MarshallMethod.Primitive ? Model.Coerce(TypeAccessor, value) : value;
         }
 
         public RepBackedNode(object backing, TypeAccessor typeAccessor = null,
