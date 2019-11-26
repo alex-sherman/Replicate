@@ -55,45 +55,40 @@ namespace Replicate.MetaData
 
         public void InitializeMembers()
         {
-            if (TypeAttribute == null) TypeAttribute = Type.GetCustomAttribute<ReplicateTypeAttribute>();
+            if (TypeAttribute == null) TypeAttribute = Type.GetCustomAttribute<ReplicateTypeAttribute>(false);
             IsInstanceRPC = TypeAttribute?.IsInstanceRPC ?? false;
             var surrogateType = TypeAttribute?.SurrogateType;
             if (surrogateType != null) SetSurrogate(surrogateType);
 
-            var bindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.Static;
+            var bindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.Static | BindingFlags.NonPublic;
             var autoMethods = TypeAttribute?.AutoMethods ?? AutoAdd.None;
-            if (autoMethods != AutoAdd.AllPublic)
-                bindingFlags |= BindingFlags.NonPublic;
             // TODO: Enforce unique names of methods
             Methods = Type.GetMethods(bindingFlags)
                 .Where(meth => meth.DeclaringType.Namespace != "System")
                 .Where(meth => !meth.IsSpecialName)
                 .Where(meth => meth.GetCustomAttribute<ReplicateIgnoreAttribute>() == null)
-                .Where(meth => autoMethods != AutoAdd.None || meth.GetCustomAttribute<ReplicateRPCAttribute>() != null)
+                .Where(meth => meth.GetCustomAttribute<ReplicateRPCAttribute>() != null || autoMethods == AutoAdd.All || (autoMethods == AutoAdd.AllPublic && meth.IsPublic))
                 .ToList();
             var autoMembers = TypeAttribute?.AutoMembers ?? AutoAdd.None;
-            bindingFlags = BindingFlags.Instance | BindingFlags.Public;
-            if (autoMembers != AutoAdd.AllPublic)
-                bindingFlags |= BindingFlags.NonPublic;
             Members.Clear();
-            foreach (var field in Type.GetFields(bindingFlags))
+            foreach (var member in GetMembers(bindingFlags))
             {
-                if (Include(autoMembers, field))
-                    AddMember(new MemberInfo(Model, field));
-            }
-            foreach (var property in Type.GetProperties(bindingFlags))
-            {
-                if (Include(autoMembers, property))
-                    AddMember(new MemberInfo(Model, property));
+                if (member.ParentType.Namespace == "System")
+                    continue;
+                if (member.GetAttribute<ReplicateIgnoreAttribute>() != null)
+                    continue;
+                if (member.GetAttribute<ReplicateAttribute>() != null || autoMembers == AutoAdd.All || (autoMembers == AutoAdd.AllPublic && member.IsPublic))
+                    AddMember(member);
             }
         }
 
-        public bool Include(AutoAdd autoMembers, System.Reflection.MemberInfo member)
+        IEnumerable<MemberInfo> GetMembers(BindingFlags bindingFlags)
         {
-            if (member.DeclaringType.Namespace == "System") return false;
-            if (member.GetCustomAttribute<ReplicateIgnoreAttribute>() != null)
-                return false;
-            return autoMembers != AutoAdd.None || member.GetCustomAttribute<ReplicateAttribute>() != null;
+            foreach (var field in Type.GetFields(bindingFlags))
+                if (!field.IsLiteral)
+                    yield return new MemberInfo(Model, field);
+            foreach (var property in Type.GetProperties(bindingFlags))
+                yield return new MemberInfo(Model, property);
         }
 
         public TypeData AddMember(string name)

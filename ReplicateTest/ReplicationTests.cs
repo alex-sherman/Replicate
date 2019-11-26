@@ -39,7 +39,7 @@ namespace ReplicateTest
         [Test]
         public void TypeDataTest()
         {
-            Assert.AreEqual(model[typeof(ReplicatedType)].Members[0].Name, "field1");
+            Assert.AreEqual(model[typeof(ReplicatedType)][0].Name, "field1");
         }
         [ReplicateType]
         public struct IgnoredFields
@@ -93,10 +93,10 @@ namespace ReplicateTest
                 field1 = 3,
                 field2 = "herpderp"
             };
-            Assert.AreEqual(typeAccessor.Members[1].GetValue(replicated), "herpderp");
-            Assert.AreEqual(typeAccessor.Members[0].GetValue(replicated), 3);
-            typeAccessor.Members[1].SetValue(replicated, "FAFF");
-            Assert.AreEqual(typeAccessor.Members[1].GetValue(replicated), "FAFF");
+            Assert.AreEqual(typeAccessor[1].GetValue(replicated), "herpderp");
+            Assert.AreEqual(typeAccessor[0].GetValue(replicated), 3);
+            typeAccessor[1].SetValue(replicated, "FAFF");
+            Assert.AreEqual(typeAccessor[1].GetValue(replicated), "FAFF");
         }
         [Test]
         public void RegisterObj()

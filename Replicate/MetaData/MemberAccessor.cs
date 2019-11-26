@@ -32,16 +32,17 @@ namespace Replicate.MetaData
             {
                 var meth = new DynamicMethod("getter", typeof(object), new Type[] { typeof(object) });
                 var il = meth.GetILGenerator();
-                il.Emit(OpCodes.Ldarg, 0);
-                if (DeclaringType.IsValueType)
+                if (!info.IsStatic)
                 {
-                    il.Emit(OpCodes.Unbox, DeclaringType);
+                    il.Emit(OpCodes.Ldarg, 0);
+                    if (DeclaringType.IsValueType)
+                        il.Emit(OpCodes.Unbox, DeclaringType);
+                    else
+                        il.Emit(OpCodes.Castclass, DeclaringType);
+                    il.Emit(OpCodes.Ldfld, info.GetField(DeclaringType));
                 }
                 else
-                {
-                    il.Emit(OpCodes.Castclass, DeclaringType);
-                }
-                il.Emit(OpCodes.Ldfld, info.GetField(DeclaringType));
+                    il.Emit(OpCodes.Ldsfld, info.GetField(DeclaringType));
                 if (Type.IsValueType)
                     il.Emit(OpCodes.Box, Type);
                 il.Emit(OpCodes.Ret);

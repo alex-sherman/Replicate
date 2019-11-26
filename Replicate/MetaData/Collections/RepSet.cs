@@ -24,7 +24,8 @@ namespace Replicate.MetaData
                    : stringLookup.TryGetValue(key.Name, out var member) ? member.Value : null;
             set
             {
-                if (string.IsNullOrEmpty(key.Name)) throw new InvalidOperationException("Key must have a name");
+                if (string.IsNullOrEmpty(key.Name))
+                    throw new InvalidOperationException("Key must have a name");
                 var kvp = new KeyValuePair<RepKey, T>(key, value);
                 stringLookup[key.Name] = kvp;
                 if (key.Index.HasValue)

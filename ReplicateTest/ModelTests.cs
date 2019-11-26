@@ -54,9 +54,9 @@ namespace ReplicateTest
             secondModel.LoadFrom(model.GetDescription());
             Assert.NotNull(secondModel[typeof(CustomType)]);
             var testValue = new CustomType() { Field = "Derp", Property = "Herp" };
-            var fieldValue = secondModel.GetTypeAccessor(typeof(CustomType)).Members["Field"].GetValue(testValue);
+            var fieldValue = secondModel.GetTypeAccessor(typeof(CustomType))["Field"].GetValue(testValue);
             Assert.AreEqual("Derp", fieldValue);
-            var propertyValue = secondModel.GetTypeAccessor(typeof(CustomType)).Members["Property"].GetValue(testValue);
+            var propertyValue = secondModel.GetTypeAccessor(typeof(CustomType))["Property"].GetValue(testValue);
             Assert.AreEqual("Herp", propertyValue);
         }
         [Test]
