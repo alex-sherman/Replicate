@@ -16,6 +16,15 @@ namespace ReplicateTest
         public string Field;
         public string Property { get; set; }
     }
+    namespace Nested
+    {
+        [ReplicateType]
+        public class CustomType
+        {
+            public string Field;
+            public string Property { get; set; }
+        }
+    }
     [TestFixture]
     public class ModelTests
     {
@@ -168,6 +177,43 @@ namespace ReplicateTest
             var derpMember = faffType["Derp"];
             Assert.NotNull(derpMember);
             Assert.AreEqual("Herp", derpMember.MemberType.Name);
+        }
+        [Test]
+        public void NamingOfTypes()
+        {
+            var model = new ReplicationModel(false, false)
+            {
+                typeof(string),
+                typeof(CustomType)
+            };
+            Assert.AreEqual(model.Types["CustomType"]?.Type, typeof(CustomType));
+            Assert.AreEqual(model.Types["ReplicateTest.CustomType"]?.Type, typeof(CustomType));
+        }
+        [Test]
+        public void NamingOfTypesWithDuplicates()
+        {
+            var model = new ReplicationModel(false, false)
+            {
+                typeof(string),
+                typeof(CustomType),
+                typeof(Nested.CustomType)
+            };
+            Assert.AreEqual(model.Types["CustomType"]?.Type, typeof(CustomType));
+            Assert.AreEqual(model.Types["ReplicateTest.CustomType"]?.Type, typeof(CustomType));
+            Assert.AreEqual(model.Types["ReplicateTest.Nested.CustomType"]?.Type, typeof(Nested.CustomType));
+        }
+        [Test]
+        public void NamingOfTypesWithDuplicatesAlternateOrder()
+        {
+            var model = new ReplicationModel(false, false)
+            {
+                typeof(string),
+                typeof(Nested.CustomType),
+                typeof(CustomType)
+            };
+            Assert.AreEqual(model.Types["CustomType"]?.Type, typeof(Nested.CustomType));
+            Assert.AreEqual(model.Types["ReplicateTest.CustomType"]?.Type, typeof(CustomType));
+            Assert.AreEqual(model.Types["ReplicateTest.Nested.CustomType"]?.Type, typeof(Nested.CustomType));
         }
     }
 }

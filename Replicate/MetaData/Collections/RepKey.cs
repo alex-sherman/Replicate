@@ -37,9 +37,13 @@ namespace Replicate.MetaData
         public bool IsFull => Name != null && Index != null;
         public override string ToString()
         {
-            if (Name != null) return Name;
+            if (Name != null)
+            {
+                if (Index != null) return $"{Index}:{Name}";
+                return Name;
+            }
             if (Index != null) return Index.ToString();
-            return "<None>";
+            return "<Empty>";
         }
     }
 }

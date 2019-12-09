@@ -13,6 +13,7 @@ namespace Replicate.MetaData
     public class TypeAccessor
     {
         public string Name { get; private set; }
+        public string FullName { get; private set; }
         public Type Type { get; private set; }
         public RepSet<MethodInfo> Methods;
         public RepSet<MemberAccessor> Members;
@@ -26,7 +27,8 @@ namespace Replicate.MetaData
             TypeData = typeData;
             Type = type;
             IsTypeless = type == typeof(IRepNode);
-            Name = type.FullName;
+            Name = type.Name;
+            FullName = type.FullName;
             if (typeData.Surrogate != null)
                 Surrogate = new SurrogateAccessor(this, typeData.Surrogate, typeData.Model);
             isStringDict = Type.IsSameGeneric(typeof(Dictionary<,>))

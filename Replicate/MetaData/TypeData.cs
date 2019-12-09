@@ -16,6 +16,7 @@ namespace Replicate.MetaData
         public PrimitiveType PrimitiveType;
         public readonly bool PrefixWithType;
         public string Name { get; private set; }
+        public string FullName { get; private set; }
         public Type Type { get; private set; }
         public IEnumerable<RepKey> Keys => Members.Keys;
         public MemberInfo this[RepKey key] => Members[key];
@@ -30,7 +31,8 @@ namespace Replicate.MetaData
         public TypeData(Type type, ReplicationModel model)
         {
             Type = type;
-            Name = type.FullName;
+            Name = type.Name;
+            FullName = type.FullName;
             Model = model;
             PrefixWithType = type == typeof(object);
             if (type.IsPrimitive || type == typeof(string) || type.IsEnum)

@@ -61,7 +61,8 @@ namespace Replicate.MetaData
     }
     public class ReplicationModel : IEnumerable<TypeData>
     {
-        public static ReplicationModel Default { get; } = new ReplicationModel();
+        private static ReplicationModel @default;
+        public static ReplicationModel Default => @default ?? (@default = new ReplicationModel());
         Dictionary<Type, TypeAccessor> typeAccessorLookup = new Dictionary<Type, TypeAccessor>();
         Dictionary<Type, TypeData> typeLookup = new Dictionary<Type, TypeData>();
         public readonly RepSet<TypeData> Types = new RepSet<TypeData>();
@@ -148,7 +149,7 @@ namespace Replicate.MetaData
                 type = type.GetInterfaces().First(i => i.IsSameGeneric(typeData.Type));
             var output = new TypeId()
             {
-                Id = Types.GetKey(typeData.Name),
+                Id = Types.GetKey(typeData.FullName),
             };
             if (type.IsGenericType)
                 output.Subtypes = type.GetGenericArguments().Select(t => GetId(t)).ToArray();
@@ -257,12 +258,13 @@ namespace Replicate.MetaData
             }
             if (!typeLookup.TryGetValue(type, out var typeData))
             {
-                typeData = new TypeData(type, this);
-                typeData.TypeAttribute = attr;
+                typeData = new TypeData(type, this) { TypeAttribute = attr };
                 typeLookup.Add(type, typeData);
-                Types.Add(typeData.Name, typeData);
-                if (typeData.Type.Name != typeData.Name)
-                    Types.AddAlias(typeData.Type.Name, typeData);
+                if (Types.ContainsKey(typeData.FullName))
+                    throw new ArgumentException($"Failed to add type {type.FullName}, a type with that name already exists");
+                var key = Types.Add(typeData.FullName, typeData);
+                if (typeData.FullName != typeData.Name && !Types.ContainsKey(typeData.Name))
+                    Types.AddAlias(key, typeData.Name, typeData);
                 typeData.InitializeMembers();
             }
             if (genericParameters != null)
@@ -277,7 +279,7 @@ namespace Replicate.MetaData
             {
                 Types = Types.Values.Select(typeData => new TypeDescription()
                 {
-                    Key = Types.GetKey(typeData.Name),
+                    Key = Types.GetKey(typeData.FullName),
                     GenericParameters = typeData.GenericTypeParameters?.ToArray(),
                     Members = typeData.Keys.Select(key =>
                     {
@@ -289,7 +291,7 @@ namespace Replicate.MetaData
                         if (member.IsGenericParameter)
                             desc.GenericPosition = (byte)member.GenericParameterPosition;
                         else
-                            desc.TypeId = (ushort)Types.GetKey(typeData.Name).Index.Value;
+                            desc.TypeId = Types.GetKey(typeData.FullName);
                         return desc;
                     }).ToList(),
                     IsFake = typeData.Type.GetCustomAttribute<FakeTypeAttribute>() != null,

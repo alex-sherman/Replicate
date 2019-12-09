@@ -26,32 +26,35 @@ namespace Replicate.MetaData
             {
                 if (string.IsNullOrEmpty(key.Name))
                     throw new InvalidOperationException("Key must have a name");
+                if (!key.Index.HasValue)
+                    throw new InvalidOperationException("Key must have an index");
                 var kvp = new KeyValuePair<RepKey, T>(key, value);
                 stringLookup[key.Name] = kvp;
-                if (key.Index.HasValue)
-                {
-                    var index = key.Index.Value;
-                    if (index >= indexLookup.Count)
-                        indexLookup.AddRange(Enumerable.Range(0, index - indexLookup.Count + 1).Select(i => (KeyValuePair<RepKey, T>?)null));
-                    indexLookup[index] = kvp;
-                }
+                var index = key.Index.Value;
+                if (index >= indexLookup.Count)
+                    indexLookup.AddRange(Enumerable.Range(0, index - indexLookup.Count + 1).Select(i => (KeyValuePair<RepKey, T>?)null));
+                indexLookup[index] = kvp;
             }
         }
         public RepKey Add(string name, T value)
         {
+            if (ContainsKey(name)) throw new ArgumentException($"{name} already exists");
             var key = new RepKey(indexLookup.Count, name);
             this[key] = value;
             return key;
         }
-        public void AddAlias(string name, T value)
+        public void AddAlias(RepKey key, string alias, T value)
         {
-            this[name] = value;
+            if (string.IsNullOrEmpty(key.Name)) throw new InvalidOperationException("Key must have a name");
+            if (string.IsNullOrEmpty(alias)) throw new ArgumentNullException(nameof(alias));
+            if (!key.Index.HasValue) throw new InvalidOperationException("Key must have an index");
+            if (stringLookup.ContainsKey(alias)) throw new ArgumentException($"{alias} already exists");
+            stringLookup[alias] = new KeyValuePair<RepKey, T>(key, value);
         }
 
         public bool ContainsKey(RepKey key) => key.Index.HasValue
                 ? indexLookup.Count > key.Index.Value && indexLookup[key.Index.Value] != null
                 : stringLookup.ContainsKey(key.Name);
-
         public RepKey GetKey(RepKey key) => key.Index.HasValue
                    ? indexLookup[key.Index.Value]?.Key ?? throw new ArgumentOutOfRangeException()
                    : stringLookup.TryGetValue(key.Name, out var member) ? member.Key : throw new ArgumentOutOfRangeException();

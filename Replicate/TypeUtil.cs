@@ -15,7 +15,8 @@ namespace Replicate
     {
         // TODO: This might be a bad idea? Could theoretically remove this if all the copy methods allowed providing a ReplicationModel
         // The downside to having it is there might be cases where a user expects the TypeData to be used from ReplicationModel.Default
-        public static ReplicationModel Model { get; } = new ReplicationModel() { AddOnLookup = true };
+        private static ReplicationModel model;
+        public static ReplicationModel Model => model ?? (model = new ReplicationModel() { AddOnLookup = true });
         [Obsolete]
         public static T CopyFrom<T, U>(T target, U newFields, string[] whiteList = null, string[] blackList = null)
         {
