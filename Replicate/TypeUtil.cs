@@ -78,18 +78,18 @@ namespace Replicate
             if (type.IsSameGeneric(typeof(Nullable<>))) return type.GetGenericArguments()[0];
             return type;
         }
-        public static async Task<object> Taskify(Type type, object obj)
+        public static async Task<T> Taskify<T>(Type type, object obj)
         {
             if (obj is Task task)
             {
                 await task;
                 if (type == typeof(Task))
-                    return None.Value;
-                return type.GetProperty("Result").GetValue(obj);
+                    return default;
+                return (T)type.GetProperty("Result").GetValue(obj);
                 // For some reason this seems to have worst first-call performance, lasting about 400ms
                 // return (object)((dynamic)task).Result;
             }
-            return obj;
+            return (T)obj;
         }
 
         public static Type GetTaskReturnType(this Type type)
@@ -104,6 +104,25 @@ namespace Replicate
         {
             return (T)(obj ?? default(T));
         }
+        private static MethodInfo castTaskMethod = GetMethod(() => CastTask<object, object>(null)).GetGenericMethodDefinition();
+        public static Task<T> CastTask<T, U>(Task<U> task) => task.ContinueWith(t => (T)(object)t.Result);
+        public static T CastObjectTask<T>(Task<object> task)
+        {
+            var type = typeof(T);
+            if (type.IsAssignableFrom(typeof(Task<object>))) return (T)(object)task;
+            if (type.IsSameGeneric(typeof(Task<>)))
+            {
+                var taskTArg = type.GetGenericArguments()[0];
+                var cast = castTaskMethod.MakeGenericMethod(taskTArg, typeof(object));
+                return (T)cast.Invoke(null, new object[] { task });
+            }
+            return (T)task.GetAwaiter().GetResult();
+        }
+        private static MethodInfo GetMethod(LambdaExpression expression)
+            => expression.Body is MethodCallExpression method ? method.Method
+            : throw new ArgumentException("Expression is not a method", "expression");
+        public static MethodInfo GetMethod(Expression<Action> expression) => GetMethod((LambdaExpression)expression);
+        public static MethodInfo GetMethod<T>(Expression<Action<T>> expression) => GetMethod((LambdaExpression)expression);
         public static void Await(this Task task)
         {
             task.GetAwaiter().GetResult();
@@ -138,7 +157,7 @@ namespace Replicate
                     {
                         var result = method.Invoke(target(request), args);
                         // TODO: This could be done with Reflection.Emit I think?
-                        return Taskify(method.ReturnType, result);
+                        return Taskify<object>(method.ReturnType, result);
                     }
                     catch (TargetInvocationException e)
                     {

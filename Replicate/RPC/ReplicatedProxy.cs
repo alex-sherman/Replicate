@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Replicate.RPC
 {
-    public class ReplicatedProxy : IImplementor
+    public class ReplicatedProxy : IInterceptor
     {
         ReplicateId? Target;
         IRPCChannel Channel;
@@ -32,23 +32,7 @@ namespace Replicate.RPC
 
         public T Intercept<T>(MethodInfo method, object[] args)
         {
-            var result = RPC(method, args).GetAwaiter().GetResult();
-            return (T)result;
-        }
-
-        public void InterceptVoid(MethodInfo method, object[] args)
-        {
-            RPC(method, args).GetAwaiter().GetResult();
-        }
-
-        public async Task<T> InterceptAsync<T>(MethodInfo method, object[] args)
-        {
-            return (T)(await RPC(method, args));
-        }
-
-        public Task InterceptAsyncVoid(MethodInfo method, object[] args)
-        {
-            return RPC(method, args);
+            return TypeUtil.CastObjectTask<T>(RPC(method, args));
         }
     }
 }

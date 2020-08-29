@@ -23,6 +23,12 @@ namespace ReplicateTest
         public int C;
     }
 
+    public class FunctionClass
+    {
+        public static int Derp() => 3;
+        public int Herp() => 4;
+    }
+
     [TestFixture]
     class TypeUtilTests
     {
@@ -57,6 +63,19 @@ namespace ReplicateTest
             Assert.IsTrue(typeof(List<>).Implements(typeof(IEnumerable<>)));
             Assert.IsTrue(typeof(List<string>).Implements(typeof(IEnumerable<>)));
             Assert.IsTrue(typeof(List<string>).Implements(typeof(IEnumerable<string>)));
+        }
+        [Test]
+        public void GetMethodStatic()
+        {
+            Assert.AreEqual(TypeUtil.GetMethod(() => FunctionClass.Derp())
+                .Invoke(null, new object[] { }), 3);
+        }
+        [Test]
+        public void GetMethodInstance()
+        {
+            var obj = new FunctionClass();
+            Assert.AreEqual(TypeUtil.GetMethod<FunctionClass>((c) => c.Herp())
+                .Invoke(obj, new object[] { }), 4);
         }
     }
 }

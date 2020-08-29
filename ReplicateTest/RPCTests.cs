@@ -81,7 +81,7 @@ namespace ReplicateTest
             int Herp(T faff);
             void Derp();
         }
-        public class TestImplementor : IImplementor
+        public class TestImplementor : IInterceptor
         {
             MethodInfo derp = typeof(ITestInterface).GetMethod("Derp");
             MethodInfo herp = typeof(ITestInterface).GetMethod("Herp");
@@ -94,21 +94,6 @@ namespace ReplicateTest
                 if (method == herp)
                     return (T)(object)((string)args[0]).Length;
                 return default(T);
-            }
-
-            public Task<T> InterceptAsync<T>(MethodInfo method, object[] args)
-            {
-                throw new NotImplementedException();
-            }
-
-            public Task InterceptAsyncVoid(MethodInfo method, object[] args)
-            {
-                throw new NotImplementedException();
-            }
-
-            public void InterceptVoid(MethodInfo method, object[] args)
-            {
-                throw new NotImplementedException();
             }
         }
         [ReplicateType]
