@@ -18,8 +18,8 @@ namespace Replicate.MetaTyping
         private class Void { };
         private const MethodAttributes ImplicitImplementation =
             MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.HideBySig;
-        static MethodInfo interceptInfo = typeof(ProxyImplement).GetMethod("Intercept", BindingFlags.Instance | BindingFlags.NonPublic);
-        static MethodInfo interceptInfoVoid = typeof(ProxyImplement).GetMethod("InterceptVoid", BindingFlags.Instance | BindingFlags.NonPublic);
+        static readonly MethodInfo interceptInfo = typeof(ProxyImplement).GetMethod("Intercept", BindingFlags.Instance | BindingFlags.NonPublic);
+        static readonly MethodInfo interceptInfoVoid = typeof(ProxyImplement).GetMethod("InterceptVoid", BindingFlags.Instance | BindingFlags.NonPublic);
         MethodInfo[] methods;
         public IInterceptor Implementor { get; private set; }
         protected T Intercept<T>(int methodIndex, List<object> args)
@@ -33,6 +33,19 @@ namespace Replicate.MetaTyping
         {
             Implementor.Intercept<Void>(methods[methodIndex], args.ToArray());
         }
+        class LambdaInterceptor : IInterceptor
+        {
+            readonly Func<MethodInfo, object[], object> func;
+            public LambdaInterceptor(Func<MethodInfo, object[], object> interceptor)
+            {
+                func = interceptor;
+            }
+
+            public T Intercept<T>(MethodInfo method, object[] args) =>
+                (T)(func(method, args) ?? default(T));
+        }
+
+        public static T HookUp<T>(Func<MethodInfo, object[], object> interceptor) => HookUp<T>(new LambdaInterceptor(interceptor));
 
         public static T HookUp<T>(IInterceptor implementor)
         {
