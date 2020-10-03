@@ -14,7 +14,7 @@ namespace Replicate.MetaData
         public string Name { get { return Property?.Name ?? Field.Name; } }
         public ReplicationModel Model;
         public Type MemberType { get { return Property?.PropertyType ?? Field.FieldType; } }
-        public Type ParentType { get => Property?.DeclaringType ?? Field.DeclaringType; }
+        public Type DeclaringType { get => Property?.DeclaringType ?? Field.DeclaringType; }
         public bool IsStatic { get => Field?.IsStatic ?? (Property?.GetGetMethod() ?? Property.GetSetMethod())?.IsStatic ?? false; }
         public bool IsPublic { get => Field?.IsPublic ?? (Property?.GetGetMethod() ?? Property.GetSetMethod())?.IsPublic ?? false; }
         public Surrogate Surrogate { get; private set; }
@@ -63,7 +63,7 @@ namespace Replicate.MetaData
         }
         public override string ToString()
         {
-            return $"{ParentType}.{Name}";
+            return $"{DeclaringType}.{Name}";
         }
     }
 }

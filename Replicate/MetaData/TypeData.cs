@@ -54,7 +54,11 @@ namespace Replicate.MetaData
             if (type.IsGenericTypeDefinition)
                 GenericTypeParameters = type.GetTypeInfo().GenericTypeParameters.Select(v => v.Name).ToArray();
         }
-
+        bool AutoAddMember(MemberInfo member)
+        {
+            var autoMembers = Model.Add(member.DeclaringType)?.TypeAttribute?.AutoMembers ?? AutoAdd.None;
+            return autoMembers == AutoAdd.All || (autoMembers == AutoAdd.AllPublic && member.IsPublic);
+        }
         public void InitializeMembers()
         {
             if (TypeAttribute == null) TypeAttribute = Type.GetCustomAttribute<ReplicateTypeAttribute>(false);
@@ -71,15 +75,14 @@ namespace Replicate.MetaData
                 .Where(meth => meth.GetCustomAttribute<ReplicateIgnoreAttribute>() == null)
                 .Where(meth => meth.GetCustomAttribute<ReplicateRPCAttribute>() != null || autoMethods == AutoAdd.All || (autoMethods == AutoAdd.AllPublic && meth.IsPublic))
                 .ToList();
-            var autoMembers = TypeAttribute?.AutoMembers ?? AutoAdd.None;
             Members.Clear();
             foreach (var member in GetMembers(bindingFlags))
             {
-                if (member.ParentType.Namespace == "System")
+                if (member.DeclaringType.Namespace == "System")
                     continue;
                 if (member.GetAttribute<ReplicateIgnoreAttribute>() != null)
                     continue;
-                if (member.GetAttribute<ReplicateAttribute>() != null || autoMembers == AutoAdd.All || (autoMembers == AutoAdd.AllPublic && member.IsPublic))
+                if (member.GetAttribute<ReplicateAttribute>() != null || AutoAddMember(member))
                     AddMember(member);
             }
         }
