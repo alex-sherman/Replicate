@@ -92,7 +92,7 @@ namespace Replicate.MetaData
 
         public void EnsureConstructed()
         {
-            Value = TypeAccessor.Construct();
+            Value = Value ?? TypeAccessor.Construct();
         }
         public override string ToString()
         {

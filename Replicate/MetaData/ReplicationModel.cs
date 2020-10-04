@@ -244,7 +244,7 @@ namespace Replicate.MetaData
         {
             get { return GetTypeData(type); }
         }
-        public TypeData Add(Type type, ReplicateTypeAttribute attr = null)
+        public TypeData Add(Type type, ReplicateTypeAttribute attr = null, bool addMembers = true)
         {
             if (type.IsNotPublic)
                 throw new InvalidOperationException("Cannot add a non public type to the replication model");
@@ -265,7 +265,7 @@ namespace Replicate.MetaData
                 var key = Types.Add(typeData.FullName, typeData);
                 if (typeData.FullName != typeData.Name && !Types.ContainsKey(typeData.Name))
                     Types.AddAlias(key, typeData.Name, typeData);
-                typeData.InitializeMembers();
+                if (addMembers) typeData.InitializeMembers();
             }
             if (genericParameters != null)
                 foreach (var generic in genericParameters)
