@@ -28,7 +28,7 @@ namespace Replicate
         public uint Sequence;
         public int Length;
         public const int SIZE = 9;
-        public static implicit operator byte[] (MessageHeader header)
+        public static implicit operator byte[](MessageHeader header)
         {
             var output = new byte[SIZE];
             output[0] = (byte)header.Flags;
@@ -56,18 +56,19 @@ namespace Replicate
         private Dictionary<uint, TaskCompletionSource<Stream>> outStandingMessages = new Dictionary<uint, TaskCompletionSource<Stream>>();
         uint sequence = 0xFAFF;
         public readonly Socket Socket;
-        private TcpClient client;
 
         public static SocketChannel Connect(string host, int port, IReplicateSerializer serializer)
         {
             var clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             clientSocket.Connect(host, port);
+            // TODO: Use SendAsync and disable blocking
+            //clientSocket.Blocking = false;
             var channel = new SocketChannel(clientSocket, serializer);
             channel.Start();
             return channel;
         }
 
-        public SocketChannel(Socket socket, IReplicateSerializer serializer)
+        internal SocketChannel(Socket socket, IReplicateSerializer serializer)
             : base(serializer)
         {
             Socket = socket;
@@ -81,7 +82,7 @@ namespace Replicate
             try
             {
                 var bytes = Socket.EndReceive(result);
-                if (bytes != 9) throw new SocketException();
+                if (bytes != MessageHeader.SIZE) throw new SocketException();
                 currentHeader = buffer;
                 remainingBytes = currentHeader.Length;
                 currentMessage = new MemoryStream(remainingBytes);
@@ -120,7 +121,7 @@ namespace Replicate
             {
                 var endpoint = Serializer.Deserialize<MethodKey>(currentMessage);
                 // currentMessage.Position _should_ be updated here, will break if two calls to deserialize happen
-                HandleRequest(endpoint, currentMessage).ConfigureAwait(false);
+                HandleRequest(endpoint, currentMessage, currentHeader.Sequence).ConfigureAwait(false);
             }
             currentMessage = null;
             remainingBytes = 0;
@@ -129,22 +130,27 @@ namespace Replicate
 
         private void HandleResponse(MessageHeader header, MemoryStream currentMessage)
         {
+            TaskCompletionSource<Stream> source;
+            lock (this)
+            {
+                source = outStandingMessages[header.Sequence];
+                outStandingMessages.Remove(header.Sequence);
+            }
             if (header.Flags.HasFlag(MessageFlags.Error))
             {
                 var message = Serializer.Deserialize<string>(currentMessage);
-                outStandingMessages[header.Sequence].SetException(new ReplicateError(message));
+                source.SetException(new ReplicateError(message));
             }
             else
-                outStandingMessages[header.Sequence].SetResult(currentMessage);
-            outStandingMessages.Remove(header.Sequence);
+                source.SetResult(currentMessage);
         }
 
-        private async Task HandleRequest(MethodKey endpoint, MemoryStream currentMessage)
+        private async Task HandleRequest(MethodKey endpoint, MemoryStream currentMessage, uint sequence)
         {
             var header = new MessageHeader()
             {
                 Flags = MessageFlags.Response,
-                Sequence = sequence
+                Sequence = sequence,
             };
             byte[] message;
             try
@@ -176,10 +182,11 @@ namespace Replicate
             var header = new MessageHeader() { Flags = MessageFlags.Request, Length = (int)messageStream.Length, Sequence = messageSequence };
             lock (this)
             {
+                var result = (outStandingMessages[messageSequence] = new TaskCompletionSource<Stream>()).Task;
                 Socket.Send(header);
                 Socket.Send(messageStream.ToArray());
+                return result;
             }
-            return (outStandingMessages[messageSequence] = new TaskCompletionSource<Stream>()).Task;
         }
 
         public override Stream GetStream(MemoryStream wireValue) => wireValue;

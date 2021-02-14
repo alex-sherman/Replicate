@@ -28,8 +28,17 @@ namespace ReplicateBenchmarks
         [Replicate]
         public T faff;
     }
-    class Program
+    public class Program
     {
+        public interface IEchoService
+        {
+            [ReplicateRPC]
+            Task<string> Echo(string value);
+        }
+        public class EchoService : IEchoService
+        {
+            public Task<string> Echo(string value) { return Task.FromResult(value); }
+        }
         static MemoryStream stream = new MemoryStream((int)1e8);
         static void TimeSerialize<T>(string name, T value, Action<Stream, T> serialize, double count = 1e6)
         {
@@ -59,16 +68,29 @@ namespace ReplicateBenchmarks
             //JsonCompare();
             //BinaryCompare();
             //ProtoCompare();
-            ServerTest().GetAwaiter().GetResult();
+            ServerTest();
             Console.ReadLine();
         }
-        public static async Task ServerTest()
+        public static void ServerTest()
         {
             var model = new ReplicationModel();
+            model.Add(typeof(IEchoService));
             //Server side
             var server = new RPCServer(model);
             server.WithReflection();
-            await new SocketListener(server, 55555, new BinarySerializer(model)).Task;
+            server.RegisterSingleton<IEchoService>(new EchoService());
+
+            var listenerTask = new SocketListener(server, 55555, new BinarySerializer(model)).Task;
+            var clientChannel = SocketChannel.Connect("localhost", 55555, new BinarySerializer(model));
+            var echoService = clientChannel.CreateProxy<IEchoService>();
+            var s = Stopwatch.StartNew();
+            double n = 1e5;
+            for (int i = 0; i < n; i++)
+            {
+                echoService.Echo("derp");
+            }
+            s.Stop();
+            Console.WriteLine("RPC/s: " + n / (s.ElapsedTicks * 1.0 / Stopwatch.Frequency));
         }
         static void ProtoCompare()
         {

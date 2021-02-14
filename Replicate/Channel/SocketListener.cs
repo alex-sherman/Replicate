@@ -29,6 +29,8 @@ namespace Replicate
                 while (true)
                 {
                     var client = socket.Accept();
+                    // TODO: Use SendAsync and disable blocking
+                    //client.Blocking = false;
                     new SocketChannel(client, serializer) { Server = server }.Start();
                 }
             }, cancellationToken: cancel.Token);
