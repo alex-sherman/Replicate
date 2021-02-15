@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ReplicateBenchmarks
@@ -71,6 +72,8 @@ namespace ReplicateBenchmarks
             ServerTest();
             Console.ReadLine();
         }
+        static int N = (int)3e4;
+        static int n = N;
         public static void ServerTest()
         {
             var model = new ReplicationModel();
@@ -84,13 +87,21 @@ namespace ReplicateBenchmarks
             var clientChannel = SocketChannel.Connect("localhost", 55555, new BinarySerializer(model));
             var echoService = clientChannel.CreateProxy<IEchoService>();
             var s = Stopwatch.StartNew();
-            double n = 1e5;
-            for (int i = 0; i < n; i++)
+            List<Task> RPCs = new List<Task>();
+            int maxOutstanding = 200;
+            while (n > 0)
             {
-                echoService.Echo("derp");
+                while (RPCs.Count < maxOutstanding)
+                    RPCs.Add(StartRPC(echoService));
+                RPCs[0].GetAwaiter().GetResult();
+                RPCs.RemoveAt(0);
             }
             s.Stop();
-            Console.WriteLine("RPC/s: " + n / (s.ElapsedTicks * 1.0 / Stopwatch.Frequency));
+            Console.WriteLine("RPC/s: " + N / (s.ElapsedTicks * 1.0 / Stopwatch.Frequency));
+        }
+        public static Task StartRPC(IEchoService service)
+        {
+            return service.Echo("derp").ContinueWith(t => { Interlocked.Decrement(ref n); });
         }
         static void ProtoCompare()
         {

@@ -48,21 +48,23 @@ namespace Replicate
     }
     public class SocketChannel : RPCChannel<MemoryStream>
     {
-        const int BUFFERSIZE = 1024;
-        private byte[] buffer = new byte[BUFFERSIZE];
+        private byte[] headerBuffer = new byte[MessageHeader.SIZE];
         private MessageHeader currentHeader;
         private int remainingBytes;
-        private MemoryStream currentMessage = null;
+        private byte[] currentMessage;
         private Dictionary<uint, TaskCompletionSource<Stream>> outStandingMessages = new Dictionary<uint, TaskCompletionSource<Stream>>();
         uint sequence = 0xFAFF;
         public readonly Socket Socket;
+        private volatile List<ArraySegment<byte>> sendQueue = new List<ArraySegment<byte>>();
+        private volatile bool sending = false;
+        private volatile SocketAsyncEventArgs sendArgs = new SocketAsyncEventArgs();
+        private volatile SocketAsyncEventArgs recvArgs = new SocketAsyncEventArgs();
 
         public static SocketChannel Connect(string host, int port, IReplicateSerializer serializer)
         {
             var clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             clientSocket.Connect(host, port);
-            // TODO: Use SendAsync and disable blocking
-            //clientSocket.Blocking = false;
+            clientSocket.Blocking = false;
             var channel = new SocketChannel(clientSocket, serializer);
             channel.Start();
             return channel;
@@ -72,37 +74,67 @@ namespace Replicate
             : base(serializer)
         {
             Socket = socket;
+            sendArgs.Completed += OnSend;
+            recvArgs.Completed += OnRecv;
+        }
+        private void Send(params byte[][] bytes)
+        {
+            lock (sendArgs)
+            {
+                foreach (var payload in bytes)
+                {
+                    sendQueue.Add(new ArraySegment<byte>(payload));
+                }
+                if (!sending)
+                {
+                    BeginSend();
+                }
+            }
+        }
+        private void BeginSend()
+        {
+            lock (sendArgs)
+            {
+                sending = true;
+                sendArgs.BufferList = sendQueue;
+                sendQueue = new List<ArraySegment<byte>>();
+                if (!Socket.SendAsync(sendArgs)) throw new Exception();
+            }
+        }
+        private void OnSend(object sender, SocketAsyncEventArgs e)
+        {
+            lock (sendArgs)
+            {
+                if (sendQueue.Count != 0) BeginSend();
+                else sending = false;
+            }
         }
 
-        public void Start() { Socket.BeginReceive(buffer, 0, MessageHeader.SIZE, SocketFlags.None, StartMessage, null); }
+        public void Start()
+        {
+            recvArgs.SetBuffer(headerBuffer, 0, MessageHeader.SIZE);
+            if (!Socket.ReceiveAsync(recvArgs)) OnRecv(this, recvArgs);
+        }
         public void Close() { Socket.Close(); }
 
-        private void StartMessage(IAsyncResult result)
+        private void OnRecv(object source, SocketAsyncEventArgs args)
         {
             try
             {
-                var bytes = Socket.EndReceive(result);
-                if (bytes != MessageHeader.SIZE) throw new SocketException();
-                currentHeader = buffer;
-                remainingBytes = currentHeader.Length;
-                currentMessage = new MemoryStream(remainingBytes);
-                Socket.BeginReceive(buffer, 0, Math.Min(BUFFERSIZE, remainingBytes), SocketFlags.None, ContinueMessage, null);
-            }
-            catch (SocketException)
-            {
-                Socket.Close();
-            }
-        }
-
-        private void ContinueMessage(IAsyncResult result)
-        {
-            try
-            {
-                var bytes = Socket.EndReceive(result);
-                currentMessage.Write(buffer, 0, bytes);
-                remainingBytes -= bytes;
-                if (remainingBytes == 0) FinishMessage();
-                else Socket.BeginReceive(buffer, 0, Math.Min(BUFFERSIZE, remainingBytes), SocketFlags.None, ContinueMessage, null);
+                do
+                {
+                    if (currentMessage == null)
+                    {
+                        if (args.BytesTransferred != MessageHeader.SIZE) throw new SocketException();
+                        currentHeader = headerBuffer;
+                        remainingBytes = currentHeader.Length;
+                        currentMessage = new byte[remainingBytes];
+                        recvArgs.SetBuffer(currentMessage, 0, remainingBytes);
+                        if (Socket.ReceiveAsync(recvArgs)) return;
+                    }
+                    remainingBytes -= recvArgs.BytesTransferred;
+                    if (remainingBytes == 0) FinishMessage();
+                } while (!Socket.ReceiveAsync(recvArgs));
             }
             catch (SocketException)
             {
@@ -112,20 +144,20 @@ namespace Replicate
 
         private void FinishMessage()
         {
-            currentMessage.Position = 0;
+            var messageStream = new MemoryStream(currentMessage);
             if (currentHeader.Flags.HasFlag(MessageFlags.Response))
             {
-                HandleResponse(currentHeader, currentMessage);
+                HandleResponse(currentHeader, messageStream);
             }
             else if (currentHeader.Flags.HasFlag(MessageFlags.Request))
             {
-                var endpoint = Serializer.Deserialize<MethodKey>(currentMessage);
+                var endpoint = Serializer.Deserialize<MethodKey>(messageStream);
                 // currentMessage.Position _should_ be updated here, will break if two calls to deserialize happen
-                HandleRequest(endpoint, currentMessage, currentHeader.Sequence).ConfigureAwait(false);
+                HandleRequest(endpoint, messageStream, currentHeader.Sequence).ConfigureAwait(false);
             }
             currentMessage = null;
             remainingBytes = 0;
-            Socket.BeginReceive(buffer, 0, MessageHeader.SIZE, SocketFlags.None, StartMessage, null);
+            recvArgs.SetBuffer(headerBuffer, 0, MessageHeader.SIZE);
         }
 
         private void HandleResponse(MessageHeader header, MemoryStream currentMessage)
@@ -145,32 +177,32 @@ namespace Replicate
                 source.SetResult(currentMessage);
         }
 
-        private async Task HandleRequest(MethodKey endpoint, MemoryStream currentMessage, uint sequence)
+        private Task HandleRequest(MethodKey endpoint, MemoryStream currentMessage, uint sequence)
         {
-            var header = new MessageHeader()
+            return Receive(endpoint, currentMessage).ContinueWith(t =>
             {
-                Flags = MessageFlags.Response,
-                Sequence = sequence,
-            };
-            byte[] message;
-            try
-            {
-                var result = await Receive(endpoint, currentMessage);
-                message = result.ToArray();
-            }
-            catch (Exception e)
-            {
-                header.Flags |= MessageFlags.Error;
-                var errorStream = new MemoryStream();
-                Serializer.Serialize(typeof(string), e.Message, errorStream);
-                message = errorStream.ToArray();
-            }
-            header.Length = message.Length;
-            lock (this)
-            {
-                Socket.Send(header);
-                Socket.Send(message);
-            }
+                var header = new MessageHeader()
+                {
+                    Flags = MessageFlags.Response,
+                    Sequence = sequence,
+                };
+                byte[] message;
+                try
+                {
+                    var result = t.Result;
+                    message = result.ToArray();
+                }
+                catch (Exception e)
+                {
+                    header.Flags |= MessageFlags.Error;
+                    var errorStream = new MemoryStream();
+                    string errorMessage = e is AggregateException a ? a.InnerExceptions[0].Message : e.Message;
+                    Serializer.Serialize(typeof(string), errorMessage, errorStream);
+                    message = errorStream.ToArray();
+                }
+                header.Length = message.Length;
+                Send(header, message);
+            });
         }
 
         public override Task<Stream> Request(RPCRequest request, ReliabilityMode reliability)
@@ -180,13 +212,13 @@ namespace Replicate
             Serializer.Serialize(request.Endpoint, messageStream);
             Serializer.Serialize(request.Contract.RequestType, request.Request, messageStream);
             var header = new MessageHeader() { Flags = MessageFlags.Request, Length = (int)messageStream.Length, Sequence = messageSequence };
+            Task<Stream> result;
             lock (this)
             {
-                var result = (outStandingMessages[messageSequence] = new TaskCompletionSource<Stream>()).Task;
-                Socket.Send(header);
-                Socket.Send(messageStream.ToArray());
-                return result;
+                result = (outStandingMessages[messageSequence] = new TaskCompletionSource<Stream>()).Task;
             }
+            Send(header, messageStream.ToArray());
+            return result;
         }
 
         public override Stream GetStream(MemoryStream wireValue) => wireValue;

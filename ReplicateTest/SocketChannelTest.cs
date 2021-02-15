@@ -53,7 +53,7 @@ namespace ReplicateTest
             }
             public Task Error()
             {
-                throw new InvalidOperationException();
+                throw new InvalidOperationException("Error message");
             }
         }
         [Test]
@@ -85,7 +85,8 @@ namespace ReplicateTest
                 //Client side
                 var clientChannel = SocketChannel.Connect("localhost", sl.Port, new BinarySerializer(model));
                 var echoService = clientChannel.CreateProxy<IEchoService>();
-                Assert.ThrowsAsync<ReplicateError>(async () => await echoService.Error());
+                var error = Assert.ThrowsAsync<ReplicateError>(async () => await echoService.Error());
+                Assert.AreEqual(error.Message, "Error message");
             }
         }
     }

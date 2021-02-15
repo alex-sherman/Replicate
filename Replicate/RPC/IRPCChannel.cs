@@ -85,13 +85,23 @@ namespace Replicate.RPC
         public abstract Stream GetStream(TWireType wireValue);
         public abstract TWireType GetWireValue(Stream stream);
         public abstract Task<Stream> Request(RPCRequest request, ReliabilityMode reliability = ReliabilityMode.ReliableSequenced);
-        async Task<object> IRPCChannel.Request(RPCRequest request, ReliabilityMode reliability)
+        Task<object> IRPCChannel.Request(RPCRequest request, ReliabilityMode reliability)
         {
-            return Serializer.Deserialize(request.Contract.ResponseType, await Request(request, reliability));
+            return Request(request, reliability).ContinueWith(
+                t =>
+                {
+                    if (t.IsFaulted)
+                    {
+                        if (t.Exception is AggregateException a) throw a.InnerExceptions[0];
+                        throw t.Exception;
+
+                    }
+                    return Serializer.Deserialize(request.Contract.ResponseType, t.Result);
+                });
         }
         public bool TryGetContract(MethodKey endpoint, out RPCContract contract)
         {
-            contract = default(RPCContract);
+            contract = default;
             if (!serverCache.ContainsKey(endpoint))
                 serverCache = Server.Methods.ToDictionary(m => m, m => new RPCContract(Model.GetMethod(m)));
             if (serverCache.TryGetValue(endpoint, out contract))

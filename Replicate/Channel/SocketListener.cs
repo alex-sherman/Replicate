@@ -28,10 +28,13 @@ namespace Replicate
             {
                 while (true)
                 {
-                    var client = socket.Accept();
-                    // TODO: Use SendAsync and disable blocking
-                    //client.Blocking = false;
-                    new SocketChannel(client, serializer) { Server = server }.Start();
+                    try
+                    {
+                        var client = socket.Accept();
+                        client.Blocking = false;
+                        new SocketChannel(client, serializer) { Server = server }.Start();
+                    }
+                    catch { return; }
                 }
             }, cancellationToken: cancel.Token);
         }
