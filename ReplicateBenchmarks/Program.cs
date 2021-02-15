@@ -72,7 +72,7 @@ namespace ReplicateBenchmarks
             ServerTest();
             Console.ReadLine();
         }
-        static int N = (int)3e4;
+        static int N = (int)1e5;
         static int n = N;
         public static void ServerTest()
         {
@@ -88,7 +88,7 @@ namespace ReplicateBenchmarks
             var echoService = clientChannel.CreateProxy<IEchoService>();
             var s = Stopwatch.StartNew();
             List<Task> RPCs = new List<Task>();
-            int maxOutstanding = 200;
+            int maxOutstanding = 100;
             while (n > 0)
             {
                 while (RPCs.Count < maxOutstanding)

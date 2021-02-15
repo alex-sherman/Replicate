@@ -79,35 +79,33 @@ namespace Replicate
         }
         private void Send(params byte[][] bytes)
         {
+
             lock (sendArgs)
             {
                 foreach (var payload in bytes)
                 {
                     sendQueue.Add(new ArraySegment<byte>(payload));
                 }
-                if (!sending)
-                {
-                    BeginSend();
-                }
-            }
-        }
-        private void BeginSend()
-        {
-            lock (sendArgs)
-            {
+                if (sending) return;
                 sending = true;
                 sendArgs.BufferList = sendQueue;
                 sendQueue = new List<ArraySegment<byte>>();
-                if (!Socket.SendAsync(sendArgs)) throw new Exception();
             }
+            if (!Socket.SendAsync(sendArgs)) throw new Exception();
         }
         private void OnSend(object sender, SocketAsyncEventArgs e)
         {
             lock (sendArgs)
             {
-                if (sendQueue.Count != 0) BeginSend();
-                else sending = false;
+                if (sendQueue.Count == 0)
+                {
+                    sending = false;
+                    return;
+                }
+                sendArgs.BufferList = sendQueue;
+                sendQueue = new List<ArraySegment<byte>>();
             }
+            if (!Socket.SendAsync(sendArgs)) throw new Exception();
         }
 
         public void Start()
