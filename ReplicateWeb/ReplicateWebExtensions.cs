@@ -32,7 +32,7 @@ namespace Replicate.Web
                 name = name.Substring(0, name.Length - 1);
             return name;
         }
-        public static void AddReplicate(this IServiceCollection services, IReplicateSerializer serializer)
+        public static void UseEndpoints(this IApplicationBuilder app, IReplicateSerializer serializer)
         {
             var model = serializer.Model;
             model.LoadTypes(typeof(ErrorData).Assembly);
@@ -47,11 +47,13 @@ namespace Replicate.Web
                 var route = GetEndpoint(m);
                 return (Route: route, Key: model.MethodKey(m));
             });
-            var endpoints = new DefaultEndpointDataSource(routes.Select(r =>
-                new RouteEndpoint(
-                    async context =>
+            app.UseEndpoints(e =>
+            {
+                foreach (var route in routes)
+                {
+                    e.Map(RoutePatternFactory.Parse(route.Route), async context =>
                     {
-                        var method = model.GetMethod(r.Key);
+                        var method = model.GetMethod(route.Key);
                         var implementation = ActivatorUtilities.CreateInstance(context.RequestServices, method.DeclaringType);
                         var handler = TypeUtil.CreateHandler(method, _ => implementation);
 
@@ -63,21 +65,15 @@ namespace Replicate.Web
                         var result = await handler(new RPCRequest()
                         {
                             Contract = contract,
-                            Endpoint = r.Key,
+                            Endpoint = route.Key,
                             Request = stream.Length == 0 ? null : serializer.Deserialize(contract.RequestType, stream)
                         });
                         context.Response.ContentType = "application/json";
                         context.Response.StatusCode = 200;
                         await context.Response.WriteAsync(serializer.SerializeString(contract.ResponseType, result));
-                    },
-                    RoutePatternFactory.Parse(r.Route),
-                    0,
-                    EndpointMetadataCollection.Empty,
-                    r.Key.Type.Id.Name + ":" + r.Key.Method.Name
-                    )
-                ));
-            services.AddRouting();
-            services.TryAddEnumerable(ServiceDescriptor.Singleton<EndpointDataSource>(endpoints));
+                    });
+                }
+            });
         }
         public static void UseErrorHandling(this IApplicationBuilder app, IReplicateSerializer serializer)
         {
