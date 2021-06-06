@@ -67,9 +67,9 @@ namespace ReplicateBenchmarks
         static void Main(string[] args)
         {
             //JsonCompare();
-            //BinaryCompare();
+            BinaryCompare();
             //ProtoCompare();
-            ServerTest();
+            //ServerTest();
             Console.ReadLine();
         }
         static int N = (int)1e5;

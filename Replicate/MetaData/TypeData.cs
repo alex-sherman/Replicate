@@ -56,7 +56,7 @@ namespace Replicate.MetaData
         }
         bool AutoAddMember(MemberInfo member)
         {
-            var autoMembers = Model.Add(member.DeclaringType)?.TypeAttribute?.AutoMembers ?? AutoAdd.None;
+            var autoMembers = Model.Add(member.DeclaringType)?.TypeAttribute?.AutoMembers ?? TypeAttribute?.AutoMembers ?? AutoAdd.None;
             return autoMembers == AutoAdd.All || (autoMembers == AutoAdd.AllPublic && member.IsPublic);
         }
         public void InitializeMembers()

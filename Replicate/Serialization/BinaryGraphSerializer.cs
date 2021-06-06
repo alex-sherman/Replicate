@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 
 namespace Replicate.Serialization
 {
+    [Obsolete("Use BinarySerializer instead")]
     public class BinaryGraphSerializer : GraphSerializer
     {
         public BinaryGraphSerializer(ReplicationModel model) : base(model) { }

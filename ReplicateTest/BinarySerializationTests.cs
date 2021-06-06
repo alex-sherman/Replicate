@@ -126,7 +126,7 @@ namespace ReplicateTest
         public void TestInitMessage()
         {
             var model = new ReplicationModel();
-            var ser = new Replicate.Serialization.BinarySerializer(model);
+            var ser = new BinarySerializer(model);
             var stream = ser.Serialize(new InitMessage()
             {
                 id = new ReplicateId() { ObjectID = 0, Creator = 1 },
@@ -141,7 +141,7 @@ namespace ReplicateTest
         [Test]
         public void TestInheritedType()
         {
-            var value = BinarySerializerUtil.SerializeDeserialize(new SubClass()
+            var value = SerializeDeserialize(new SubClass()
             {
                 Field = "test",
                 Property = 5
@@ -152,13 +152,24 @@ namespace ReplicateTest
         [Test]
         public void TestNestedGeneric()
         {
-            var value = BinarySerializerUtil.SerializeDeserialize(new GenericSubClass<GenericClass<int>, GenericClass<string>>()
+            var value = SerializeDeserialize(new GenericSubClass<GenericClass<int>, GenericClass<string>>()
             {
                 Value = new GenericClass<int>() { Value = 1 },
                 OtherValue = new GenericClass<string>() { Value = "faff" }
             });
             Assert.AreEqual(value.Value.Value, 1);
             Assert.AreEqual(value.OtherValue.Value, "faff");
+        }
+        [Test]
+        public void TestByteArray()
+        {
+            var model = new ReplicationModel();
+            var ser = new BinarySerializer(model);
+
+            var array = new byte[] { 1, 2, 3, 4, 5 };
+            var bytes = ser.Serialize(array);
+            var result = ser.Deserialize<byte[]>(bytes);
+            Assert.AreEqual(array, result);
         }
     }
 }

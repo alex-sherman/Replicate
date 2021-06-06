@@ -12,15 +12,13 @@ namespace Replicate.Serialization
 {
     public class BinaryIntSerializer : ITypedSerializer
     {
-        public object Read(Stream stream)
-        {
-            return stream.ReadInt32();
-        }
-
-        public void Write(object obj, Stream stream)
-        {
-            stream.WriteInt32(Convert.ToInt32(obj));
-        }
+        public object Read(Stream stream) => stream.ReadInt32();
+        public void Write(object obj, Stream stream) => stream.WriteInt32(Convert.ToInt32(obj));
+    }
+    public class BinaryByteSerializer : ITypedSerializer
+    {
+        public object Read(Stream stream) => stream.ReadByte();
+        public void Write(object obj, Stream stream) => stream.WriteByte(Convert.ToByte(obj));
     }
     public class BinaryFloatSerializer : ITypedSerializer
     {
@@ -53,7 +51,7 @@ namespace Replicate.Serialization
         static Dictionary<PrimitiveType, ITypedSerializer> serializers = new Dictionary<PrimitiveType, ITypedSerializer>()
         {
             {PrimitiveType.VarInt, intSer },
-            {PrimitiveType.Byte, intSer },
+            {PrimitiveType.Byte, new BinaryByteSerializer() },
             {PrimitiveType.Bool, intSer },
             {PrimitiveType.String, new BinaryStringSerializer() },
             {PrimitiveType.Double, new BinaryFloatSerializer() },

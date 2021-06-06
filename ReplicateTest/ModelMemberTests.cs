@@ -32,6 +32,12 @@ namespace ReplicateTest
         {
             public string ChildAutoField;
         }
+        public class NoAttributeType
+        {
+            public string Field;
+        }
+        [ReplicateType(AutoMembers = AutoAdd.AllPublic)]
+        public class InheritedNoAttributeType : NoAttributeType { }
 
         [Test]
         public void MembersAutoAdded()
@@ -63,6 +69,15 @@ namespace ReplicateTest
             Assert.IsNull(typeData["Property"]);
             Assert.NotNull(typeData["Explicit"]);
             Assert.NotNull(typeData["ChildAutoField"]);
+        }
+        [Test]
+        public void InheritedMembersWithoutAttributeUseChildAttribute()
+        {
+            var model = new ReplicationModel(false);
+            model.Add(typeof(InheritedNoAttributeType));
+            var typeData = model[typeof(InheritedNoAttributeType)];
+            Assert.NotNull(typeData);
+            Assert.NotNull(typeData["Field"]);
         }
     }
 }
