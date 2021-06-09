@@ -21,12 +21,12 @@ namespace Replicate.MetaData
         public IEnumerable<RepKey> Keys => Members.Keys;
         public MemberInfo this[RepKey key] => Members[key];
         public readonly RepSet<MemberInfo> Members = new RepSet<MemberInfo>();
+        public readonly RepSet<MemberInfo> StaticMembers = new RepSet<MemberInfo>();
         public readonly string[] GenericTypeParameters = null;
         public List<MethodInfo> Methods = new List<MethodInfo>();
         public bool IsInstanceRPC;
         public Surrogate Surrogate { get; private set; }
         public ReplicationModel Model { get; private set; }
-        private bool IsSurrogate = false;
         public ReplicateTypeAttribute TypeAttribute;
         public TypeData(Type type, ReplicationModel model)
         {
@@ -112,15 +112,15 @@ namespace Replicate.MetaData
         }
         void AddMember(MemberInfo member)
         {
-            Members.Add(member.Name, member);
+            (member.IsStatic ? StaticMembers : Members).Add(member.Name, member);
             if (!member.MemberType.IsGenericParameter)
                 Model.Add(member.MemberType);
         }
         public void SetSurrogate(Surrogate surrogate)
         {
-            if (IsSurrogate)
+            if (Model.SurrogateTypes.Contains(Type))
                 throw new InvalidOperationException("Cannot set the surrogate of a surrogate type");
-            Model.Add(surrogate.Type).IsSurrogate = true;
+            Model.SurrogateTypes.Add(Model.GetTypeData(surrogate.Type).Type);
             Surrogate = surrogate;
         }
         public override string ToString()

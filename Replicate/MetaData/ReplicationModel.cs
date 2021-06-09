@@ -66,6 +66,7 @@ namespace Replicate.MetaData
         Dictionary<Type, TypeAccessor> typeAccessorLookup = new Dictionary<Type, TypeAccessor>();
         Dictionary<Type, TypeData> typeLookup = new Dictionary<Type, TypeData>();
         public readonly RepSet<TypeData> Types = new RepSet<TypeData>();
+        internal HashSet<Type> SurrogateTypes = new HashSet<Type>();
         public readonly ModuleBuilder Builder = DynamicModule.Create();
         public bool DictionaryAsObject;
         public bool AddOnLookup = false;
@@ -85,6 +86,10 @@ namespace Replicate.MetaData
         private void AddBaseTypes()
         {
             Add(typeof(None));
+            Add(typeof(Dictionary<,>));
+            Add(typeof(List<>));
+            Add(typeof(ICollection<>));
+            Add(typeof(IEnumerable<>));
             Add(typeof(byte));
             Add(typeof(short));
             Add(typeof(int));
@@ -95,10 +100,13 @@ namespace Replicate.MetaData
             Add(typeof(float));
             Add(typeof(double));
             Add(typeof(string));
-            Add(typeof(Dictionary<,>));
-            Add(typeof(List<>));
-            Add(typeof(ICollection<>));
-            Add(typeof(IEnumerable<>));
+            Add(typeof(Guid)).SetSurrogate(new Surrogate(typeof(byte[]),
+                (_, __) => obj => obj == null ? null : ((Guid)obj).ToByteArray(),
+                (_, __) => obj =>
+                {
+                    if (obj == null) return null;
+                    return new Guid((byte[])(obj));
+                }));
             Add(typeof(Blob));
             Add(typeof(DeferredBlob));
             Add(typeof(object)).SetSurrogate(new Surrogate(typeof(Blob),

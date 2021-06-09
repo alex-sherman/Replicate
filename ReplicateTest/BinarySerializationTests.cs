@@ -82,6 +82,7 @@ namespace ReplicateTest
         [TestCase(null, typeof(double[]), null)]
         [TestCase(true, typeof(bool), null)]
         [TestCase(false, typeof(bool), null)]
+        [TestCase(null, typeof(Guid?), null)]
         //[TestCase(JSONEnum.One, typeof(JSONEnum), "1")]
         public void TestSerializeDeserialize(object obj, Type type, byte[] serialized)
         {
@@ -170,6 +171,13 @@ namespace ReplicateTest
             var bytes = ser.Serialize(array);
             var result = ser.Deserialize<byte[]>(bytes);
             Assert.AreEqual(array, result);
+        }
+        [Test]
+        public void TestGuid()
+        {
+            var guid = Guid.NewGuid();
+            var output = SerializeDeserialize(guid);
+            Assert.AreEqual(guid, output);
         }
     }
 }

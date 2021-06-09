@@ -27,20 +27,20 @@ namespace Replicate.Serialization
     }
     public class DeferredBlob : Blob
     {
-        private Stream _wireData;
+        private Stream wireData;
         private IReplicateSerializer serializer;
         public DeferredBlob(object obj, Type type = null) : base(obj, type) { }
         public DeferredBlob() { }
         public override void SetWireValue(Type type, Stream wire, IReplicateSerializer ser)
         {
             Type = type;
-            _wireData = wire;
+            wireData = wire;
             serializer = ser;
         }
         public object ReadInto(object existing)
         {
-            if (_wireData == null) throw new InvalidOperationException("Must call SetWireValue first");
-            return Value = serializer.Deserialize(Type, _wireData, existing);
+            if (wireData == null) throw new InvalidOperationException("Must call SetWireValue first");
+            return Value = serializer.Deserialize(Type, wireData, existing);
         }
     }
 }

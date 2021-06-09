@@ -17,6 +17,7 @@ namespace Replicate.MetaData
         public Type Type { get; private set; }
         public RepSet<MethodInfo> Methods;
         public RepSet<MemberAccessor> Members;
+        public RepSet<MemberAccessor> StaticMembers;
         private readonly bool isStringDict;
         public bool IsDictObj => isStringDict && TypeData.Model.DictionaryAsObject;
         public bool IsTypeless = false;
@@ -39,6 +40,9 @@ namespace Replicate.MetaData
             Members = TypeData.Members
                 .Select(kvp => new KeyValuePair<RepKey, MemberAccessor>(kvp.Key, new MemberAccessor(kvp.Value, this, TypeData.Model)))
                 .ToRepSet();
+            StaticMembers = TypeData.StaticMembers
+                .Select(kvp => new KeyValuePair<RepKey, MemberAccessor>(kvp.Key, new MemberAccessor(kvp.Value, this, TypeData.Model)))
+                .ToRepSet();
             // TODO: Actually handle generic RPC methods
             Methods = TypeData.Methods
                 .Select((m, i) => new KeyValuePair<RepKey, MethodInfo>(new RepKey(i, m.Name), m)).ToRepSet();
@@ -46,7 +50,7 @@ namespace Replicate.MetaData
         public object Construct(params object[] args)
         {
             if (TypeData.MarshallMethod == MarshallMethod.None) return null;
-            return Activator.CreateInstance(Type, args);
+            return Activator.CreateInstance(Type, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, args, null);
         }
         public MemberAccessor this[RepKey key] => Members[key];
     }

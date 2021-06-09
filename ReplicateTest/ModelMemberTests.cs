@@ -38,6 +38,18 @@ namespace ReplicateTest
         }
         [ReplicateType(AutoMembers = AutoAdd.AllPublic)]
         public class InheritedNoAttributeType : NoAttributeType { }
+        [ReplicateType(AutoMembers = AutoAdd.AllPublic)]
+        public class StaticAndInstanceMembers
+        {
+            public static string StaticField;
+            public string Field;
+        }
+        [ReplicateType(AutoMembers = AutoAdd.AllPublic)]
+        public class PrivateSetter
+        {
+            public string Private { get; private set; }
+            public string Protected { get; protected set; }
+        }
 
         [Test]
         public void MembersAutoAdded()
@@ -62,8 +74,7 @@ namespace ReplicateTest
         public void InheritedMembersNotAutoAdded()
         {
             var model = new ReplicationModel(false);
-            model.Add(typeof(InheritedNoAutoAddType));
-            var typeData = model[typeof(InheritedNoAutoAddType)];
+            var typeData = model.Add(typeof(InheritedNoAutoAddType));
             Assert.NotNull(typeData);
             Assert.IsNull(typeData["Field"]);
             Assert.IsNull(typeData["Property"]);
@@ -74,10 +85,33 @@ namespace ReplicateTest
         public void InheritedMembersWithoutAttributeUseChildAttribute()
         {
             var model = new ReplicationModel(false);
-            model.Add(typeof(InheritedNoAttributeType));
-            var typeData = model[typeof(InheritedNoAttributeType)];
+            var typeData = model.Add(typeof(InheritedNoAttributeType));
             Assert.NotNull(typeData);
             Assert.NotNull(typeData["Field"]);
+        }
+        [Test]
+        public void StaticMembersAreSeparate()
+        {
+            var model = new ReplicationModel(false);
+            var typeData = model.Add(typeof(StaticAndInstanceMembers));
+            Assert.NotNull(typeData);
+            Assert.NotNull(typeData["Field"]);
+            Assert.Null(typeData["StaticField"]);
+            Assert.NotNull(typeData.StaticMembers["StaticField"]);
+        }
+        [Test]
+        public void PrivateSetterWorks()
+        {
+            var model = new ReplicationModel(false);
+            var typeData = model.Add(typeof(PrivateSetter));
+            var accessor = model.GetTypeAccessor(typeof(PrivateSetter));
+            Assert.NotNull(accessor);
+            Assert.NotNull(accessor["Private"]);
+            var obj = new PrivateSetter();
+            accessor["Private"].SetValue(obj, "derp");
+            Assert.AreEqual(obj.Private, "derp");
+            accessor["Protected"].SetValue(obj, "herp");
+            Assert.AreEqual(obj.Protected, "herp");
         }
     }
 }
