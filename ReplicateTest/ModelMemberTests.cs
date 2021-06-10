@@ -50,6 +50,16 @@ namespace ReplicateTest
             public string Private { get; private set; }
             public string Protected { get; protected set; }
         }
+        [ReplicateType(AutoMembers = AutoAdd.None)]
+        public class PrivateMembers
+        {
+            [Replicate]
+            string Field;
+            public string PublicField => Field;
+            [Replicate]
+            string Property { get; set; }
+            public string PublicProperty => Property;
+        }
 
         [Test]
         public void MembersAutoAdded()
@@ -112,6 +122,21 @@ namespace ReplicateTest
             Assert.AreEqual(obj.Private, "derp");
             accessor["Protected"].SetValue(obj, "herp");
             Assert.AreEqual(obj.Protected, "herp");
+        }
+        [Test]
+        public void PrivateMembersWork()
+        {
+            var model = new ReplicationModel(false);
+            var typeData = model.Add(typeof(PrivateMembers));
+            var accessor = model.GetTypeAccessor(typeof(PrivateMembers));
+            Assert.NotNull(accessor);
+            Assert.NotNull(accessor["Field"]);
+            Assert.NotNull(accessor["Property"]);
+            var obj = new PrivateMembers();
+            accessor["Field"].SetValue(obj, "derp");
+            Assert.AreEqual(obj.PublicField, "derp");
+            accessor["Property"].SetValue(obj, "herp");
+            Assert.AreEqual(obj.PublicProperty, "herp");
         }
     }
 }

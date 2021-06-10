@@ -179,5 +179,13 @@ namespace ReplicateTest
             var output = SerializeDeserialize(guid);
             Assert.AreEqual(guid, output);
         }
+        // TODO: Support
+        //[Test]
+        //public void TestNDArray()
+        //{
+        //    var array = new float[,] { { 1, 2, 3 }, { 4, 5, 6 } };
+        //    var output = SerializeDeserialize(array);
+        //    Assert.AreEqual(array, output);
+        //}
     }
 }

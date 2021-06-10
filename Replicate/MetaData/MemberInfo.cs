@@ -11,6 +11,7 @@ namespace Replicate.MetaData
 {
     public class MemberInfo
     {
+        public const BindingFlags BindingAll = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
         public string Name { get { return Property?.Name ?? Field.Name; } }
         public ReplicationModel Model;
         public Type MemberType { get { return Property?.PropertyType ?? Field.FieldType; } }
@@ -51,11 +52,11 @@ namespace Replicate.MetaData
         }
         public FieldInfo GetField(Type declaringType)
         {
-            return declaringType.GetField(Name);
+            return declaringType.GetField(Name, BindingAll);
         }
         public PropertyInfo GetProperty(Type declaringType)
         {
-            return declaringType.GetProperty(Name);
+            return declaringType.GetProperty(Name, BindingAll);
         }
         public void SetSurrogate(Surrogate surrogate)
         {

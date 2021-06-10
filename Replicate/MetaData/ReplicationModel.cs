@@ -71,6 +71,7 @@ namespace Replicate.MetaData
         public bool DictionaryAsObject;
         public bool AddOnLookup = false;
         public Func<TypeAccessor, object, object> Coerce = DefaultCoercion;
+        public bool Frozen { get; set; } = false;
         public static object DefaultCoercion(TypeAccessor dest, object value)
         {
             if (value == null || dest.TypeData.MarshallMethod == MarshallMethod.None) return value;
@@ -266,6 +267,9 @@ namespace Replicate.MetaData
             }
             if (!typeLookup.TryGetValue(type, out var typeData))
             {
+                if (Frozen) throw new InvalidOperationException($"Attempted to add a type to a frozen model");
+                if (!type.IsValueType && type.GetConstructor(BindingFlags.Instance | BindingFlags.Public, Type.DefaultBinder, new Type[] { }, null) == null)
+                    throw new InvalidOperationException($"Type {type.Name} has no default constructor");
                 typeData = new TypeData(type, this) { TypeAttribute = attr };
                 typeLookup.Add(type, typeData);
                 if (Types.ContainsKey(typeData.FullName))
