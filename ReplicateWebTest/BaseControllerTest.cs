@@ -1,9 +1,8 @@
-﻿using Microsoft.AspNetCore.Builder.Internal;
+﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Internal;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using Replicate.MetaData;
@@ -30,14 +29,12 @@ namespace ReplicateWebTest
             model = services.Serializer.Model;
             serializer = services.Serializer;
             services.AddRouting();
-            services.AddReplicate(serializer);
         }
         public RequestDelegate ReplicateHandler()
         {
             var builder = new ApplicationBuilder(services);
-            builder.UseEndpointRouting();
             builder.UseErrorHandling(services.GetRequiredService<IReplicateSerializer>());
-            builder.UseEndpoint();
+            builder.UseEndpoints(serializer);
             return builder.Build();
         }
         public static HttpContext MakeContext(string url, string body)
