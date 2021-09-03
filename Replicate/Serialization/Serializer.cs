@@ -36,14 +36,14 @@ namespace Replicate.Serialization
             switch (marshalMethod)
             {
                 case MarshallMethod.Primitive:
-                    WritePrimitive(stream, obj, typeAccessor);
+                    WritePrimitive(stream, obj, typeAccessor, memberAccessor);
                     break;
                 case MarshallMethod.Collection:
                     var collectionValueType = Model.GetCollectionValueAccessor(typeAccessor.Type);
-                    WriteCollection(stream, obj, typeAccessor, collectionValueType);
+                    WriteCollection(stream, obj, typeAccessor, collectionValueType, memberAccessor);
                     break;
                 case MarshallMethod.Object:
-                    WriteObject(stream, obj, typeAccessor);
+                    WriteObject(stream, obj, typeAccessor, memberAccessor);
                     break;
                 case MarshallMethod.Blob:
                     WriteBlob(stream, obj as Blob, memberAccessor);
@@ -51,9 +51,9 @@ namespace Replicate.Serialization
             }
         }
         public abstract void WriteBlob(Stream stream, Blob blob, MemberAccessor memberAccessor);
-        public abstract void WritePrimitive(Stream stream, object obj, TypeAccessor typeAccessor);
-        public abstract void WriteCollection(Stream stream, object obj, TypeAccessor typeAccessor, TypeAccessor collectionValueType);
-        public abstract void WriteObject(Stream stream, object obj, TypeAccessor typeAccessor);
+        public abstract void WritePrimitive(Stream stream, object obj, TypeAccessor typeAccessor, MemberAccessor memberAccessor);
+        public abstract void WriteCollection(Stream stream, object obj, TypeAccessor typeAccessor, TypeAccessor collectionValueType, MemberAccessor memberAccessor);
+        public abstract void WriteObject(Stream stream, object obj, TypeAccessor typeAccessor, MemberAccessor memberAccessor);
         public T Deserialize<T>(Stream wireValue) => (T)Deserialize(typeof(T), wireValue, null);
         public object Deserialize(Type type, Stream wire, object existing = null)
              => Read(existing, wire, Model.GetTypeAccessor(type), null);
@@ -73,11 +73,11 @@ namespace Replicate.Serialization
             switch (typeAccessor.TypeData.MarshallMethod)
             {
                 case MarshallMethod.Primitive:
-                    return ReadPrimitive(stream, typeAccessor);
+                    return ReadPrimitive(stream, typeAccessor, memberAccessor);
                 case MarshallMethod.Collection:
-                    return ReadCollection(obj, stream, typeAccessor, Model.GetCollectionValueAccessor(typeAccessor.Type));
+                    return ReadCollection(obj, stream, typeAccessor, Model.GetCollectionValueAccessor(typeAccessor.Type), memberAccessor);
                 case MarshallMethod.Object:
-                    return ReadObject(obj, stream, typeAccessor);
+                    return ReadObject(obj, stream, typeAccessor, memberAccessor);
                 case MarshallMethod.Blob:
                     return ReadBlob((Blob)obj, stream, typeAccessor, memberAccessor);
                 default:
@@ -91,8 +91,8 @@ namespace Replicate.Serialization
             return null;
         }
         public abstract Blob ReadBlob(Blob obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor);
-        public abstract object ReadPrimitive(Stream stream, TypeAccessor type);
-        public abstract object ReadObject(object obj, Stream stream, TypeAccessor typeAccessor);
-        public abstract object ReadCollection(object obj, Stream stream, TypeAccessor typeAccessor, TypeAccessor collectionAccessor);
+        public abstract object ReadPrimitive(Stream stream, TypeAccessor type, MemberAccessor memberAccessor);
+        public abstract object ReadObject(object obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor);
+        public abstract object ReadCollection(object obj, Stream stream, TypeAccessor typeAccessor, TypeAccessor collectionAccessor, MemberAccessor memberAccessor);
     }
 }

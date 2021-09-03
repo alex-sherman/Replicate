@@ -1,5 +1,6 @@
 ﻿using Replicate.Messages;
 using Replicate.MetaData;
+using Replicate.MetaData.Policy;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -20,16 +21,21 @@ namespace Replicate.MetaData
         public RepSet<MemberAccessor> StaticMembers;
         private readonly bool isStringDict;
         public bool IsDictObj => isStringDict && TypeData.Model.DictionaryAsObject;
-        public bool IsTypeless = false;
+        public readonly bool IsNullable;
+        public readonly bool IsTypeless = false;
         public TypeData TypeData { get; private set; }
         public SurrogateAccessor Surrogate { get; private set; }
         public TypeAccessor(TypeData typeData, Type type)
         {
+
             TypeData = typeData;
             Type = type;
+            if (Type.IsSameGeneric(typeof(Nullable<>))) Type = Type.GetGenericArguments()[0];
             IsTypeless = type == typeof(IRepNode);
             Name = type.Name;
             FullName = type.FullName;
+            IsNullable = (type.IsSameGeneric(typeof(Nullable<>)) || type.IsClass || type == typeof(string))
+                && type.GetCustomAttribute(typeof(NonNullAttribute)) == null;
             if (typeData.Surrogate != null)
                 Surrogate = new SurrogateAccessor(this, typeData.Surrogate, typeData.Model);
             isStringDict = Type.IsSameGeneric(typeof(Dictionary<,>))
@@ -53,5 +59,9 @@ namespace Replicate.MetaData
             return Activator.CreateInstance(Type, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, args, null);
         }
         public MemberAccessor this[RepKey key] => Members[key];
+        public override string ToString()
+        {
+            return TypeData.ToString();
+        }
     }
 }

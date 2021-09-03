@@ -44,11 +44,25 @@ namespace Replicate.Serialization
             stream.WriteNString((string)obj);
         }
     }
+    public class BinaryNullTermStringSerializer : ITypedSerializer
+    {
+        public object Read(Stream stream)
+        {
+            return stream.ReadAllString(c => c != 0);
+        }
+        public void Write(object obj, Stream stream)
+        {
+            byte[] bytes = Encoding.ASCII.GetBytes((string)obj);
+            stream.Write(bytes, 0, bytes.Length);
+            stream.WriteByte(0);
+        }
+    }
     public class BinarySerializer : Serializer
     {
-        public BinarySerializer(ReplicationModel model = null) : base(model) { }
+        public readonly bool TypePrefix = true;
+        public BinarySerializer(ReplicationModel model = null, bool typePrefix = true) : base(model) { TypePrefix = typePrefix; }
         static BinaryIntSerializer intSer = new BinaryIntSerializer();
-        static Dictionary<PrimitiveType, ITypedSerializer> serializers = new Dictionary<PrimitiveType, ITypedSerializer>()
+        public Dictionary<PrimitiveType, ITypedSerializer> Serializers = new Dictionary<PrimitiveType, ITypedSerializer>()
         {
             {PrimitiveType.VarInt, intSer },
             {PrimitiveType.Byte, new BinaryByteSerializer() },
@@ -58,28 +72,23 @@ namespace Replicate.Serialization
             {PrimitiveType.Float, new BinaryFloatSerializer() },
         };
 
-        public override void WritePrimitive(Stream stream, object obj, TypeAccessor type)
+        public override void WritePrimitive(Stream stream, object obj, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
-            if (obj == null)
-                stream.WriteByte(0);
+            if ((memberAccessor?.IsNullable ?? typeAccessor.IsNullable))
+                stream.WriteInt32((obj == null) ? 0 : 1);
+            if (obj == null) return;
+            if (Serializers.TryGetValue(typeAccessor.TypeData.PrimitiveType, out var ser))
+                ser.Write(obj, stream);
             else
-            {
-                stream.WriteByte(1);
-                if (serializers.TryGetValue(type.TypeData.PrimitiveType, out var ser))
-                    ser.Write(obj, stream);
-                else
-                    throw new SerializationError();
-            }
+                throw new SerializationError();
         }
 
-        public override void WriteCollection(Stream stream, object obj, TypeAccessor typeAccessor, TypeAccessor collectionValueType)
+        public override void WriteCollection(Stream stream, object obj, TypeAccessor typeAccessor, TypeAccessor collectionValueType, MemberAccessor memberAccessor)
         {
             var count = 0;
-            if (obj == null)
-            {
-                stream.WriteInt32(-1);
-                return;
-            }
+            if ((memberAccessor?.IsNullable ?? typeAccessor.IsNullable))
+                stream.WriteInt32((obj == null) ? 0 : 1);
+            if (obj == null) return;
             var enumerable = (IEnumerable)obj;
             foreach (var item in enumerable)
                 count++;
@@ -95,7 +104,7 @@ namespace Replicate.Serialization
             else if (key.Name != null)
             {
                 stream.WriteByte(254);
-                serializers[PrimitiveType.String].Write(key.Name, stream);
+                Serializers[PrimitiveType.String].Write(key.Name, stream);
             }
             else stream.WriteByte(255);
         }
@@ -104,30 +113,32 @@ namespace Replicate.Serialization
             var b = (byte)stream.ReadByte();
             if (b == 255) return default(RepKey);
             if (b != 254) return b;
-            return (string)serializers[PrimitiveType.String].Read(stream);
+            return (string)Serializers[PrimitiveType.String].Read(stream);
         }
 
-        public void SerializeObject(Stream stream, IEnumerable<(RepKey key, object value, MemberAccessor member)> obj)
+        private void SerializeObject(Stream stream, IEnumerable<(RepKey key, object value, MemberAccessor member)> obj)
         {
-            if (obj == null)
-            {
-                stream.WriteInt32(-1);
-                return;
-            }
             int count = 0;
-            var countPos = stream.Position; stream.Position += 4;
+            var countPos = stream.Position;
+            if (TypePrefix) stream.Position += 4;
             foreach (var tuple in obj)
             {
-                WriteKey(stream, tuple.key);
+                if (TypePrefix) WriteKey(stream, tuple.key);
                 Write(stream, tuple.value, tuple.member.TypeAccessor, tuple.member);
                 count++;
             }
-            var endPos = stream.Position; stream.Position = countPos;
-            stream.WriteInt32(count); stream.Position = endPos;
+            if (TypePrefix)
+            {
+                var endPos = stream.Position; stream.Position = countPos;
+                stream.WriteInt32(count); stream.Position = endPos;
+            }
         }
 
-        public override void WriteObject(Stream stream, object obj, TypeAccessor typeAccessor)
+        public override void WriteObject(Stream stream, object obj, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
+            if ((memberAccessor?.IsNullable ?? typeAccessor.IsNullable))
+                stream.WriteInt32((obj == null) ? 0 : 1);
+            if (obj == null) return;
             var objectSet = obj == null ? null : typeAccessor.TypeData.Keys.Select(key =>
             {
                 var member = typeAccessor[key];
@@ -136,30 +147,31 @@ namespace Replicate.Serialization
             SerializeObject(stream, objectSet);
         }
 
-        public override object ReadPrimitive(Stream stream, TypeAccessor typeAccessor)
+        public override object ReadPrimitive(Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
-            var isNull = stream.ReadByte();
-            if (isNull == 0) return null;
-            return Model.Coerce(typeAccessor, (serializers[typeAccessor.TypeData.PrimitiveType].Read(stream)));
+            if ((memberAccessor?.IsNullable ?? typeAccessor.IsNullable) && (stream.ReadInt32() == 0)) return null;
+            return Model.Coerce(typeAccessor, (Serializers[typeAccessor.TypeData.PrimitiveType].Read(stream)));
         }
 
-        public override object ReadObject(object obj, Stream stream, TypeAccessor typeAccessor)
+        public override object ReadObject(object obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
-            int count = stream.ReadInt32();
+            if ((memberAccessor?.IsNullable ?? typeAccessor.IsNullable) && (stream.ReadInt32() == 0)) return null;
+            int count = TypePrefix ? stream.ReadInt32() : typeAccessor.Members.Count;
             if (count == -1) return null;
             if (obj == null)
                 obj = typeAccessor.Construct();
             for (int i = 0; i < count; i++)
             {
-                int id = stream.ReadByte();
+                int id = TypePrefix ? stream.ReadByte() : i;
                 var member = typeAccessor.Members[id];
                 member.SetValue(obj, Read(member.GetValue(obj), stream, member.TypeAccessor, member));
             }
             return obj;
         }
 
-        public override object ReadCollection(object obj, Stream stream, TypeAccessor typeAccessor, TypeAccessor collectionValueAccessor)
+        public override object ReadCollection(object obj, Stream stream, TypeAccessor typeAccessor, TypeAccessor collectionValueAccessor, MemberAccessor memberAccessor)
         {
+            if ((memberAccessor?.IsNullable ?? typeAccessor.IsNullable) && (stream.ReadInt32() == 0)) return null;
             int count = stream.ReadInt32();
             if (count == -1) return null;
             return CollectionUtil.FillCollection(obj, typeAccessor.Type, Enumerable.Range(0, count)

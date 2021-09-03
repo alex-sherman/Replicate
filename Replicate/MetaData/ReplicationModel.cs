@@ -193,9 +193,9 @@ namespace Replicate.MetaData
                 throw new InvalidOperationException("Cannot create a type accessor for a generic type definition");
             if (!typeAccessorLookup.TryGetValue(type, out TypeAccessor typeAccessor))
             {
-                if (type.IsSameGeneric(typeof(Nullable<>)))
-                    type = type.GetGenericArguments()[0];
-                typeAccessor = typeAccessorLookup[type] = new TypeAccessor(GetTypeData(type), type);
+                var internalType = type;
+                if (internalType.IsSameGeneric(typeof(Nullable<>))) internalType = type.GetGenericArguments()[0];
+                typeAccessor = typeAccessorLookup[type] = new TypeAccessor(GetTypeData(internalType), type);
                 typeAccessor.InitializeMembers();
             }
             return typeAccessor;

@@ -36,7 +36,7 @@ namespace Replicate.Serialization
         static Regex ws = new Regex("\\s");
         static bool IsW(char c) => ws.IsMatch("" + c);
 
-        public override object ReadCollection(object obj, Stream stream, TypeAccessor typeAccessor, TypeAccessor collectionValueAccessor)
+        public override object ReadCollection(object obj, Stream stream, TypeAccessor typeAccessor, TypeAccessor collectionValueAccessor, MemberAccessor memberAccessor)
         {
             if (ReadNull(stream)) return null;
             if (typeAccessor.IsDictObj)
@@ -92,21 +92,21 @@ namespace Replicate.Serialization
                 CheckAndThrow(nextChar == ',' || nextChar == '}');
             };
         }
-        public override object ReadObject(object obj, Stream stream, TypeAccessor typeAccessor)
+        public override object ReadObject(object obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
             if (ReadNull(stream)) return null;
             if (obj == null) obj = typeAccessor.Construct();
             ReadObject(stream, name =>
             {
-                var memberAccessor = typeAccessor.Members.Values.FirstOrDefault(m => MapName(m.Info.Name) == name);
-                CheckAndThrow(memberAccessor != null);
-                var value = Read(memberAccessor.GetValue(obj), stream, memberAccessor.TypeAccessor, memberAccessor);
-                memberAccessor.SetValue(obj, value);
+                var childMember = typeAccessor.Members.Values.FirstOrDefault(m => MapName(m.Info.Name) == name);
+                CheckAndThrow(childMember != null);
+                var value = Read(childMember.GetValue(obj), stream, childMember.TypeAccessor, childMember);
+                childMember.SetValue(obj, value);
             });
             return obj;
         }
 
-        public override object ReadPrimitive(Stream stream, TypeAccessor typeAccessor)
+        public override object ReadPrimitive(Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
             if (ReadNull(stream)) return null;
             try
@@ -136,13 +136,13 @@ namespace Replicate.Serialization
                 yield return (key as string, dict[key], typeAccessor, null);
             }
         }
-        public override void WriteCollection(Stream stream, object obj, TypeAccessor typeAccessor, TypeAccessor collectionValueType)
+        public override void WriteCollection(Stream stream, object obj, TypeAccessor typeAccessor, TypeAccessor collectionValueType, MemberAccessor memberAccessor)
         {
             if (obj == null)
-                WritePrimitive(stream, null, null);
+                WritePrimitive(stream, null, null, null);
             else
             {
-                if(typeAccessor.IsDictObj)
+                if (typeAccessor.IsDictObj)
                 {
                     SerializeObject(stream, getDictValues(obj as IDictionary, Model.GetTypeAccessor(typeAccessor.Type.GetGenericArguments()[1])));
                     return;
@@ -162,7 +162,7 @@ namespace Replicate.Serialization
         public void SerializeObject(Stream stream, IEnumerable<(RepKey key, object value, TypeAccessor type, MemberAccessor member)> obj)
         {
             if (obj == null)
-                WritePrimitive(stream, null, null);
+                WritePrimitive(stream, null, null, null);
             else
             {
                 stream.WriteString("{");
@@ -179,7 +179,7 @@ namespace Replicate.Serialization
             }
         }
 
-        public override void WriteObject(Stream stream, object obj, TypeAccessor typeAccessor)
+        public override void WriteObject(Stream stream, object obj, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
             var objectSet = obj == null ? null : typeAccessor.TypeData.Keys.Select(key =>
             {
@@ -189,7 +189,7 @@ namespace Replicate.Serialization
             SerializeObject(stream, objectSet);
         }
 
-        public override void WritePrimitive(Stream stream, object obj, TypeAccessor typeAccessor)
+        public override void WritePrimitive(Stream stream, object obj, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
             if (obj == null)
                 stream.WriteString("null");

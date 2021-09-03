@@ -125,7 +125,7 @@ namespace Replicate.MetaData
         }
         public override string ToString()
         {
-            return $"TypeData: {Name}";
+            return $"{Name}";
         }
     }
 }

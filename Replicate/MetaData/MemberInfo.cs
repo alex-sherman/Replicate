@@ -64,7 +64,7 @@ namespace Replicate.MetaData
         }
         public override string ToString()
         {
-            return $"{DeclaringType}.{Name}";
+            return $"{Name}";
         }
     }
 }

@@ -99,6 +99,7 @@ namespace Replicate.Serialization
         public static string ReadNString(this Stream stream)
         {
             int count = stream.ReadInt32();
+            if (count > 999999) throw new Exception();
             byte[] buffer = new byte[count];
             stream.Read(buffer, 0, count);
             return Encoding.UTF8.GetString(buffer);

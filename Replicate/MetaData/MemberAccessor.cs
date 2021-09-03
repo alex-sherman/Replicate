@@ -14,6 +14,7 @@ namespace Replicate.MetaData
         private Action<object, object> setter;
         public MemberInfo Info { get; private set; }
         public readonly bool SkipNull;
+        public readonly bool IsNullable;
         public TypeAccessor TypeAccessor { get; private set; }
         public SurrogateAccessor Surrogate { get; private set; }
         public Type Type { get; private set; }
@@ -28,6 +29,8 @@ namespace Replicate.MetaData
                 Surrogate = new SurrogateAccessor(TypeAccessor, info.Surrogate, model);
             Info = info;
             SkipNull = info.GetAttribute<SkipNullAttribute>() != null;
+            IsNullable = info.GetAttribute<NullableAttribute>() != null
+                || (TypeAccessor.IsNullable && info.GetAttribute<NonNullAttribute>() == null);
             if (info.Field != null)
             {
                 var meth = new DynamicMethod("getter", typeof(object), new Type[] { typeof(object) });
@@ -76,9 +79,6 @@ namespace Replicate.MetaData
                 return null;
             }
         }
-        public override string ToString()
-        {
-            return Info.ToString();
-        }
+        public override string ToString() => $"{Info}";
     }
 }

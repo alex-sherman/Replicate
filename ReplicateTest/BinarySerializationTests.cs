@@ -87,7 +87,6 @@ namespace ReplicateTest
         public void TestSerializeDeserialize(object obj, Type type, byte[] serialized)
         {
             var ser = new BinarySerializer(new ReplicationModel());
-            var stream = new MemoryStream();
             var result = ser.SerializeBytes(type, obj);
             if (serialized != null)
                 CollectionAssert.AreEqual(serialized, result);
