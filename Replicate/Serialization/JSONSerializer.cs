@@ -13,8 +13,14 @@ namespace Replicate.Serialization
 {
     public class JSONSerializer : Serializer
     {
-        public bool ToLowerFieldNames = false;
-        public JSONSerializer(ReplicationModel model) : base(model) { }
+        public struct Configuration
+        {
+            public bool Strict;
+            public (Func<string, string> To, Func<string, string> From) KeyConvert;
+        }
+        public static readonly Configuration DefaultConfig = new Configuration() { Strict = true };
+        public readonly Configuration Config;
+        public JSONSerializer(ReplicationModel model, Configuration? config = null) : base(model) { Config = config ?? DefaultConfig; }
         static JSONIntSerializer intSer = new JSONIntSerializer();
         static JSONStringSerializer stringSer = new JSONStringSerializer();
         readonly Dictionary<PrimitiveType, ITypedSerializer> serializers = new Dictionary<PrimitiveType, ITypedSerializer>()
@@ -66,12 +72,6 @@ namespace Replicate.Serialization
             };
             return CollectionUtil.FillCollection(obj, typeAccessor.Type, values);
         }
-        string MapName(string fieldName)
-        {
-            if (ToLowerFieldNames)
-                return fieldName.ToLower();
-            return fieldName;
-        }
 
         public void ReadObject(Stream stream, Action<string> onEntry)
         {
@@ -98,7 +98,8 @@ namespace Replicate.Serialization
             if (obj == null) obj = typeAccessor.Construct();
             ReadObject(stream, name =>
             {
-                var childMember = typeAccessor.Members.Values.FirstOrDefault(m => MapName(m.Info.Name) == name);
+                name = Config.KeyConvert.From?.Invoke(name) ?? name;
+                var childMember = typeAccessor.Members.Values.FirstOrDefault(m => m.Info.Name == name);
                 CheckAndThrow(childMember != null);
                 var value = Read(childMember.GetValue(obj), stream, childMember.TypeAccessor, childMember);
                 childMember.SetValue(obj, value);
@@ -129,7 +130,7 @@ namespace Replicate.Serialization
             }
             return false;
         }
-        IEnumerable<(RepKey key, object value, TypeAccessor type, MemberAccessor member)> getDictValues(IDictionary dict, TypeAccessor typeAccessor)
+        IEnumerable<(string key, object value, TypeAccessor type, MemberAccessor member)> getDictValues(IDictionary dict, TypeAccessor typeAccessor)
         {
             foreach (var key in dict.Keys)
             {
@@ -159,7 +160,7 @@ namespace Replicate.Serialization
             }
         }
 
-        public void SerializeObject(Stream stream, IEnumerable<(RepKey key, object value, TypeAccessor type, MemberAccessor member)> obj)
+        public void SerializeObject(Stream stream, IEnumerable<(string key, object value, TypeAccessor type, MemberAccessor member)> obj)
         {
             if (obj == null)
                 WritePrimitive(stream, null, null, null);
@@ -172,7 +173,7 @@ namespace Replicate.Serialization
                     if ((member?.SkipNull ?? false) && value == null) continue;
                     if (!first) stream.WriteString(", ");
                     else first = false;
-                    stream.WriteString($"\"{MapName(key.Name)}\": ");
+                    stream.WriteString($"\"{key}\": ");
                     Write(stream, value, type, member);
                 }
                 stream.WriteString("}");
@@ -184,7 +185,7 @@ namespace Replicate.Serialization
             var objectSet = obj == null ? null : typeAccessor.TypeData.Keys.Select(key =>
             {
                 var member = typeAccessor[key];
-                return (key, member.GetValue(obj), member.TypeAccessor, member);
+                return (Config.KeyConvert.To?.Invoke(key.Name) ?? key.Name, member.GetValue(obj), member.TypeAccessor, member);
             });
             SerializeObject(stream, objectSet);
         }
