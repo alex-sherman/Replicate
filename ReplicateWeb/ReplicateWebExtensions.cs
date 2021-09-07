@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Replicate;
 using Replicate.RPC;
 using Replicate.Serialization;
@@ -77,21 +78,16 @@ namespace Replicate.Web
         }
         public static void UseErrorHandling(this IApplicationBuilder app, IReplicateSerializer serializer)
         {
-            app.Use(async (context, next) =>
+            app.Use((context, next) => next().ContinueWith(t =>
             {
-                try
-                {
-                    await next();
-                }
-                catch (Exception e)
-                {
-                    //logger?.LogError(e, "Handler exception");
-                    var (StatusCode, Error) = FromException(e);
-                    context.Response.StatusCode = StatusCode;
-                    context.Response.ContentType = "application/json";
-                    await context.Response.WriteAsync(serializer.Serialize(Error).ReadAllString());
-                }
-            });
+                if (t.Exception == null) return t;
+                var e = t.Exception;
+                app.ApplicationServices.GetService<ILogger<HTTPError>>()?.LogError(e, "Handler exception");
+                var (StatusCode, Error) = FromException(e);
+                context.Response.StatusCode = StatusCode;
+                context.Response.ContentType = "application/json";
+                return context.Response.WriteAsync(serializer.Serialize(Error).ReadAllString());
+            }));
         }
     }
 }
