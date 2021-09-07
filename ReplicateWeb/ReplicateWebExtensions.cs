@@ -27,7 +27,7 @@ namespace Replicate.Web
             var methodRoute = endpoint.GetCustomAttribute<ReplicateRouteAttribute>();
             var name = methodRoute?.Route ?? endpoint.Name.ToLower();
             var classRoute = endpoint.DeclaringType.GetCustomAttribute<ReplicateRouteAttribute>();
-            if (classRoute != null)
+            if (classRoute?.Route != null)
                 name = $"{classRoute.Route}/{name}";
             while (name.Any() && name.Last() == '/')
                 name = name.Substring(0, name.Length - 1);
