@@ -68,7 +68,7 @@ namespace Replicate.MetaData
         public readonly RepSet<TypeData> Types = new RepSet<TypeData>();
         internal HashSet<Type> SurrogateTypes = new HashSet<Type>();
         public readonly ModuleBuilder Builder = DynamicModule.Create();
-        public bool DictionaryAsObject;
+        public bool DictionaryAsObject = true;
         public bool AddOnLookup = false;
         public Func<TypeAccessor, object, object> Coerce = DefaultCoercion;
         public bool Frozen { get; set; } = false;
