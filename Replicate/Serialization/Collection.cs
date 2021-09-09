@@ -8,7 +8,7 @@ namespace Replicate.Serialization
 {
     public static class CollectionUtil
     {
-        public static object FillCollection(object obj, Type type, List<object> values)
+        public static object FillCollection(object collection, Type type, List<object> values)
         {
             var count = values.Count;
 
@@ -16,19 +16,19 @@ namespace Replicate.Serialization
             if (type.IsSameGeneric(typeof(IEnumerable<>)) || type.IsSameGeneric(typeof(ICollection<>)))
             {
                 type = typeof(List<>).MakeGenericType(type.GetGenericArguments());
-                obj = null;
+                collection = null;
             }
             var collectionType = type.GetInterface("ICollection`1");
-            if (obj is Array || obj == null)
-                obj = Activator.CreateInstance(type, count);
+            if (collection is Array || collection == null)
+                collection = Activator.CreateInstance(type, count);
             else
             {
                 var clearMeth = collectionType.GetMethod("Clear");
-                clearMeth.Invoke(obj, new object[] { });
+                clearMeth.Invoke(collection, new object[] { });
             }
-            if (obj is Array)
+            if (collection is Array)
             {
-                var arr = obj as Array;
+                var arr = collection as Array;
                 for (int i = 0; i < count; i++)
                     arr.SetValue(values[i], i);
             }
@@ -36,9 +36,9 @@ namespace Replicate.Serialization
             {
                 var addMeth = collectionType.GetMethod("Add");
                 foreach (var value in values)
-                    addMeth.Invoke(obj, new object[] { value });
+                    addMeth.Invoke(collection, new object[] { value });
             }
-            return obj;
+            return collection;
         }
     }
 }

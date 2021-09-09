@@ -10,6 +10,44 @@ namespace Replicate.Serialization
 {
     public class ProtoSerializer : Serializer
     {
+        public enum WireType
+        {
+            VarInt = 0,
+            Bit64 = 1,
+            Length = 2,
+            Bit32 = 5
+        }
+        public static WireType GetWireType(TypeData type)
+        {
+            switch (type.MarshallMethod)
+            {
+                case MarshallMethod.Primitive:
+                    switch (type.PrimitiveType)
+                    {
+                        case PrimitiveType.Bool:
+                        case PrimitiveType.Byte:
+                        case PrimitiveType.VarInt:
+                            return WireType.VarInt;
+                        case PrimitiveType.Float:
+                            return WireType.Bit32;
+                        case PrimitiveType.Double:
+                            return WireType.Bit64;
+                        case PrimitiveType.String:
+                            return WireType.Length;
+                        default:
+                            break;
+                    }
+                    break;
+                case MarshallMethod.Object:
+                case MarshallMethod.Blob:
+                    return WireType.Length;
+                // Collections are a special case and don't have a wire type
+                case MarshallMethod.Collection:
+                default:
+                    break;
+            }
+            throw new NotImplementedException();
+        }
         const int NVARINT = 10;
         public class ProtoIntSerializer : ITypedSerializer
         {
@@ -75,24 +113,63 @@ namespace Replicate.Serialization
         }
         public override object ReadPrimitive(Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
-            return serializers[typeAccessor.TypeData.PrimitiveType].Read(stream);
+            return Model.Coerce(typeAccessor, serializers[typeAccessor.TypeData.PrimitiveType].Read(stream));
         }
 
         public override void WriteObject(Stream stream, object obj, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
-
+            if (obj == null) return;
+            foreach ((RepKey key, MemberAccessor member) in typeAccessor.Members)
+            {
+                // TODO
+                if (member.TypeAccessor.TypeData.MarshallMethod == MarshallMethod.Collection) continue;
+                var wireType = GetWireType(member.TypeAccessor.TypeData);
+                WriteVarInt((ulong)((long)(key.Index.Value << 3) | (long)wireType), stream);
+                Write(stream, member.GetValue(obj), member.TypeAccessor, member);
+            }
         }
         public override object ReadObject(object obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
-            throw new NotImplementedException();
+            if (stream.Position == stream.Length) return null;
+            if (obj == null) obj = typeAccessor.Construct();
+            while (stream.Position < stream.Length)
+            {
+                ulong tag = ReadVarInt(stream);
+                int key = (int)(tag >> 3);
+                WireType type = (WireType)(tag & 7);
+                var member = typeAccessor.Members[key];
+                long length = type switch
+                {
+                    WireType.Bit64 => 8,
+                    WireType.Length => (long)ReadVarInt(stream),
+                    WireType.Bit32 => 4,
+                    _ => 0,
+                };
+                if (member == null)
+                {
+                    if (type == WireType.VarInt) ReadVarInt(stream);
+                    stream.Position += length;
+                    continue;
+                }
+                var subStream = length != 0 ? new SubStream(stream, length) : stream;
+                var value = Read(null, subStream, member.TypeAccessor, member);
+                member.SetValue(obj, value);
+            }
+            return obj;
         }
+
         public override void WriteCollection(Stream stream, object obj, TypeAccessor typeAccessor, TypeAccessor collectionValueType, MemberAccessor memberAccessor)
         {
-            throw new NotImplementedException();
+            // Protobuf doesn't support collections that aren't a member of a message
+            if (memberAccessor == null) throw new NotImplementedException();
         }
+        // Read collection in protobuf is more like ReadCollectionElement
         public override object ReadCollection(object obj, Stream stream, TypeAccessor typeAccessor, TypeAccessor collectionAccessor, MemberAccessor memberAccessor)
         {
-            throw new NotImplementedException();
+            if (obj == null) obj = typeAccessor.Construct();
+            var value = Read(null, stream, collectionAccessor, memberAccessor);
+            typeAccessor.Type.GetMethod("Add").Invoke(obj, new[] { value });
+            return obj;
         }
 
         public override void WriteBlob(Stream stream, Blob blob, MemberAccessor memberAccessor)

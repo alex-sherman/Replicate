@@ -4,6 +4,7 @@
     <Title>Replicate</Title>
     <Description></Description>
     <TargetFrameworks>net46;netcoreapp2.0;netcoreapp2.2;netcoreapp3.1</TargetFrameworks>
+    <LangVersion>8.0</LangVersion>
     <Version>0.1.6</Version>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>Alex Sherman</Authors>

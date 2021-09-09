@@ -31,6 +31,7 @@ namespace ReplicateTest
         [ReplicateType]
         public class PropClass
         {
+            [Replicate(1)]
             public int Property { get; set; }
         }
         [ReplicateType]
@@ -79,41 +80,29 @@ namespace ReplicateTest
         #endregion
 
         [Test]
-        public void Property()
+        public void SerDesProperty()
         {
             var ser = new ProtoSerializer(new ReplicationModel());
             var bytes = ser.SerializeBytes(new PropClass() { Property = 3 });
             Assert.AreEqual(new byte[] { 0x08, 0x03 }, bytes);
+            var obj = ser.Deserialize<PropClass>(bytes);
+            Assert.AreEqual(3, obj.Property);
         }
         [Test]
-        public void SerializeArray()
+        public void SerDesUnknownString()
         {
             var ser = new ProtoSerializer(new ReplicationModel());
-            Assert.AreEqual("[1, 2, 3, 4]", ser.SerializeString(new[] { 1, 2, 3, 4 }));
+            var bytes = new byte[] { 0x12, 0x05, 0, 0, 0, 0, 0, 0x08, 0x03 };
+            var obj = ser.Deserialize<PropClass>(bytes);
+            Assert.AreEqual(3, obj.Property);
         }
         [Test]
-        public void DeserializeArray()
+        public void SerDesList()
         {
             var ser = new ProtoSerializer(new ReplicationModel());
-            CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 }, ser.Deserialize<int[]>("[1, 2, 3, 4]"));
-        }
-        [Test]
-        public void DeserializeList()
-        {
-            var ser = new ProtoSerializer(new ReplicationModel());
+            var bytes = ser.SerializeBytes(new PropClass() { Property = 3 });
+            Assert.AreEqual(new byte[] { 0x08, 0x03 }, bytes);
             CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 }, ser.Deserialize<List<int>>("[1, 2, 3, 4]"));
-        }
-        [Test]
-        public void SerializeCollection()
-        {
-            var ser = new ProtoSerializer(new ReplicationModel());
-            Assert.AreEqual("[1, 2, 3, 4]", ser.SerializeString<ICollection<int>>(new[] { 1, 2, 3, 4 }));
-        }
-        [Test]
-        public void DeserializeCollection()
-        {
-            var ser = new ProtoSerializer(new ReplicationModel());
-            CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 }, ser.Deserialize<ICollection<int>>("[1, 2, 3, 4]"));
         }
         [Test]
         public void SerializeIEnumerable()
@@ -220,25 +209,11 @@ namespace ReplicateTest
             Assert.AreEqual(obj, output);
         }
         [Test]
-        public void DictionaryProperty()
-        {
-            var serialized = "{\"Dict\": {\"value\": \"herp\", \"prop\": \"derp\"}}";
-            var type = typeof(Dictionary<string, string>);
-            var obj = new ObjectWithDictField() { Dict = new Dictionary<string, string>() { { "value", "herp" }, { "prop", "derp" } } };
-            var ser = new ProtoSerializer(new ReplicationModel() { DictionaryAsObject = true });
-            var stream = new MemoryStream();
-            var str = ser.SerializeString(obj);
-            CollectionAssert.AreEqual(serialized, str);
-            var output = ser.Deserialize<ObjectWithDictField>(str);
-            Assert.AreEqual(obj.Dict, output.Dict);
-        }
-        [Test]
         public void NullableNullInt()
         {
             var ser = new ProtoSerializer(new ReplicationModel());
-            var stream = new MemoryStream();
-            var str = ser.SerializeString<int?>(null);
-            Assert.AreEqual("null", str);
+            var bytes = ser.SerializeBytes<int?>(null);
+            Assert.IsTrue(bytes.Length == 0);
         }
         [Test]
         public void DeserializeNullableNullInt()
@@ -283,7 +258,7 @@ namespace ReplicateTest
         [Test]
         public void HandlesExtraObjectFields()
         {
-            var ser = new JSONGraphSerializer(new ReplicationModel());
+            var ser = new ProtoSerializer(new ReplicationModel());
             var output = ser.Deserialize<ObjectWithArrayField>("{\"ExtraField\": \"extra value\"}");
             Assert.AreEqual(null, output.NullableValue);
             Assert.AreEqual(null, output.ArrayField);

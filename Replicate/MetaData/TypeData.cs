@@ -112,7 +112,8 @@ namespace Replicate.MetaData
         }
         void AddMember(MemberInfo member)
         {
-            (member.IsStatic ? StaticMembers : Members).Add(member.Name, member);
+            RepKey key = member.GetAttribute<ReplicateAttribute>()?.Key ?? member.Name;
+            (member.IsStatic ? StaticMembers : Members).Add(key, member);
             if (!member.MemberType.IsGenericParameter)
                 Model.Add(member.MemberType);
         }
