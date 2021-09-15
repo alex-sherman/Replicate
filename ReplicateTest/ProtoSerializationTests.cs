@@ -96,76 +96,10 @@ namespace ReplicateTest
             var obj = ser.Deserialize<PropClass>(bytes);
             Assert.AreEqual(3, obj.Property);
         }
-        [Test]
-        public void SerDesList()
-        {
-            var ser = new ProtoSerializer(new ReplicationModel());
-            var bytes = ser.SerializeBytes(new PropClass() { Property = 3 });
-            Assert.AreEqual(new byte[] { 0x08, 0x03 }, bytes);
-            CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 }, ser.Deserialize<List<int>>("[1, 2, 3, 4]"));
-        }
-        [Test]
-        public void SerializeIEnumerable()
-        {
-            var ser = new ProtoSerializer(new ReplicationModel());
-            CollectionAssert.AreEqual("[1, 2, 3, 4]", ser.SerializeString<IEnumerable<int>>(new[] { 1, 2, 3, 4 }));
-        }
-        [Test]
-        public void DeserializeIEnumerable()
-        {
-            var ser = new ProtoSerializer(new ReplicationModel());
-            CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 },
-                ser.Deserialize<IEnumerable<int>>("[1, 2, 3, 4]").ToArray());
-        }
-
-
-        [Test]
-        public void SerializeHashset()
-        {
-            var ser = new ProtoSerializer(new ReplicationModel());
-            CollectionAssert.AreEqual("[1, 2, 3, 4]", ser.SerializeString(new HashSet<int>(new[] { 1, 2, 3, 4 })));
-        }
-        [Test]
-        public void DeserializeHashset()
-        {
-            var ser = new ProtoSerializer(new ReplicationModel());
-            CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 },
-                ser.Deserialize<HashSet<int>>("[1, 2, 3, 4]").ToArray());
-        }
-        [Test]
-        public void SerializeGeneric()
-        {
-            var ser = new ProtoSerializer(new ReplicationModel());
-            Assert.AreEqual("{\"Value\": \"herp\", \"Prop\": \"derp\"}",
-                ser.SerializeString(new GenericClass<string>() { Value = "herp", Prop = "derp" }));
-        }
-        [Test]
-        public void DeserializeGeneric()
-        {
-            var ser = new ProtoSerializer(new ReplicationModel());
-            var output = ser.Deserialize<GenericClass<string>>("{\"Value\": \"herp\", \"Prop\": \"derp\"}");
-            Assert.AreEqual("herp", output.Value);
-            Assert.AreEqual("derp", output.Prop);
-        }
-        //[TestCase(null, typeof(string), "null")]
         [TestCase(0, typeof(int), new byte[] { 0 })]
         [TestCase(1, typeof(int), new byte[] { 1 })]
         [TestCase(300, typeof(int), new byte[] { 0xAC, 0x02 })]
-        //[TestCase((ushort)1, typeof(ushort), "1")]
-        //[TestCase(null, typeof(int?), "null")]
-        //[TestCase(0.5, typeof(float), "0.5")]
-        //[TestCase(0, typeof(float?), "0")]
-        //[TestCase(1, typeof(float?), "1")]
-        //[TestCase(null, typeof(float?), "null")]
         [TestCase("faff", typeof(string), new byte[] { 4, (byte)'f', (byte)'a', (byte)'f', (byte)'f' })]
-        //[TestCase("", typeof(string), "\"\"")]
-        //[TestCase("😈", typeof(string), "\"😈\"")]
-        //[TestCase(new double[] { }, typeof(double[]), "[]")]
-        //[TestCase(null, typeof(double[]), "null")]
-        //[TestCase(true, typeof(bool), "true")]
-        //[TestCase(false, typeof(bool), "false")]
-        //[TestCase(ProtoEnum.One, typeof(ProtoEnum), "1")]
-        //[TestCase("\"", typeof(string), "\"\\\"\"")]
         public void SerializeDeserialize(object obj, Type type, byte[] serialized)
         {
             var ser = new ProtoSerializer(new ReplicationModel());
@@ -175,108 +109,11 @@ namespace ReplicateTest
             Assert.AreEqual(obj, output);
         }
         [Test]
-        public void FieldEmptyString()
-        {
-            var ser = new ProtoSerializer(new ReplicationModel());
-            var stream = new MemoryStream();
-            var str = ser.SerializeBytes(new SubClass() { Field = "" });
-            //CollectionAssert.AreEqual("{\"Field\": \"\", \"Property\": 0}", str);
-            var output = ser.Deserialize<SubClass>("{\"Field\": \"\"}");
-            Assert.AreEqual("", output.Field);
-        }
-        [Test]
-        public void Dictionary()
-        {
-            var serialized = "{\"value\": \"herp\", \"prop\": \"derp\"}";
-            var obj = new Dictionary<string, string>() { { "value", "herp" }, { "prop", "derp" } };
-            var ser = new ProtoSerializer(new ReplicationModel() { DictionaryAsObject = true });
-            var stream = new MemoryStream();
-            var str = ser.SerializeString(obj);
-            Assert.AreEqual(serialized, str);
-            var output = ser.Deserialize(obj.GetType(), str);
-            Assert.AreEqual(obj, output);
-        }
-        [Test]
-        public void DictionaryNonStringKey()
-        {
-            var serialized = "[{\"Key\": 0, \"Value\": \"herp\"}, {\"Key\": 1, \"Value\": \"derp\"}]";
-            var obj = new Dictionary<int, string>() { { 0, "herp" }, { 1, "derp" } };
-            var ser = new ProtoSerializer(new ReplicationModel() { DictionaryAsObject = true });
-            var stream = new MemoryStream();
-            var str = ser.SerializeString(obj);
-            Assert.AreEqual(serialized, str);
-            var output = ser.Deserialize(obj.GetType(), str);
-            Assert.AreEqual(obj, output);
-        }
-        [Test]
         public void NullableNullInt()
         {
             var ser = new ProtoSerializer(new ReplicationModel());
             var bytes = ser.SerializeBytes<int?>(null);
             Assert.IsTrue(bytes.Length == 0);
-        }
-        [Test]
-        public void DeserializeNullableNullInt()
-        {
-            var ser = new ProtoSerializer(new ReplicationModel());
-            var output = ser.Deserialize<int?>("null");
-            Assert.AreEqual(null, output);
-        }
-        [Test]
-        public void DeserializeObjectWithEmptyArray()
-        {
-            var ser = new ProtoSerializer(new ReplicationModel());
-            var output = ser.Deserialize<ObjectWithArrayField>("{\"ArrayField\": [], \"NullableValue\": 1}");
-            Assert.AreEqual(1, output.NullableValue);
-        }
-        [Test]
-        public void DeserializeObjectWithEmptyObject()
-        {
-            var ser = new ProtoSerializer(new ReplicationModel());
-            var output = ser.Deserialize<ObjectWithArrayField>("{\"ObjectField\": {}, \"NullableValue\": 1}");
-            Assert.AreEqual(1, output.NullableValue);
-        }
-        [Test]
-        public void DeserializeSurrogate()
-        {
-            var model = new ReplicationModel() { DictionaryAsObject = true };
-            model[typeof(ObjectWithDictField)].SetSurrogate(typeof(ObjectWithDictFieldSurrogate));
-            var ser = new ProtoSerializer(model);
-            var obj = new ObjectWithDictField()
-            {
-                Dict = new Dictionary<string, string>()
-                {
-                    {"a", "herp" },
-                    {"b", "derp" },
-                },
-            };
-            var serStr = ser.SerializeString(obj);
-            Assert.AreEqual("{\"Dict\": {\"afaff\": \"herp\", \"bfaff\": \"derp\"}}", serStr);
-            var deser = ser.Deserialize<ObjectWithDictField>(serStr);
-            CollectionAssert.AreEqual(obj.Dict, deser.Dict);
-        }
-        [Test]
-        public void HandlesExtraObjectFields()
-        {
-            var ser = new ProtoSerializer(new ReplicationModel());
-            var output = ser.Deserialize<ObjectWithArrayField>("{\"ExtraField\": \"extra value\"}");
-            Assert.AreEqual(null, output.NullableValue);
-            Assert.AreEqual(null, output.ArrayField);
-            Assert.AreEqual(null, output.ObjectField);
-        }
-        [Test]
-        public void SkipsNullFields()
-        {
-            var ser = new ProtoSerializer(new ReplicationModel());
-            var output = ser.SerializeString(new ObjectWithNullableField());
-            Assert.AreEqual("{}", output);
-        }
-        [Test]
-        public void IncludesNotNullFields()
-        {
-            var ser = new ProtoSerializer(new ReplicationModel());
-            var output = ser.SerializeString(new ObjectWithNullableField() { NullableValue = 1 });
-            Assert.AreEqual("{\"NullableValue\": 1}", output);
         }
     }
 }
