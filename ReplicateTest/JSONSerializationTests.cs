@@ -76,6 +76,11 @@ namespace ReplicateTest
                 return new ObjectWithDictFieldSurrogate() { Dict = @this.Dict?.ToDictionary(kvp => kvp.Key + "faff", kvp => kvp.Value) };
             }
         }
+        [ReplicateType]
+        public class BlobType
+        {
+            public Blob Blob;
+        }
         #endregion
 
         [Test]
@@ -300,6 +305,19 @@ namespace ReplicateTest
             var ser = new JSONSerializer(new ReplicationModel());
             var output = ser.SerializeString(new ObjectWithNullableField() { NullableValue = 1 });
             Assert.AreEqual("{\"NullableValue\": 1}", output);
+        }
+        [Test]
+        public void Blob()
+        {
+            var str = "{\"this\": \"is a blob\"}";
+            var ser = new JSONSerializer(new ReplicationModel());
+            var stream = new MemoryStream();
+            stream.WriteString(str);
+            stream.Position = 0;
+            var blob = new BlobType() { Blob = new Blob(stream) };
+            var output = ser.SerializeString(blob);
+            Assert.AreEqual("{\"Blob\": {\"this\": \"is a blob\"}}", output);
+            var deser = ser.Deserialize<BlobType>(output);
         }
     }
 }

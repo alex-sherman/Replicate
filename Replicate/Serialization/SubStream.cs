@@ -12,13 +12,11 @@ namespace Replicate.Serialization
         private Stream Stream;
         private long Base;
         private long length;
-        private long position;
         public SubStream(Stream stream, long length = 0)
         {
             Stream = stream;
             Base = stream.Position;
             this.length = length;
-            position = 0;
         }
 
         public override bool CanRead => Stream.CanRead;
@@ -31,19 +29,15 @@ namespace Replicate.Serialization
 
         public override long Position
         {
-            get => position;
-            set
-            {
-                position = value;
-                Stream.Position = position + Base;
-            }
+            get => Stream.Position - Base;
+            set => Stream.Position = value + Base;
         }
 
         public override void Flush() => Stream.Flush();
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            if (count > length - position) throw new InvalidOperationException();
+            count = (int)Math.Min(count, length - Position);
             return Stream.Read(buffer, offset, count);
         }
 
@@ -54,7 +48,7 @@ namespace Replicate.Serialization
 
         public override void SetLength(long value)
         {
-            throw new NotImplementedException();
+            length = value;
         }
 
         public override void Write(byte[] buffer, int offset, int count)

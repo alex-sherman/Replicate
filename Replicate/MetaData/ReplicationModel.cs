@@ -109,11 +109,11 @@ namespace Replicate.MetaData
                     return new Guid((byte[])(obj));
                 }));
             Add(typeof(Blob));
-            Add(typeof(DeferredBlob));
-            Add(typeof(object)).SetSurrogate(new Surrogate(typeof(Blob),
-                (_, __) => obj => obj == null ? null : new Blob(obj),
-                (_, __) => obj => obj == null ? null : ((Blob)obj).Value
-            ));
+            // TODO: Fix
+            //Add(typeof(object)).SetSurrogate(new Surrogate(typeof(TypedBlob),
+            //    (_, __) => obj => obj == null ? null : new TypedBlob() { Type = GetId(obj.GetType()) }
+            //    (_, __) => obj => obj == null ? null : ((TypedBlob)obj).Value
+            //));
             var repNodeTypeData = Add(typeof(IRepNode));
             repNodeTypeData.MarshallMethod = MarshallMethod.None;
             var kvpTD = Add(typeof(KeyValuePair<,>));

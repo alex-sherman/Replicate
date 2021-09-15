@@ -33,15 +33,31 @@ namespace Replicate.Serialization
             {PrimitiveType.Double, new JSONFloatSerializer() },
             {PrimitiveType.String, stringSer },
         };
-        static void CheckAndThrow(bool condition)
+        static void CheckAndThrow(bool condition, string message = null)
         {
             if (!condition)
-                throw new SerializationError();
+                throw new SerializationError(message);
         }
 
         static Regex ws = new Regex("\\s");
         static bool IsW(char c) => ws.IsMatch("" + c);
 
+        private void ReadCollection(Stream stream, Action onEntry)
+        {
+            if (stream.ReadCharOne() != '[') throw new SerializationError();
+            stream.ReadAllString(IsW);
+            char nextChar = stream.ReadCharOne(true);
+            if (nextChar == ']') stream.ReadCharOne();
+            while (nextChar != ']')
+            {
+                stream.ReadAllString(IsW);
+                onEntry();
+
+                stream.ReadAllString(IsW);
+                nextChar = stream.ReadCharOne();
+                CheckAndThrow(nextChar == ',' || nextChar == ']');
+            };
+        }
         public override object ReadCollection(object obj, Stream stream, TypeAccessor typeAccessor, TypeAccessor collectionValueAccessor, MemberAccessor memberAccessor)
         {
             if (ReadNull(stream)) return null;
@@ -58,18 +74,7 @@ namespace Replicate.Serialization
             }
 
             List<object> values = new List<object>();
-            if (stream.ReadCharOne() != '[') throw new SerializationError();
-            stream.ReadAllString(IsW);
-            char nextChar = stream.ReadCharOne(true);
-            if (nextChar == ']') stream.ReadCharOne();
-            while (nextChar != ']')
-            {
-                stream.ReadAllString(IsW);
-                values.Add(Read(null, stream, collectionValueAccessor, null));
-                stream.ReadAllString(IsW);
-                nextChar = stream.ReadCharOne();
-                CheckAndThrow(nextChar == ',' || nextChar == ']');
-            };
+            ReadCollection(stream, () => values.Add(Read(null, stream, collectionValueAccessor, null)));
             return CollectionUtil.FillCollection(obj, typeAccessor.Type, values);
         }
 
@@ -98,13 +103,32 @@ namespace Replicate.Serialization
             if (obj == null) obj = typeAccessor.Construct();
             ReadObject(stream, name =>
             {
-                name = Config.KeyConvert.From?.Invoke(name) ?? name;
-                var childMember = typeAccessor.Members.Values.FirstOrDefault(m => m.Info.Name == name);
-                CheckAndThrow(childMember != null);
+                var convertedName = Config.KeyConvert.From?.Invoke(name) ?? name;
+                var childMember = typeAccessor.Members.Values.FirstOrDefault(m => m.Info.Name == convertedName);
+                if (childMember == null)
+                {
+                    CheckAndThrow(!Config.Strict, $"Unknown field {name}");
+                    ReadToken(stream);
+                    return;
+                }
                 var value = Read(childMember.GetValue(obj), stream, childMember.TypeAccessor, childMember);
                 childMember.SetValue(obj, value);
             });
             return obj;
+        }
+
+        public PrimitiveType PeekPrimitiveType(Stream stream)
+        {
+            stream.ReadAllString(IsW);
+            var c = stream.ReadCharOne(true);
+            if (c == '"') return PrimitiveType.String;
+            if (c == 't' || c == 'f') return PrimitiveType.Bool;
+            return PrimitiveType.Double;
+        }
+
+        private object ReadPrimitive(Stream stream)
+        {
+            return serializers[PeekPrimitiveType(stream)].Read(stream);
         }
 
         public override object ReadPrimitive(Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
@@ -112,7 +136,7 @@ namespace Replicate.Serialization
             if (ReadNull(stream)) return null;
             try
             {
-                return Model.Coerce(typeAccessor, serializers[typeAccessor.TypeData.PrimitiveType].Read(stream));
+                return Model.Coerce(typeAccessor, ReadPrimitive(stream));
             }
             catch (Exception e)
             {
@@ -200,12 +224,56 @@ namespace Replicate.Serialization
 
         public override void WriteBlob(Stream stream, Blob obj, MemberAccessor memberAccessor)
         {
-            throw new NotImplementedException();
+            if (obj?.Stream == null)
+            {
+                WritePrimitive(stream, null, null, null);
+                return;
+            }
+            obj.Stream.CopyTo(stream);
+        }
+
+        public MarshallMethod PeekMarshallMethod(Stream stream)
+        {
+            stream.ReadAllString(IsW);
+            var c = stream.ReadCharOne(true);
+            // The 'n' is for null, return it as a null object
+            if (c == '{' || c == 'n') return MarshallMethod.Object;
+            if (c == '[') return MarshallMethod.Collection;
+            return MarshallMethod.Primitive;
+        }
+
+        private void ReadToken(Stream stream)
+        {
+            if (ReadNull(stream)) return;
+            var marshallMethod = PeekMarshallMethod(stream);
+            switch (marshallMethod)
+            {
+                case MarshallMethod.Primitive:
+                    ReadPrimitive(stream);
+                    break;
+                case MarshallMethod.Collection:
+                    ReadCollection(stream, () => ReadToken(stream));
+                    break;
+                case MarshallMethod.Object:
+                    ReadObject(stream, name => ReadToken(stream));
+                    break;
+                default:
+                    break;
+            }
         }
 
         public override Blob ReadBlob(Blob obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
-            throw new NotImplementedException();
+            var substream = new SubStream(stream, stream.Length - stream.Position);
+            ReadToken(substream);
+            substream.SetLength(substream.Position);
+            substream.Position = 0;
+            var memoryStream = new MemoryStream((int)substream.Length);
+            substream.CopyTo(memoryStream);
+            var blob = obj ?? (Blob)typeAccessor.Construct();
+            memoryStream.Position = 0;
+            blob.SetStream(memoryStream);
+            return blob;
         }
     }
 }

@@ -13,6 +13,6 @@ namespace Replicate.Messages
     public struct ReplicationMessage
     {
         public ReplicateId id;
-        public DeferredBlob Value;
+        public TypedBlob Value;
     }
 }

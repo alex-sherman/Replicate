@@ -64,7 +64,7 @@ namespace Replicate
         private void HandleReplication(ReplicationMessage message)
         {
             var metaData = IDLookup[message.id];
-            message.Value.ReadInto(metaData.replicated);
+            //message.Value.ReadInto(metaData.replicated);
         }
 
         [ReplicateRPC]
@@ -82,7 +82,7 @@ namespace Replicate
                 ReplicationMessage message = new ReplicationMessage()
                 {
                     id = metaData.id,
-                    Value = new DeferredBlob(replicated, metaData.typeAccessor.Type),
+                    //Value = new DeferredBlob(replicated, metaData.typeAccessor.Type),
                 };
                 return Channel.Request(((Action<ReplicationMessage>)HandleReplication).Method, message);
             }

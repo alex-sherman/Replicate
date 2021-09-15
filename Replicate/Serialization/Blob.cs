@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Replicate.MetaData;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -9,38 +10,17 @@ namespace Replicate.Serialization
 {
     public class Blob
     {
-        public Type Type { get; protected set; }
-        public object Value { get; protected set; }
-        public Blob(object obj, Type type = null)
+        public Stream Stream { get; protected set; }
+        public virtual void SetStream(Stream stream)
         {
-            if (obj == null && type == null)
-                throw new ArgumentNullException($"Must provide either {nameof(obj)} or {nameof(type)}");
-            Type = type ?? obj.GetType();
-            Value = obj;
+            Stream = stream;
         }
+        public Blob(Stream stream) { SetStream(stream); }
         public Blob() { }
-        public virtual void SetWireValue(Type type, Stream wire, IReplicateSerializer ser)
-        {
-            Type = type;
-            Value = ser.Deserialize(Type, wire, null);
-        }
     }
-    public class DeferredBlob : Blob
+    public struct TypedBlob
     {
-        private Stream wireData;
-        private IReplicateSerializer serializer;
-        public DeferredBlob(object obj, Type type = null) : base(obj, type) { }
-        public DeferredBlob() { }
-        public override void SetWireValue(Type type, Stream wire, IReplicateSerializer ser)
-        {
-            Type = type;
-            wireData = wire;
-            serializer = ser;
-        }
-        public object ReadInto(object existing)
-        {
-            if (wireData == null) throw new InvalidOperationException("Must call SetWireValue first");
-            return Value = serializer.Deserialize(Type, wireData, existing);
-        }
+        public TypeId Type;
+        public Blob Value;
     }
 }

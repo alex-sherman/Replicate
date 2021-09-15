@@ -181,27 +181,22 @@ namespace Replicate.Serialization
 
         public override void WriteBlob(Stream stream, Blob blob, MemberAccessor member)
         {
-            stream.WriteByte(blob?.Type == null ? (byte)255 : (byte)0);
-            if (blob?.Type != null)
-            {
-                var typeAccessor = Model.GetTypeAccessor(blob.Type);
-                Write(stream, Model.GetId(blob.Type), Model.GetTypeAccessor(typeof(TypeId)), null);
-                var bytes = this.Serialize(blob.Type, blob.Value);
-                stream.WriteInt32((int)bytes.Length);
-                bytes.CopyTo(stream);
-            }
+            var blobStream = blob?.Stream;
+            stream.WriteByte(blobStream == null ? (byte)255 : (byte)0);
+            if (blobStream == null) return;
+            stream.WriteInt32((int)blobStream.Length);
+            stream.CopyTo(stream);
         }
 
         public override Blob ReadBlob(Blob obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
             if (stream.ReadByte() == 255) return null;
-            var typeId = (TypeId)Read(null, stream, Model.GetTypeAccessor(typeof(TypeId)), null);
-            var type = Model.GetType(typeId);
+            // TODO: Could use SubStream
             var count = stream.ReadInt32();
             var bytes = new byte[count];
             stream.Read(bytes, 0, count);
             obj = obj ?? (Blob)typeAccessor.Construct();
-            obj.SetWireValue(type, new MemoryStream(bytes), this);
+            obj.SetStream(new MemoryStream(bytes));
             return obj;
         }
     }
