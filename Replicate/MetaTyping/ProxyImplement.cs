@@ -15,7 +15,6 @@ namespace Replicate.MetaTyping
 
     public class ProxyImplement
     {
-        private class Void { };
         private const MethodAttributes ImplicitImplementation =
             MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.HideBySig;
         static readonly MethodInfo interceptInfo = typeof(ProxyImplement).GetMethod("Intercept", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -31,7 +30,7 @@ namespace Replicate.MetaTyping
         }
         protected void InterceptVoid(int methodIndex, List<object> args)
         {
-            Implementor.Intercept<Void>(methods[methodIndex], args.ToArray());
+            Implementor.Intercept<None>(methods[methodIndex], args.ToArray());
         }
         class LambdaInterceptor : IInterceptor
         {

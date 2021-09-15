@@ -37,7 +37,7 @@ namespace ReplicateTest
             Assert.AreEqual(null, set[3]);
             Assert.AreEqual(null, set[4]);
             Assert.AreEqual("derp", set[5]);
-            Assert.Throws<ArgumentOutOfRangeException>(() => { var derp = set[6]; });
+            Assert.AreEqual(null, set[6]);
         }
         [Test]
         public void ToRepSet()

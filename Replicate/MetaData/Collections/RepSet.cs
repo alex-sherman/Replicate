@@ -20,26 +20,25 @@ namespace Replicate.MetaData
         public T this[RepKey key]
         {
             get => key.Index.HasValue
-                   ? indexLookup[key.Index.Value]?.Value
+                   ? key.Index.Value < indexLookup.Count ? indexLookup[key.Index.Value]?.Value : null
                    : stringLookup.TryGetValue(key.Name, out var member) ? member.Value : null;
             set
             {
-                if (string.IsNullOrEmpty(key.Name))
-                    throw new InvalidOperationException("Key must have a name");
                 if (!key.Index.HasValue)
                     throw new InvalidOperationException("Key must have an index");
                 var kvp = new KeyValuePair<RepKey, T>(key, value);
-                stringLookup[key.Name] = kvp;
+                if (!string.IsNullOrEmpty(key.Name))
+                    stringLookup[key.Name] = kvp;
                 var index = key.Index.Value;
                 if (index >= indexLookup.Count)
                     indexLookup.AddRange(Enumerable.Range(0, index - indexLookup.Count + 1).Select(i => (KeyValuePair<RepKey, T>?)null));
                 indexLookup[index] = kvp;
             }
         }
-        public RepKey Add(string name, T value)
+        public RepKey Add(RepKey key, T value)
         {
-            if (ContainsKey(name)) throw new ArgumentException($"{name} already exists");
-            var key = new RepKey(indexLookup.Count, name);
+            if (ContainsKey(key)) throw new ArgumentException($"{key} already exists");
+            if (!key.Index.HasValue) key.Index = indexLookup.Count;
             this[key] = value;
             return key;
         }
