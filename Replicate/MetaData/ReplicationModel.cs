@@ -75,8 +75,8 @@ namespace Replicate.MetaData
         public static object DefaultCoercion(TypeAccessor dest, object value)
         {
             if (value == null || dest.TypeData.MarshallMethod == MarshallMethod.None) return value;
-            if (dest.Type.IsEnum && value is int intValue)
-                return Enum.ToObject(dest.Type, intValue);
+            if (dest.Type.IsEnum)
+                return Enum.ToObject(dest.Type, Convert.ChangeType(value, typeof(int)));
             return Convert.ChangeType(value, dest.Type);
         }
         public ReplicationModel(bool loadTypes = true, bool addBaseTypes = true)
