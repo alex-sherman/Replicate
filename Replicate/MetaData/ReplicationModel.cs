@@ -103,18 +103,18 @@ namespace Replicate.MetaData
             Add(typeof(double));
             Add(typeof(string));
             Add(typeof(Guid)).SetSurrogate(new Surrogate(typeof(byte[]),
-                (_, __) => obj => obj == null ? null : ((Guid)obj).ToByteArray(),
-                (_, __) => obj =>
+                (_, __) => (_, obj) => obj == null ? null : ((Guid)obj).ToByteArray(),
+                (_, __) => (_, obj) =>
                 {
                     if (obj == null) return null;
                     return new Guid((byte[])(obj));
                 }));
             Add(typeof(Blob));
-            // TODO: Fix
-            //Add(typeof(object)).SetSurrogate(new Surrogate(typeof(TypedBlob),
-            //    (_, __) => obj => obj == null ? null : new TypedBlob() { Type = GetId(obj.GetType()) }
-            //    (_, __) => obj => obj == null ? null : ((TypedBlob)obj).Value
-            //));
+            Add(typeof(TypedBlob));
+            Add(typeof(object)).SetSurrogate(new Surrogate(typeof(TypedBlob),
+                (_, __) => TypedBlob.ConvertTo,
+                (_, __) => TypedBlob.ConvertFrom
+            ));
             var repNodeTypeData = Add(typeof(IRepNode));
             repNodeTypeData.MarshallMethod = MarshallMethod.None;
             var kvpTD = Add(typeof(KeyValuePair<,>));

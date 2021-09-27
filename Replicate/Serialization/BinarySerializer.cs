@@ -186,7 +186,7 @@ namespace Replicate.Serialization
             stream.WriteByte(blobStream == null ? (byte)255 : (byte)0);
             if (blobStream == null) return;
             stream.WriteInt32((int)blobStream.Length);
-            stream.CopyTo(stream);
+            blobStream.CopyTo(stream);
         }
 
         public override Blob ReadBlob(Blob obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)

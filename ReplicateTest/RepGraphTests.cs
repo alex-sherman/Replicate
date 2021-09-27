@@ -56,7 +56,7 @@ namespace ReplicateTest
         {
             var value = new RepBackedNode((int?)1).AsPrimitive;
             Assert.AreEqual(MarshallMethod.Primitive, value.MarshallMethod);
-            Assert.AreEqual(PrimitiveType.VarInt, value.PrimitiveType);
+            Assert.AreEqual(PrimitiveType.SVarInt, value.PrimitiveType);
         }
         [Test]
         public void PrimitiveByte()

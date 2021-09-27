@@ -15,13 +15,13 @@ namespace Replicate.MetaData
             get
             {
                 if (surrogate?.ConvertFrom != null)
-                    return surrogate.ConvertFrom(Value);
+                    return surrogate.ConvertFrom(null, Value);
                 return Value;
             }
             set
             {
                 if (surrogate?.ConvertTo != null)
-                    value = surrogate.ConvertTo(value);
+                    value = surrogate.ConvertTo(null, value);
                 Value = value;
             }
         }

@@ -63,7 +63,8 @@ namespace Replicate
         [ReplicateRPC]
         private void HandleReplication(ReplicationMessage message)
         {
-            var metaData = IDLookup[message.id];
+            var metaData = IDLookup[message.Id];
+            // TODO: Fix
             //message.Value.ReadInto(metaData.replicated);
         }
 
@@ -81,8 +82,9 @@ namespace Replicate
                 var metaData = ObjectLookup[replicated];
                 ReplicationMessage message = new ReplicationMessage()
                 {
-                    id = metaData.id,
-                    //Value = new DeferredBlob(replicated, metaData.typeAccessor.Type),
+                    Id = metaData.id,
+                    // TODO: Fix
+                    //Value = replicated
                 };
                 return Channel.Request(((Action<ReplicationMessage>)HandleReplication).Method, message);
             }

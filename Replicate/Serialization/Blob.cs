@@ -20,7 +20,26 @@ namespace Replicate.Serialization
     }
     public struct TypedBlob
     {
+        [Replicate]
         public TypeId Type;
+        [Replicate]
         public Blob Value;
+        public static object ConvertTo(IReplicateSerializer serializer, object obj)
+        {
+            if (obj == null) return null;
+            var type = obj.GetType();
+            return new TypedBlob()
+            {
+                Type = serializer.Model.GetId(type),
+                Value = new Blob(serializer.Serialize(type, obj))
+            };
+        }
+        public static object ConvertFrom(IReplicateSerializer serializer, object obj)
+        {
+            if (obj == null || !(obj is TypedBlob blob)) return null;
+            if (blob.Type.Id.IsEmpty) return null;
+            var type = serializer.Model.GetType(blob.Type);
+            return serializer.Deserialize(type, blob.Value.Stream);
+        }
     }
 }

@@ -29,7 +29,7 @@ namespace Replicate.Serialization
             var surrogateAccessor = memberAccessor?.Surrogate ?? typeAccessor.Surrogate;
             if (surrogateAccessor != null)
             {
-                obj = surrogateAccessor.ConvertTo(obj);
+                obj = surrogateAccessor.ConvertTo(this, obj);
                 typeAccessor = surrogateAccessor.TypeAccessor;
             }
             var marshalMethod = typeAccessor.TypeData.MarshallMethod;
@@ -66,7 +66,7 @@ namespace Replicate.Serialization
                 typeAccessor = surrogateAccessor?.TypeAccessor;
             }
             obj = _read(obj, stream, typeAccessor, memberAccessor);
-            return surrogateAccessor == null ? obj : surrogateAccessor.ConvertFrom(obj);
+            return surrogateAccessor == null ? obj : surrogateAccessor.ConvertFrom(this, obj);
         }
         private object _read(object obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
