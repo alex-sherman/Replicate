@@ -1,5 +1,6 @@
 ﻿using Replicate.MetaData;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -27,6 +28,7 @@ namespace Replicate.Serialization
                         case PrimitiveType.Bool:
                         case PrimitiveType.Byte:
                         case PrimitiveType.VarInt:
+                        case PrimitiveType.SVarInt:
                             return WireType.VarInt;
                         case PrimitiveType.Float:
                             return WireType.Bit32;
@@ -55,19 +57,46 @@ namespace Replicate.Serialization
             void ITypedSerializer.Write(object obj, Stream stream)
                 => WriteVarInt((ulong)Convert.ChangeType(obj, typeof(ulong)), stream);
         }
-        public class ProtoStringSerializer : ITypedSerializer
+        public class ProtoSIntSerializer : ITypedSerializer
+        {
+            object ITypedSerializer.Read(Stream stream) => ReadSVarInt(stream);
+            void ITypedSerializer.Write(object obj, Stream stream)
+                => WriteSVarInt((long)Convert.ChangeType(obj, typeof(long)), stream);
+        }
+        public class ProtoFloatSerializer : ITypedSerializer
         {
             object ITypedSerializer.Read(Stream stream)
             {
-                int length = (int)ReadVarInt(stream);
-                return stream.ReadChars(length);
+                var bytes = new byte[4];
+                stream.Read(bytes, 0, 4);
+                return BitConverter.ToSingle(bytes, 0);
             }
             void ITypedSerializer.Write(object obj, Stream stream)
+                => stream.Write(BitConverter.GetBytes((float)obj), 0, 4);
+        }
+        public class ProtoDoubleSerializer : ITypedSerializer
+        {
+            object ITypedSerializer.Read(Stream stream)
             {
-                var s = (string)obj;
-                WriteVarInt((ulong)s.Length, stream);
-                stream.WriteString(s);
+                var bytes = new byte[8];
+                stream.Read(bytes, 0, 8);
+                return BitConverter.ToDouble(bytes, 0);
             }
+            void ITypedSerializer.Write(object obj, Stream stream)
+                => stream.Write(BitConverter.GetBytes((double)obj), 0, 8);
+        }
+        public class ProtoStringSerializer : ITypedSerializer
+        {
+            object ITypedSerializer.Read(Stream stream) =>
+                stream.ReadAllString();
+            void ITypedSerializer.Write(object obj, Stream stream) =>
+                stream.WriteString((string)obj);
+        }
+        public static void WriteSVarInt(long num, Stream stream)
+        {
+            ulong zig = ((ulong)num) << 1;
+            if (((num >> 63) & 1) == 1) zig ^= ulong.MaxValue;
+            WriteVarInt(zig, stream);
         }
         public static void WriteVarInt(ulong num, Stream stream)
         {
@@ -80,6 +109,11 @@ namespace Replicate.Serialization
             }
             for (int i = 0; i < n; i++)
                 stream.WriteByte((byte)((byte)(i == (n - 1) ? 0 : 0x80) | bytes[i]));
+        }
+        public static long ReadSVarInt(Stream stream)
+        {
+            var num = ReadVarInt(stream);
+            return (long)((num >> 1) ^ (((num & 1) == 1) ? ulong.MaxValue : 0));
         }
         public static ulong ReadVarInt(Stream stream)
         {
@@ -97,11 +131,12 @@ namespace Replicate.Serialization
         readonly Dictionary<PrimitiveType, ITypedSerializer> serializers = new Dictionary<PrimitiveType, ITypedSerializer>()
         {
 
-            //{PrimitiveType.Bool, new JSONBoolSerializer() },
+            {PrimitiveType.Bool, intSer },
             {PrimitiveType.Byte, intSer },
             {PrimitiveType.VarInt, intSer },
-            //{PrimitiveType.Float, new JSONFloatSerializer() },
-            //{PrimitiveType.Double, new JSONFloatSerializer() },
+            {PrimitiveType.SVarInt, new ProtoSIntSerializer() },
+            {PrimitiveType.Float, new ProtoFloatSerializer() },
+            {PrimitiveType.Double, new ProtoDoubleSerializer() },
             {PrimitiveType.String, new ProtoStringSerializer() },
         };
         public ProtoSerializer(ReplicationModel model) : base(model) { }
@@ -121,11 +156,37 @@ namespace Replicate.Serialization
             if (obj == null) return;
             foreach ((RepKey key, MemberAccessor member) in typeAccessor.Members)
             {
-                // TODO
-                if (member.TypeAccessor.TypeData.MarshallMethod == MarshallMethod.Collection) continue;
-                var wireType = GetWireType(member.TypeAccessor.TypeData);
-                WriteVarInt((ulong)((long)(key.Index.Value << 3) | (long)wireType), stream);
-                Write(stream, member.GetValue(obj), member.TypeAccessor, member);
+                if (member.TypeAccessor.TypeData.MarshallMethod == MarshallMethod.Collection)
+                {
+                    var repeated = member.GetValue(obj);
+                    if (repeated == null) continue;
+                    foreach (var value in (IEnumerable)repeated)
+                        WriteObjectEntry(stream, value, key, member);
+                }
+                else
+                    WriteObjectEntry(stream, member.GetValue(obj), key, member);
+            }
+        }
+        private TypeAccessor ObjectMemberType(MemberAccessor member)
+        {
+            var typeAccessor = member.TypeAccessor;
+            if (typeAccessor.TypeData.MarshallMethod == MarshallMethod.Collection)
+                return Model.GetCollectionValueAccessor(typeAccessor.Type);
+            return typeAccessor;
+        }
+        private void WriteObjectEntry(Stream stream, object obj, RepKey key, MemberAccessor member)
+        {
+            var typeAccessor = ObjectMemberType(member);
+            var wireType = GetWireType(typeAccessor.TypeData);
+            WriteVarInt((ulong)((long)(key.Index.Value << 3) | (long)wireType), stream);
+            var subStream = wireType == WireType.Length ? new MemoryStream() : stream;
+            Write(subStream, obj, typeAccessor, member);
+            if (wireType == WireType.Length)
+            {
+                subStream.Position = 0;
+                WriteVarInt((ulong)subStream.Length, stream);
+                // TODO: This could be SG
+                subStream.CopyTo(stream);
             }
         }
         public override object ReadObject(object obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
@@ -136,8 +197,8 @@ namespace Replicate.Serialization
             {
                 ulong tag = ReadVarInt(stream);
                 int key = (int)(tag >> 3);
-                WireType type = (WireType)(tag & 7);
                 var member = typeAccessor.Members[key];
+                WireType type = (WireType)(tag & 7);
                 long length = type switch
                 {
                     WireType.Bit64 => 8,
@@ -152,24 +213,40 @@ namespace Replicate.Serialization
                     continue;
                 }
                 var subStream = length != 0 ? new SubStream(stream, length) : stream;
-                var value = Read(null, subStream, member.TypeAccessor, member);
-                member.SetValue(obj, value);
+                var memberTypeAccessor = ObjectMemberType(member);
+                var value = Read(null, subStream, memberTypeAccessor, member);
+                if (member.TypeAccessor.TypeData.MarshallMethod == MarshallMethod.Collection)
+                    AddToCollection(obj, value, member);
+                else
+                    member.SetValue(obj, value);
             }
             return obj;
         }
 
+        private void AddToCollection(object parent, object value, MemberAccessor member)
+        {
+            var type = member.Type;
+            var collectionType = type.GetInterface("ICollection`1");
+            var addMeth = collectionType?.GetMethod("Add");
+            if (addMeth == null) throw new ReplicateError($"Cannot deserialize repeated fields into {type.Name}");
+            var collection = member.GetValue(parent);
+            if (collection == null)
+            {
+                collection = member.TypeAccessor.Construct();
+                member.SetValue(parent, collection);
+            }
+            addMeth.Invoke(collection, new[] { value });
+        }
+
+        // Protobuf doesn't support collections that aren't a member of a message
         public override void WriteCollection(Stream stream, object obj, TypeAccessor typeAccessor, TypeAccessor collectionValueType, MemberAccessor memberAccessor)
         {
-            // Protobuf doesn't support collections that aren't a member of a message
-            if (memberAccessor == null) throw new NotImplementedException();
+            throw new NotImplementedException();
         }
-        // Read collection in protobuf is more like ReadCollectionElement
+        // Protobuf doesn't support collections that aren't a member of a message
         public override object ReadCollection(object obj, Stream stream, TypeAccessor typeAccessor, TypeAccessor collectionAccessor, MemberAccessor memberAccessor)
         {
-            if (obj == null) obj = typeAccessor.Construct();
-            var value = Read(null, stream, collectionAccessor, memberAccessor);
-            typeAccessor.Type.GetMethod("Add").Invoke(obj, new[] { value });
-            return obj;
+            throw new NotImplementedException();
         }
 
         public override void WriteBlob(Stream stream, Blob blob, MemberAccessor memberAccessor)

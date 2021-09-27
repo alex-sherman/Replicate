@@ -32,25 +32,23 @@ namespace ReplicateTest
         public class PropClass
         {
             [Replicate(1)]
-            public int Property { get; set; }
+            public uint Property { get; set; }
         }
         [ReplicateType]
         public class ObjectWithArrayField
         {
-            public ObjectWithArrayField ObjectField;
-            public double[] ArrayField;
-            public int? NullableValue;
+            public List<double> ArrayField;
         }
         [ReplicateType]
         public class ObjectWithNullableField
         {
             [SkipNull]
-            public int? NullableValue;
+            public uint? NullableValue;
         }
         [ReplicateType]
         public class SubClass : PropClass
         {
-            [Replicate]
+            [Replicate(2)]
             public string Field;
         }
         [ReplicateType]
@@ -89,6 +87,19 @@ namespace ReplicateTest
             Assert.AreEqual(3, obj.Property);
         }
         [Test]
+        public void SerDesSubClass()
+        {
+            var ser = new ProtoSerializer(new ReplicationModel());
+            var bytes = ser.SerializeBytes(new SubClass() { Property = 3, Field = "faff" });
+            Assert.AreEqual(new byte[] {
+                0x08, 0x03,
+                0x12, 4, (byte)'f', (byte)'a', (byte)'f', (byte)'f'
+            }, bytes);
+            var obj = ser.Deserialize<SubClass>(bytes);
+            Assert.AreEqual(3, obj.Property);
+            Assert.AreEqual("faff", obj.Field);
+        }
+        [Test]
         public void SerDesUnknownString()
         {
             var ser = new ProtoSerializer(new ReplicationModel());
@@ -96,10 +107,16 @@ namespace ReplicateTest
             var obj = ser.Deserialize<PropClass>(bytes);
             Assert.AreEqual(3, obj.Property);
         }
+        [TestCase(true, typeof(bool), new byte[] { 1 })]
+        [TestCase(false, typeof(bool), new byte[] { 0 })]
         [TestCase(0, typeof(int), new byte[] { 0 })]
-        [TestCase(1, typeof(int), new byte[] { 1 })]
-        [TestCase(300, typeof(int), new byte[] { 0xAC, 0x02 })]
-        [TestCase("faff", typeof(string), new byte[] { 4, (byte)'f', (byte)'a', (byte)'f', (byte)'f' })]
+        [TestCase(1, typeof(int), new byte[] { 2 })]
+        [TestCase(1, typeof(uint), new byte[] { 1 })]
+        [TestCase(-1, typeof(int), new byte[] { 1 })]
+        [TestCase(1.02f, typeof(float), new byte[] { 0x5c, 0x8f, 0x82, 0x3f })]
+        [TestCase(1.02, typeof(double), new byte[] { 0x52, 0xB8, 0x1E, 0x85, 0xEB, 0x51, 0xF0, 0x3F })]
+        [TestCase(300, typeof(uint), new byte[] { 0xAC, 0x02 })]
+        [TestCase("faff", typeof(string), new byte[] { (byte)'f', (byte)'a', (byte)'f', (byte)'f' })]
         public void SerializeDeserialize(object obj, Type type, byte[] serialized)
         {
             var ser = new ProtoSerializer(new ReplicationModel());
@@ -114,6 +131,18 @@ namespace ReplicateTest
             var ser = new ProtoSerializer(new ReplicationModel());
             var bytes = ser.SerializeBytes<int?>(null);
             Assert.IsTrue(bytes.Length == 0);
+        }
+        [Test]
+        public void RepeatedInt()
+        {
+            var ser = new ProtoSerializer(new ReplicationModel());
+            ObjectWithArrayField arrayObj = new ObjectWithArrayField()
+            {
+                ArrayField = new List<double> { 1, 2, 3 }
+            };
+            var bytes = ser.SerializeBytes(arrayObj);
+            var output = ser.Deserialize<ObjectWithArrayField>(bytes);
+            CollectionAssert.AreEqual(arrayObj.ArrayField, output.ArrayField);
         }
     }
 }

@@ -29,6 +29,7 @@ namespace Replicate.Serialization
             {PrimitiveType.Bool, new JSONBoolSerializer() },
             {PrimitiveType.Byte, intSer },
             {PrimitiveType.VarInt, intSer },
+            {PrimitiveType.SVarInt, intSer },
             {PrimitiveType.Float, new JSONFloatSerializer() },
             {PrimitiveType.Double, new JSONFloatSerializer() },
             {PrimitiveType.String, stringSer },

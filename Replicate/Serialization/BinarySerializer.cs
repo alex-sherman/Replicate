@@ -65,6 +65,7 @@ namespace Replicate.Serialization
         public Dictionary<PrimitiveType, ITypedSerializer> Serializers = new Dictionary<PrimitiveType, ITypedSerializer>()
         {
             {PrimitiveType.VarInt, intSer },
+            {PrimitiveType.SVarInt, intSer },
             {PrimitiveType.Byte, new BinaryByteSerializer() },
             {PrimitiveType.Bool, intSer },
             {PrimitiveType.String, new BinaryStringSerializer() },
