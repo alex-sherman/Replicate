@@ -81,6 +81,11 @@ namespace ReplicateTest
         {
             public Blob Blob;
         }
+        [ReplicateType]
+        public struct KeyType
+        {
+            public string Name;
+        }
         #endregion
 
         [Test]
@@ -182,7 +187,6 @@ namespace ReplicateTest
         public void SerializeDeserialize(object obj, Type type, string serialized)
         {
             var ser = new JSONSerializer(new ReplicationModel());
-            var stream = new MemoryStream();
             var str = ser.SerializeString(type, obj);
             CollectionAssert.AreEqual(serialized, str);
             var output = ser.Deserialize(type, str);
@@ -192,7 +196,6 @@ namespace ReplicateTest
         public void FieldEmptyString()
         {
             var ser = new JSONSerializer(new ReplicationModel());
-            var stream = new MemoryStream();
             var str = ser.SerializeString(new SubClass() { Field = "" });
             CollectionAssert.AreEqual("{\"Field\": \"\", \"Property\": 0}", str);
             var output = ser.Deserialize<SubClass>("{\"Field\": \"\"}");
@@ -204,7 +207,6 @@ namespace ReplicateTest
             var serialized = "{\"value\": \"herp\", \"prop\": \"derp\"}";
             var obj = new Dictionary<string, string>() { { "value", "herp" }, { "prop", "derp" } };
             var ser = new JSONSerializer(new ReplicationModel() { DictionaryAsObject = true });
-            var stream = new MemoryStream();
             var str = ser.SerializeString(obj);
             Assert.AreEqual(serialized, str);
             var output = ser.Deserialize(obj.GetType(), str);
@@ -216,7 +218,6 @@ namespace ReplicateTest
             var serialized = "[{\"Key\": 0, \"Value\": \"herp\"}, {\"Key\": 1, \"Value\": \"derp\"}]";
             var obj = new Dictionary<int, string>() { { 0, "herp" }, { 1, "derp" } };
             var ser = new JSONSerializer(new ReplicationModel() { DictionaryAsObject = true });
-            var stream = new MemoryStream();
             var str = ser.SerializeString(obj);
             Assert.AreEqual(serialized, str);
             var output = ser.Deserialize(obj.GetType(), str);
@@ -226,14 +227,31 @@ namespace ReplicateTest
         public void DictionaryProperty()
         {
             var serialized = "{\"Dict\": {\"value\": \"herp\", \"prop\": \"derp\"}}";
-            var type = typeof(Dictionary<string, string>);
             var obj = new ObjectWithDictField() { Dict = new Dictionary<string, string>() { { "value", "herp" }, { "prop", "derp" } } };
             var ser = new JSONSerializer(new ReplicationModel() { DictionaryAsObject = true });
-            var stream = new MemoryStream();
             var str = ser.SerializeString(obj);
             CollectionAssert.AreEqual(serialized, str);
             var output = ser.Deserialize<ObjectWithDictField>(str);
             Assert.AreEqual(obj.Dict, output.Dict);
+        }
+        [Test]
+        public void DictionaryWithSurrogateKey()
+        {
+            Dictionary<KeyType, string> dict = new Dictionary<KeyType, string>
+            {
+                { new KeyType() { Name = "a" }, "derp" },
+                { new KeyType() { Name = "b" }, "faff" },
+            };
+            var model = new ReplicationModel() { DictionaryAsObject = true };
+            model[typeof(KeyType)].SetSurrogate(new Surrogate(typeof(string),
+                (_, __) => (s, v) => ((KeyType)v).Name,
+                (_, __) => (s, v) => new KeyType() { Name = (string)v }
+            ));
+            var ser = new JSONSerializer(model);
+            var str = ser.SerializeString(dict);
+            var expected = "{\"a\": \"derp\", \"b\": \"faff\"}";
+            CollectionAssert.AreEqual(expected, str);
+            var output = ser.Deserialize<Dictionary<KeyType, string>>(str);
         }
         [Test]
         public void NullableNullInt()

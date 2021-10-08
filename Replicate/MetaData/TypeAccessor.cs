@@ -19,8 +19,19 @@ namespace Replicate.MetaData
         public RepSet<MethodInfo> Methods;
         public RepSet<MemberAccessor> Members;
         public RepSet<MemberAccessor> StaticMembers;
-        private readonly bool isStringDict;
-        public bool IsDictObj => isStringDict && TypeData.Model.DictionaryAsObject;
+        private bool IsStringDict
+        {
+            get
+            {
+                if (!Type.IsSameGeneric(typeof(Dictionary<,>))) return false;
+                var keyType = Type.GetGenericArguments()[0];
+                if (keyType == typeof(string)
+                    || TypeData.Model[keyType].Surrogate?.Type == typeof(string))
+                    return true;
+                return false;
+            }
+        }
+        public bool IsDictObj => IsStringDict && TypeData.Model.DictionaryAsObject;
         public readonly bool IsNullable;
         public readonly bool IsTypeless = false;
         public TypeData TypeData { get; private set; }
@@ -38,8 +49,6 @@ namespace Replicate.MetaData
                 && type.GetCustomAttribute(typeof(NonNullAttribute)) == null;
             if (typeData.Surrogate != null)
                 Surrogate = new SurrogateAccessor(this, typeData.Surrogate, typeData.Model);
-            isStringDict = Type.IsSameGeneric(typeof(Dictionary<,>))
-                && Type.GetGenericArguments()[0] == typeof(string);
         }
         internal void InitializeMembers()
         {

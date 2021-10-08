@@ -68,8 +68,12 @@ namespace Replicate.Serialization
                 var dict = obj as IDictionary;
                 ReadObject(stream, name =>
                 {
-                    var value = Read(dict[name], stream, Model.GetTypeAccessor(typeAccessor.Type.GetGenericArguments()[1]), null);
-                    dict[name] = value;
+                    var keyType = Model.GetTypeAccessor(typeAccessor.Type.GetGenericArguments()[0]);
+                    var valueType = Model.GetTypeAccessor(typeAccessor.Type.GetGenericArguments()[1]);
+                    object key = name;
+                    if (keyType.Surrogate != null) key = keyType.Surrogate.ConvertFrom(this, key);
+                    var value = Read(dict[key], stream, valueType, null);
+                    dict[key] = value;
                 });
                 return obj;
             }
@@ -155,11 +159,16 @@ namespace Replicate.Serialization
             }
             return false;
         }
-        IEnumerable<(string key, object value, TypeAccessor type, MemberAccessor member)> getDictValues(IDictionary dict, TypeAccessor typeAccessor)
+        IEnumerable<(string key, object value, TypeAccessor type, MemberAccessor member)>
+            getDictValues(IDictionary dict, TypeAccessor typeAccessor)
         {
+            var keyType = Model.GetTypeAccessor(typeAccessor.Type.GetGenericArguments()[0]);
+            var valueType = Model.GetTypeAccessor(typeAccessor.Type.GetGenericArguments()[1]);
             foreach (var key in dict.Keys)
             {
-                yield return (key as string, dict[key], typeAccessor, null);
+                var strKey = key;
+                if (keyType.Surrogate != null) strKey = keyType.Surrogate.ConvertTo(this, strKey);
+                yield return (strKey as string, dict[key], valueType, null);
             }
         }
         public override void WriteCollection(Stream stream, object obj, TypeAccessor typeAccessor, TypeAccessor collectionValueType, MemberAccessor memberAccessor)
@@ -170,7 +179,7 @@ namespace Replicate.Serialization
             {
                 if (typeAccessor.IsDictObj)
                 {
-                    SerializeObject(stream, getDictValues(obj as IDictionary, Model.GetTypeAccessor(typeAccessor.Type.GetGenericArguments()[1])));
+                    SerializeObject(stream, getDictValues(obj as IDictionary, typeAccessor));
                     return;
                 }
                 stream.WriteString("[");
