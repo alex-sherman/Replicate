@@ -3,6 +3,7 @@ using Replicate.MetaTyping;
 using Replicate.Serialization;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -64,8 +65,8 @@ namespace Replicate.MetaData
     {
         private static ReplicationModel @default;
         public static ReplicationModel Default => @default ?? (@default = new ReplicationModel());
-        Dictionary<Type, TypeAccessor> typeAccessorLookup = new Dictionary<Type, TypeAccessor>();
-        Dictionary<Type, TypeData> typeLookup = new Dictionary<Type, TypeData>();
+        ConcurrentDictionary<Type, TypeAccessor> typeAccessorLookup = new ConcurrentDictionary<Type, TypeAccessor>();
+        ConcurrentDictionary<Type, TypeData> typeLookup = new ConcurrentDictionary<Type, TypeData>();
         public readonly RepSet<TypeData> Types = new RepSet<TypeData>();
         internal HashSet<Type> SurrogateTypes = new HashSet<Type>();
         public readonly ModuleBuilder Builder = DynamicModule.Create();
@@ -241,7 +242,7 @@ namespace Replicate.MetaData
         private TypeData ResolveFrom(Type incoming, Type existing)
         {
             var typeData = this[existing];
-            typeLookup.Add(incoming, typeData);
+            typeLookup.TryAdd(incoming, typeData);
             return typeData;
         }
         public TypeData GetTypeData(Type type)
@@ -270,7 +271,7 @@ namespace Replicate.MetaData
             {
                 if (Frozen) throw new InvalidOperationException($"Attempted to add a type to a frozen model");
                 typeData = new TypeData(type, this) { TypeAttribute = attr };
-                typeLookup.Add(type, typeData);
+                typeLookup.TryAdd(type, typeData);
                 if (Types.ContainsKey(typeData.FullName))
                     throw new ArgumentException($"Failed to add type {type.FullName}, a type with that name already exists");
                 var key = Types.Add(typeData.FullName, typeData);
