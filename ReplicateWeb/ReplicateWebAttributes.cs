@@ -23,5 +23,6 @@ namespace Replicate.Web
     public class ReplicateRouteAttribute : Attribute
     {
         public string Route;
+        public bool DevOnly = false;
     }
 }

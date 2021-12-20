@@ -1,9 +1,11 @@
 ﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Replicate;
 using Replicate.RPC;
@@ -21,8 +23,12 @@ namespace Replicate.Web
     public static class ReplicateWebExtensions
     {
         public static (int StatusCode, ErrorData Error) FromException(Exception exception)
-            => (exception is HTTPError e ? e.Status : 500, new ErrorData(exception));
-        public static string GetEndpoint(MethodInfo endpoint)
+        {
+            while (exception is AggregateException aggregate && aggregate.InnerExceptions.Count == 1)
+                exception = aggregate.InnerExceptions[0];
+            return (exception is HTTPError e ? e.Status : 500, new ErrorData(exception));
+        }
+        public static string GetRoute(MethodInfo endpoint)
         {
             var methodRoute = endpoint.GetCustomAttribute<ReplicateRouteAttribute>();
             var name = methodRoute?.Route ?? endpoint.Name.ToLower();
@@ -33,7 +39,14 @@ namespace Replicate.Web
                 name = name.Substring(0, name.Length - 1);
             return name;
         }
-        public static void UseEndpoints(this IApplicationBuilder app, IReplicateSerializer serializer)
+        public static ReplicateRouteAttribute GetRouteAttribute(MethodInfo endpoint)
+        {
+            var methodRoute = endpoint.GetCustomAttribute<ReplicateRouteAttribute>();
+            if (methodRoute == null) methodRoute = new ReplicateRouteAttribute();
+            methodRoute.Route = GetRoute(endpoint);
+            return methodRoute;
+        }
+        public static void UseEndpoints(this IApplicationBuilder app, IWebHostEnvironment env, IReplicateSerializer serializer)
         {
             var model = serializer.Model;
             model.LoadTypes(typeof(ErrorData).Assembly);
@@ -43,16 +56,14 @@ namespace Replicate.Web
                     ? model.Types.Values.FirstOrDefault(mt => mt.Type.Implements(st.Type))
                     : st)
                 .Where(t => t != null).ToList();
-            var routes = implTypes.SelectMany(t => t.Methods).Select(m =>
-            {
-                var route = GetEndpoint(m);
-                return (Route: route, Key: model.MethodKey(m));
-            });
+            var routes = implTypes.SelectMany(t => t.Methods)
+                .Select(m => (Attribute: GetRouteAttribute(m), Key: model.MethodKey(m)))
+                .Where(route => env.IsDevelopment() || !route.Attribute.DevOnly);
             app.UseEndpoints(e =>
             {
                 foreach (var route in routes)
                 {
-                    e.Map(RoutePatternFactory.Parse(route.Route), async context =>
+                    e.Map(RoutePatternFactory.Parse(route.Attribute.Route), async context =>
                     {
                         var method = model.GetMethod(route.Key);
                         var implementation = ActivatorUtilities.CreateInstance(context.RequestServices, method.DeclaringType);
