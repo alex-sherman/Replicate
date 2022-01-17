@@ -20,8 +20,25 @@ using System.Threading.Tasks;
 
 namespace Replicate.Web
 {
+    [Flags]
+    public enum EnvironmentType
+    {
+        None = 0,
+        Development = 1,
+        Staging = 1 << 1,
+        Production = 1 << 2,
+        All = Development | Staging | Production,
+        NotProd = Development | Staging,
+    }
     public static class ReplicateWebExtensions
     {
+        public static EnvironmentType GetEnvironmentType(this IWebHostEnvironment env)
+        {
+            if (env.IsDevelopment()) return EnvironmentType.Development;
+            if (env.IsStaging()) return EnvironmentType.Staging;
+            if (env.IsProduction()) return EnvironmentType.Production;
+            return EnvironmentType.None;
+        }
         public static (int StatusCode, ErrorData Error) FromException(Exception exception)
         {
             while (exception is AggregateException aggregate && aggregate.InnerExceptions.Count == 1)
@@ -58,7 +75,7 @@ namespace Replicate.Web
                 .Where(t => t != null).ToList();
             var routes = implTypes.SelectMany(t => t.Methods)
                 .Select(m => (Attribute: GetRouteAttribute(m), Key: model.MethodKey(m)))
-                .Where(route => env.IsDevelopment() || !route.Attribute.DevOnly);
+                .Where(route => route.Attribute.Environments.HasFlag(env.GetEnvironmentType()));
             app.UseEndpoints(e =>
             {
                 foreach (var route in routes)
@@ -80,9 +97,13 @@ namespace Replicate.Web
                             Endpoint = route.Key,
                             Request = stream.Length == 0 ? null : serializer.Deserialize(contract.RequestType, stream)
                         });
+                        ILogger logger = context.RequestServices.GetService<ILogger<ReplicateWebRPC>>();
+                        logger?.LogDebug($"{route.Attribute.Route}({context.TraceIdentifier}) <= {Encoding.UTF8.GetString(stream.ToArray())}");
                         context.Response.ContentType = "application/json";
                         context.Response.StatusCode = 200;
-                        await context.Response.WriteAsync(serializer.SerializeString(contract.ResponseType, result));
+                        var responseString = serializer.SerializeString(contract.ResponseType, result);
+                        logger?.LogDebug($"({context.TraceIdentifier}) => {responseString}");
+                        await context.Response.WriteAsync(responseString);
                     });
                 }
             });
@@ -93,7 +114,7 @@ namespace Replicate.Web
             {
                 if (t.Exception == null) return t;
                 var e = t.Exception;
-                app.ApplicationServices.GetService<ILogger<HTTPError>>()?.LogError(e, "Handler exception");
+                context.RequestServices.GetService<ILogger<HTTPError>>()?.LogError(e, "Handler exception");
                 var (StatusCode, Error) = FromException(e);
                 context.Response.StatusCode = StatusCode;
                 context.Response.ContentType = "application/json";
