@@ -55,6 +55,7 @@ namespace Replicate.Serialization
                 new Tuple<string, string>("\\\\", "\\"),
                 new Tuple<string, string>("\\\"", "\""),
                 new Tuple<string, string>("\\n", "\n"),
+                new Tuple<string, string>("\\r", "\r"),
                 new Tuple<string, string>("\\t", "\t"),
             };
             public static string Escape(string str)
@@ -70,12 +71,7 @@ namespace Replicate.Serialization
                         case '\n':
                             sb.Append(@"\n"); break;
                         case '\r':
-                            if (i + 1 < chars.Length && chars[i] == '\n')
-                            {
-                                sb.Append(@"\n");
-                                ++i;
-                            }
-                            break;
+                            sb.Append(@"\r"); break;
                         case '\\':
                             sb.Append(@"\\"); break;
                         case '"':
@@ -100,6 +96,8 @@ namespace Replicate.Serialization
                                 sb.Append("\t"); break;
                             case 'n':
                                 sb.Append("\n"); break;
+                            case 'r':
+                                sb.Append("\r"); break;
                             case '\\':
                                 sb.Append("\\"); break;
                             case '"':
