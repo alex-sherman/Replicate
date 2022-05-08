@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Replicate;
+using Replicate.MetaData;
 using Replicate.RPC;
 using Replicate.Serialization;
 using System;
@@ -63,9 +64,8 @@ namespace Replicate.Web
             methodRoute.Route = GetRoute(endpoint);
             return methodRoute;
         }
-        public static void UseEndpoints(this IApplicationBuilder app, IWebHostEnvironment env, IReplicateSerializer serializer)
+        public static void UseEndpoints(this IApplicationBuilder app, IWebHostEnvironment env, ReplicationModel model)
         {
-            var model = serializer.Model;
             model.LoadTypes(typeof(ErrorData).Assembly);
             var serviceTypes = model.Types.Values.Where(t => t.Type.GetCustomAttribute<ReplicateRouteAttribute>() != null).ToList();
             var implTypes = serviceTypes
@@ -75,7 +75,7 @@ namespace Replicate.Web
                 .Where(t => t != null).ToList();
             var routes = implTypes.SelectMany(t => t.Methods)
                 .Select(m => (Attribute: GetRouteAttribute(m), Key: model.MethodKey(m)))
-                .Where(route => route.Attribute.Environments.HasFlag(env.GetEnvironmentType()));
+                .Where(route => route.Attribute.Environments.HasFlag(env?.GetEnvironmentType() ?? EnvironmentType.None));
             app.UseEndpoints(e =>
             {
                 foreach (var route in routes)
@@ -84,6 +84,7 @@ namespace Replicate.Web
                     {
                         var method = model.GetMethod(route.Key);
                         var implementation = ActivatorUtilities.CreateInstance(context.RequestServices, method.DeclaringType);
+                        var ser = context.RequestServices.GetRequiredService<IReplicateSerializer>();
                         var handler = TypeUtil.CreateHandler(method, _ => implementation);
 
                         var stream = new MemoryStream();
@@ -95,14 +96,13 @@ namespace Replicate.Web
                         {
                             Contract = contract,
                             Endpoint = route.Key,
-                            Request = stream.Length == 0 ? null : serializer.Deserialize(contract.RequestType, stream)
+                            Request = stream.Length == 0 ? null : ser.Deserialize(contract.RequestType, stream)
                         });
                         ILogger logger = context.RequestServices.GetService<ILogger<ReplicateWebRPC>>();
-                        logger?.LogDebug($"{route.Attribute.Route}({context.TraceIdentifier}) <= {Encoding.UTF8.GetString(stream.ToArray())}");
                         context.Response.ContentType = "application/json";
                         context.Response.StatusCode = 200;
-                        var responseString = serializer.SerializeString(contract.ResponseType, result);
-                        logger?.LogDebug($"({context.TraceIdentifier}) => {responseString}");
+                        var responseString = ser.SerializeString(contract.ResponseType, result);
+                        logger?.LogDebug($"{route.Attribute.Route}({context.TraceIdentifier}) {Encoding.UTF8.GetString(stream.ToArray())} => {responseString}");
                         await context.Response.WriteAsync(responseString);
                     });
                 }

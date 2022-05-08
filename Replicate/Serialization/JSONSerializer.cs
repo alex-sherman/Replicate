@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -34,6 +35,25 @@ namespace Replicate.Serialization
             {PrimitiveType.Double, new JSONFloatSerializer() },
             {PrimitiveType.String, stringSer },
         };
+
+        private Stack<object> ObjectStack = new Stack<object>();
+        private struct ObjectTracker : IDisposable
+        {
+            object Obj;
+            JSONSerializer Ser;
+            public ObjectTracker(JSONSerializer ser, object obj)
+            {
+                Obj = obj;
+                Ser = ser;
+                Ser.ObjectStack.Push(Obj);
+            }
+            public void Dispose()
+            {
+                var obj = Ser.ObjectStack.Pop();
+                Debug.Assert(obj == Obj);
+            }
+        }
+
         static void CheckAndThrow(bool condition, string message = null)
         {
             if (!condition)
@@ -216,6 +236,14 @@ namespace Replicate.Serialization
 
         public override void WriteObject(Stream stream, object obj, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
+            // Prevent circular references
+            if (ObjectStack.Contains(obj))
+            {
+                WritePrimitive(stream, null, null, null);
+                return;
+            }
+            using var objTracker = new ObjectTracker(this, obj);
+
             var objectSet = obj == null ? null : typeAccessor.TypeData.Keys.Select(key =>
             {
                 var member = typeAccessor[key];

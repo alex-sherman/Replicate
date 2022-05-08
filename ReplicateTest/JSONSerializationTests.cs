@@ -182,6 +182,7 @@ namespace ReplicateTest
         [TestCase(null, typeof(double[]), "null")]
         [TestCase(true, typeof(bool), "true")]
         [TestCase(false, typeof(bool), "false")]
+        [TestCase(76561198000857379, typeof(long), "76561198000857379")]
         [TestCase(JSONEnum.One, typeof(JSONEnum), "1")]
         [TestCase("\"", typeof(string), "\"\\\"\"")]
         public void SerializeDeserialize(object obj, Type type, string serialized)

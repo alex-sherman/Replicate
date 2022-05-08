@@ -78,7 +78,10 @@ namespace Replicate.MetaData
         {
             if (value == null || dest.TypeData.MarshallMethod == MarshallMethod.None) return value;
             if (dest.Type.IsEnum)
+            {
+                if (value is string str) return Enum.Parse(dest.Type, str);
                 return Enum.ToObject(dest.Type, Convert.ChangeType(value, typeof(int)));
+            }
             return Convert.ChangeType(value, dest.Type);
         }
         public ReplicationModel(bool loadTypes = true, bool addBaseTypes = true)
@@ -191,16 +194,19 @@ namespace Replicate.MetaData
         public void ClearTypeAccessorCache() => typeAccessorLookup.Clear();
         public TypeAccessor GetTypeAccessor(Type type)
         {
-            if (type.IsGenericTypeDefinition)
-                throw new InvalidOperationException("Cannot create a type accessor for a generic type definition");
-            if (!typeAccessorLookup.TryGetValue(type, out TypeAccessor typeAccessor))
+            lock (typeAccessorLookup)
             {
-                var internalType = type;
-                if (internalType.IsSameGeneric(typeof(Nullable<>))) internalType = type.GetGenericArguments()[0];
-                typeAccessor = typeAccessorLookup[type] = new TypeAccessor(GetTypeData(internalType), type);
-                typeAccessor.InitializeMembers();
+                if (type.IsGenericTypeDefinition)
+                    throw new InvalidOperationException("Cannot create a type accessor for a generic type definition");
+                if (!typeAccessorLookup.TryGetValue(type, out TypeAccessor typeAccessor))
+                {
+                    var internalType = type;
+                    if (internalType.IsSameGeneric(typeof(Nullable<>))) internalType = type.GetGenericArguments()[0];
+                    typeAccessor = typeAccessorLookup[type] = new TypeAccessor(GetTypeData(internalType), type);
+                    typeAccessor.InitializeMembers();
+                }
+                return typeAccessor;
             }
-            return typeAccessor;
         }
         public TypeAccessor GetCollectionValueAccessor(Type collectionType)
         {
