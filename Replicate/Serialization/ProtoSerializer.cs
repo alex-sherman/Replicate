@@ -154,7 +154,7 @@ namespace Replicate.Serialization
         public override void WriteObject(Stream stream, object obj, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
             if (obj == null) return;
-            foreach ((RepKey key, MemberAccessor member) in typeAccessor.Members)
+            foreach ((RepKey key, MemberAccessor member) in typeAccessor.SerializedMembers)
             {
                 if (member.TypeAccessor.TypeData.MarshallMethod == MarshallMethod.Collection)
                 {
@@ -197,7 +197,7 @@ namespace Replicate.Serialization
             {
                 ulong tag = ReadVarInt(stream);
                 int key = (int)(tag >> 3);
-                var member = typeAccessor.Members[key];
+                var member = typeAccessor.SerializedMembers[key];
                 WireType type = (WireType)(tag & 7);
                 long length = type switch
                 {

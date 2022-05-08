@@ -18,7 +18,7 @@ namespace Replicate.MetaData
         public Type Type { get; private set; }
         public RepSet<MethodInfo> Methods;
         public RepSet<MemberAccessor> Members;
-        public RepSet<MemberAccessor> StaticMembers;
+        public RepSet<MemberAccessor> SerializedMembers;
         private bool IsStringDict
         {
             get
@@ -55,7 +55,8 @@ namespace Replicate.MetaData
             Members = TypeData.Members
                 .Select(kvp => new KeyValuePair<RepKey, MemberAccessor>(kvp.Key, new MemberAccessor(kvp.Value, this, TypeData.Model)))
                 .ToRepSet();
-            StaticMembers = TypeData.StaticMembers
+            SerializedMembers = TypeData.Members
+                .Where(m => m.Value.GetAttribute<NonSerializedAttribute>() == null)
                 .Select(kvp => new KeyValuePair<RepKey, MemberAccessor>(kvp.Key, new MemberAccessor(kvp.Value, this, TypeData.Model)))
                 .ToRepSet();
             // TODO: Actually handle generic RPC methods

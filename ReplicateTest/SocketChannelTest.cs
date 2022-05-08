@@ -36,7 +36,7 @@ namespace ReplicateTest
             // Server side
             var server = new RPCServer(model);
             server.Respond<string, string>(TestMethod);
-            using (var sl = new SocketListener(server, 55554, new BinarySerializer(model)))
+            using (var sl = new SocketListener(server, 0, new BinarySerializer(model)))
             {
                 var clientChannel = SocketChannel.Connect("127.0.0.1", sl.Port, new BinarySerializer(model));
                 var result = await clientChannel.Request(

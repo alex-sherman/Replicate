@@ -32,7 +32,7 @@ namespace ReplicateTest
         [TestCase(1, "1")]
         [TestCase(0.5, "0.5")]
         [TestCase("", "\"\"")]
-        [TestCase("\n\t\\\r\n", "\"\\n\\t\\\\\\n\"")]
+        [TestCase("\n\t\\\r\n", "\"\\n\\t\\\\\\r\\n\"")]
         [TestCase("😈", "\"😈\"")]
         [TestCase(true, "true")]
         [TestCase(false, "false")]

@@ -34,7 +34,7 @@ namespace ReplicateWebTest
         {
             var builder = new ApplicationBuilder(services);
             builder.UseErrorHandling(services.GetRequiredService<IReplicateSerializer>());
-            builder.UseEndpoints(null, serializer);
+            builder.UseEndpoints(null, model);
             return builder.Build();
         }
         public static HttpContext MakeContext(string url, string body)

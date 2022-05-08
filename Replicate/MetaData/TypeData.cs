@@ -21,7 +21,6 @@ namespace Replicate.MetaData
         public IEnumerable<RepKey> Keys => Members.Keys;
         public MemberInfo this[RepKey key] => Members[key];
         public readonly RepSet<MemberInfo> Members = new RepSet<MemberInfo>();
-        public readonly RepSet<MemberInfo> StaticMembers = new RepSet<MemberInfo>();
         public readonly string[] GenericTypeParameters = null;
         public List<MethodInfo> Methods = new List<MethodInfo>();
         public bool IsInstanceRPC;
@@ -113,7 +112,8 @@ namespace Replicate.MetaData
         void AddMember(MemberInfo member)
         {
             RepKey key = member.GetAttribute<ReplicateAttribute>()?.Key ?? member.Name;
-            (member.IsStatic ? StaticMembers : Members).Add(key, member);
+            if (member.IsStatic) throw new InvalidOperationException("Can't add static members");
+            Members.Add(key, member);
             if (!member.MemberType.IsGenericParameter)
                 Model.Add(member.MemberType);
         }

@@ -86,6 +86,13 @@ namespace ReplicateTest
         {
             public string Name;
         }
+        [ReplicateType]
+        public struct NonSerializedField
+        {
+            [NonSerialized]
+            public string Skipped;
+            public string NotSkipped;
+        }
         #endregion
 
         [Test]
@@ -182,7 +189,7 @@ namespace ReplicateTest
         [TestCase(null, typeof(double[]), "null")]
         [TestCase(true, typeof(bool), "true")]
         [TestCase(false, typeof(bool), "false")]
-        [TestCase(76561198000857379, typeof(long), "76561198000857379")]
+        [TestCase(76561198000857376, typeof(long), "76561198000857376")]
         [TestCase(JSONEnum.One, typeof(JSONEnum), "1")]
         [TestCase("\"", typeof(string), "\"\\\"\"")]
         public void SerializeDeserialize(object obj, Type type, string serialized)
@@ -337,6 +344,17 @@ namespace ReplicateTest
             var output = ser.SerializeString(blob);
             Assert.AreEqual("{\"Blob\": {\"this\": \"is a blob\"}}", output);
             var deser = ser.Deserialize<BlobType>(output);
+        }
+        
+        [Test]
+        public void SkipsNonSerializedFields()
+        {
+            var model = new ReplicationModel();
+            var accessor = model.GetTypeAccessor(typeof(NonSerializedField));
+            Assert.IsNull(accessor.SerializedMembers["Skipped"]);
+            var ser = new JSONSerializer(model);
+            var output = ser.SerializeString(new NonSerializedField() { Skipped = "derp", NotSkipped = "herp" });
+            Assert.AreEqual("{\"NotSkipped\": \"herp\"}", output);
         }
     }
 }

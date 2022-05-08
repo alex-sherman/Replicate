@@ -129,7 +129,7 @@ namespace Replicate.Serialization
             ReadObject(stream, name =>
             {
                 var convertedName = Config.KeyConvert.From?.Invoke(name) ?? name;
-                var childMember = typeAccessor.Members.Values.FirstOrDefault(m => m.Info.Name == convertedName);
+                var childMember = typeAccessor.SerializedMembers.Values.FirstOrDefault(m => m.Info.Name == convertedName);
                 if (childMember == null)
                 {
                     CheckAndThrow(!Config.Strict, $"Unknown field {name}");
@@ -244,7 +244,7 @@ namespace Replicate.Serialization
             }
             using var objTracker = new ObjectTracker(this, obj);
 
-            var objectSet = obj == null ? null : typeAccessor.TypeData.Keys.Select(key =>
+            var objectSet = obj == null ? null : typeAccessor.SerializedMembers.Keys.Select(key =>
             {
                 var member = typeAccessor[key];
                 return (Config.KeyConvert.To?.Invoke(key.Name) ?? key.Name, member.GetValue(obj), member.TypeAccessor, member);

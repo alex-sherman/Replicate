@@ -140,7 +140,7 @@ namespace Replicate.Serialization
             if ((memberAccessor?.IsNullable ?? typeAccessor.IsNullable))
                 stream.WriteInt32((obj == null) ? 0 : 1);
             if (obj == null) return;
-            var objectSet = obj == null ? null : typeAccessor.TypeData.Keys.Select(key =>
+            var objectSet = obj == null ? null : typeAccessor.SerializedMembers.Keys.Select(key =>
             {
                 var member = typeAccessor[key];
                 return (key, member.GetValue(obj), member);
@@ -157,14 +157,14 @@ namespace Replicate.Serialization
         public override object ReadObject(object obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
             if ((memberAccessor?.IsNullable ?? typeAccessor.IsNullable) && (stream.ReadInt32() == 0)) return null;
-            int count = TypePrefix ? stream.ReadInt32() : typeAccessor.Members.Count;
+            int count = TypePrefix ? stream.ReadInt32() : typeAccessor.SerializedMembers.Count;
             if (count == -1) return null;
             if (obj == null)
                 obj = typeAccessor.Construct();
             for (int i = 0; i < count; i++)
             {
                 int id = TypePrefix ? stream.ReadByte() : i;
-                var member = typeAccessor.Members[id];
+                var member = typeAccessor.SerializedMembers[id];
                 member.SetValue(obj, Read(member.GetValue(obj), stream, member.TypeAccessor, member));
             }
             return obj;
