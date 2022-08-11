@@ -16,6 +16,13 @@ namespace Replicate.Serialization
             Stream = stream;
         }
         public Blob(Stream stream) { SetStream(stream); }
+        public static Blob FromString(string str) => str == null ? null : new Blob(new MemoryStream(Encoding.UTF8.GetBytes(str)));
+        public string ReadString() {
+            long position = Stream.Position;
+            var str = Stream.ReadAllString();
+            Stream.Position = position;
+            return str;
+        }
         public Blob() { }
     }
     public struct TypedBlob

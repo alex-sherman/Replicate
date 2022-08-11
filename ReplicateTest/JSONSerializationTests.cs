@@ -93,6 +93,10 @@ namespace ReplicateTest
             public string Skipped;
             public string NotSkipped;
         }
+        [ReplicateType]
+        public class RecursiveType {
+            public RecursiveType Child;
+        }
         #endregion
 
         [Test]
@@ -355,6 +359,17 @@ namespace ReplicateTest
             var ser = new JSONSerializer(model);
             var output = ser.SerializeString(new NonSerializedField() { Skipped = "derp", NotSkipped = "herp" });
             Assert.AreEqual("{\"NotSkipped\": \"herp\"}", output);
+        }
+        
+        [Test]
+        public void SkipsRecursiveChildren()
+        {
+            var model = new ReplicationModel();
+            var ser = new JSONSerializer(model);
+            var recursiveObject = new RecursiveType() { Child = new RecursiveType() };
+            recursiveObject.Child.Child = recursiveObject;
+            var output = ser.SerializeString(recursiveObject);
+            Assert.AreEqual("{\"Child\": {\"Child\": null}}", output);
         }
     }
 }

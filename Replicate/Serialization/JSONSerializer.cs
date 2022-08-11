@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Replicate.MetaData;
 using static Replicate.Serialization.JSONGraphSerializer;
@@ -36,7 +37,7 @@ namespace Replicate.Serialization
             {PrimitiveType.String, stringSer },
         };
 
-        private Stack<object> ObjectStack = new Stack<object>();
+        private ThreadLocal<Stack<object>> ObjectStack = new ThreadLocal<Stack<object>>();
         private struct ObjectTracker : IDisposable
         {
             object Obj;
@@ -45,12 +46,13 @@ namespace Replicate.Serialization
             {
                 Obj = obj;
                 Ser = ser;
-                Ser.ObjectStack.Push(Obj);
+                Ser.ObjectStack.Value.Push(Obj);
             }
             public void Dispose()
             {
-                var obj = Ser.ObjectStack.Pop();
+                var obj = Ser.ObjectStack.Value.Pop();
                 Debug.Assert(obj == Obj);
+                if (Ser.ObjectStack.Value.Count == 0) Ser.ObjectStack.Value = null;
             }
         }
 
@@ -237,7 +239,8 @@ namespace Replicate.Serialization
         public override void WriteObject(Stream stream, object obj, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
             // Prevent circular references
-            if (ObjectStack.Contains(obj))
+            if (ObjectStack.Value == null) ObjectStack.Value = new Stack<object>();
+            if (ObjectStack.Value.Contains(obj))
             {
                 WritePrimitive(stream, null, null, null);
                 return;
