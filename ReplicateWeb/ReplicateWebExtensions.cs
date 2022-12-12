@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -120,6 +121,28 @@ namespace Replicate.Web
                 context.Response.ContentType = "application/json";
                 return context.Response.WriteAsync(serializer.Serialize(Error).ReadAllString());
             }));
+        }
+        public static void UseConfigOptionsAttributes(this IServiceCollection services, IConfiguration config) {
+            var optionTypes = Assembly.GetExecutingAssembly().GetTypes()
+                .Select(t => (Type: t, Attribute: t.GetCustomAttribute<ConfigOptionsAttribute>()))
+                .Where(t => t.Attribute != null).ToList();
+
+            foreach (var optionType in optionTypes) {
+                var methods = typeof(OptionsConfigurationServiceCollectionExtensions).GetMethods(BindingFlags.Static | BindingFlags.Public).ToList();
+                var method = methods.First(m => m.Name == "Configure" && m.GetParameters().Length == 2 && m.GetParameters()[1].ParameterType == typeof(IConfiguration));
+                var bound = method.MakeGenericMethod(optionType.Type);
+                var section = config.GetSection(optionType.Attribute.Section);
+                bound.Invoke(null, new object[] { services, section });
+            }
+        }
+        public static void FillObject(this IServiceProvider services, object obj) {
+            foreach (var field in obj.GetType().GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)) {
+                var attr = field.GetCustomAttribute<FromDIAttribute>(true);
+                if (attr == null) continue;
+                var service = field.FieldType == typeof(IServiceProvider) ? services : services.GetService(field.FieldType);
+                if (service == null) throw new InvalidOperationException($"No service found for {field.FieldType}");
+                field.SetValue(obj, service);
+            }
         }
     }
 }

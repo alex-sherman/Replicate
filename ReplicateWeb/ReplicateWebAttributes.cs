@@ -25,4 +25,10 @@ namespace Replicate.Web
         public string Route;
         public EnvironmentType Environments = EnvironmentType.All;
     }
+    [AttributeUsage(AttributeTargets.Field, AllowMultiple = false, Inherited = true)]
+    public class FromDIAttribute : Attribute { }
+    /// <summary>
+    /// NOTE: Configuration members must be __PROPERTIES__ to be filled in
+    /// </summary>
+    public class ConfigOptionsAttribute : Attribute { public string Section; }
 }
