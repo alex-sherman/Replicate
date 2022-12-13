@@ -85,6 +85,7 @@ namespace Replicate.Web
                     {
                         var method = model.GetMethod(route.Key);
                         var implementation = ActivatorUtilities.CreateInstance(context.RequestServices, method.DeclaringType);
+                        context.RequestServices.FillObject(implementation);
                         var ser = context.RequestServices.GetRequiredService<IReplicateSerializer>();
                         var handler = TypeUtil.CreateHandler(method, _ => implementation);
 

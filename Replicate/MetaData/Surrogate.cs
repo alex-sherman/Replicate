@@ -15,6 +15,9 @@ namespace Replicate.MetaData
         public readonly ConversionGenerator GetConvertTo;
         public readonly ConversionGenerator GetConvertFrom;
         public readonly Func<Type, Type> GetSurrogateType;
+        public static Surrogate Simple<T, U>(Func<T, U> convertTo, Func<U, T> convertFrom) {
+            return new Surrogate(typeof(U), (o, s) => ((r, t) => convertTo((T)t)), (o, s) => ((r, u) => convertFrom((U)u)));
+        }
         public Surrogate(Type type, ConversionGenerator getConvertTo = null,
             ConversionGenerator getConvertFrom = null, Func<Type, Type> getSurrogateType = null)
         {
