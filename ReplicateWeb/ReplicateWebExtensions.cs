@@ -123,8 +123,8 @@ namespace Replicate.Web
                 return context.Response.WriteAsync(serializer.Serialize(Error).ReadAllString());
             }));
         }
-        public static void UseConfigOptionsAttributes(this IServiceCollection services, IConfiguration config) {
-            var optionTypes = Assembly.GetExecutingAssembly().GetTypes()
+        public static void UseConfigOptionsAttributes(this IServiceCollection services, IConfiguration config, Assembly assembly = null) {
+            var optionTypes = (assembly ?? Assembly.GetExecutingAssembly()).GetTypes()
                 .Select(t => (Type: t, Attribute: t.GetCustomAttribute<ConfigOptionsAttribute>()))
                 .Where(t => t.Attribute != null).ToList();
 
