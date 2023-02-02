@@ -124,7 +124,7 @@ namespace Replicate.Web
             }));
         }
         public static void UseConfigOptionsAttributes(this IServiceCollection services, IConfiguration config, Assembly assembly = null) {
-            var optionTypes = (assembly ?? Assembly.GetExecutingAssembly()).GetTypes()
+            var optionTypes = (assembly ?? Assembly.GetEntryAssembly()).GetTypes()
                 .Select(t => (Type: t, Attribute: t.GetCustomAttribute<ConfigOptionsAttribute>()))
                 .Where(t => t.Attribute != null).ToList();
 
