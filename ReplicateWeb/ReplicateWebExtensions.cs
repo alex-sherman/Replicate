@@ -83,6 +83,7 @@ namespace Replicate.Web
                 {
                     e.Map(RoutePatternFactory.Parse(route.Attribute.Route), async context =>
                     {
+                        ILogger logger = context.RequestServices.GetService<ILogger<ReplicateWebRPC>>();
                         var method = model.GetMethod(route.Key);
                         var implementation = ActivatorUtilities.CreateInstance(context.RequestServices, method.DeclaringType);
                         context.RequestServices.FillObject(implementation);
@@ -91,6 +92,7 @@ namespace Replicate.Web
 
                         var stream = new MemoryStream();
                         await context.Request.Body.CopyToAsync(stream);
+                        logger?.LogDebug($"{route.Attribute.Route}({context.TraceIdentifier}) => {Encoding.UTF8.GetString(stream.ToArray())}");
                         stream.Position = 0;
                         await (method.GetCustomAttribute<RPCMiddlewareAttribute>()?.Run(context) ?? Task.FromResult(true));
                         var contract = new RPCContract(method);
@@ -100,11 +102,10 @@ namespace Replicate.Web
                             Endpoint = route.Key,
                             Request = stream.Length == 0 ? null : ser.Deserialize(contract.RequestType, stream)
                         });
-                        ILogger logger = context.RequestServices.GetService<ILogger<ReplicateWebRPC>>();
                         context.Response.ContentType = "application/json";
                         context.Response.StatusCode = 200;
                         var responseString = ser.SerializeString(contract.ResponseType, result);
-                        logger?.LogDebug($"{route.Attribute.Route}({context.TraceIdentifier}) {Encoding.UTF8.GetString(stream.ToArray())} => {responseString}");
+                        logger?.LogDebug($"{route.Attribute.Route}({context.TraceIdentifier}) <= {responseString}");
                         await context.Response.WriteAsync(responseString);
                     });
                 }
@@ -116,7 +117,8 @@ namespace Replicate.Web
             {
                 if (t.Exception == null) return t;
                 var e = t.Exception;
-                context.RequestServices.GetService<ILogger<HTTPError>>()?.LogError(e, "Handler exception");
+                var logger = context.RequestServices.GetService<ILogger<HTTPError>>();
+                logger?.LogError(e, "Handler exception");
                 var (StatusCode, Error) = FromException(e);
                 context.Response.StatusCode = StatusCode;
                 context.Response.ContentType = "application/json";
