@@ -65,10 +65,10 @@ namespace Replicate.MetaData
             var surrogateType = TypeAttribute?.SurrogateType;
             if (surrogateType != null) SetSurrogate(surrogateType);
 
-            var bindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.Static | BindingFlags.NonPublic;
+            var bindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
             var autoMethods = TypeAttribute?.AutoMethods ?? AutoAdd.None;
             // TODO: Enforce unique names of methods
-            Methods = Type.GetMethods(bindingFlags)
+            Methods = Type.GetMethods(bindingFlags| BindingFlags.Static)
                 .Where(meth => meth.DeclaringType.Namespace != "System")
                 .Where(meth => !meth.IsSpecialName)
                 .Where(meth => meth.GetCustomAttribute<ReplicateIgnoreAttribute>() == null)
