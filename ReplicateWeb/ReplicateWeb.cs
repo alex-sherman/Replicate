@@ -32,7 +32,7 @@ namespace Replicate.Web
         All = Development | Staging | Production,
         NotProd = Development | Staging,
     }
-    public static class ReplicateWebExtensions
+    public static class ReplicateWeb
     {
         public static EnvironmentType GetEnvironmentType(this IWebHostEnvironment env)
         {
@@ -41,6 +41,7 @@ namespace Replicate.Web
             if (env.IsProduction()) return EnvironmentType.Production;
             return EnvironmentType.None;
         }
+        public static EnvironmentType Environment { get; private set; }
         public static (int StatusCode, ErrorData Error) FromException(Exception exception)
         {
             while (exception is AggregateException aggregate && aggregate.InnerExceptions.Count == 1)
@@ -67,6 +68,7 @@ namespace Replicate.Web
         }
         public static void UseEndpoints(this IApplicationBuilder app, IWebHostEnvironment env, ReplicationModel model)
         {
+            Environment = env?.GetEnvironmentType() ?? EnvironmentType.None;
             model.LoadTypes(typeof(ErrorData).Assembly);
             var serviceTypes = model.Types.Values.Where(t => t.Type.GetCustomAttribute<ReplicateRouteAttribute>() != null).ToList();
             var implTypes = serviceTypes
@@ -76,7 +78,7 @@ namespace Replicate.Web
                 .Where(t => t != null).ToList();
             var routes = implTypes.SelectMany(t => t.Methods)
                 .Select(m => (Attribute: GetRouteAttribute(m), Key: model.MethodKey(m)))
-                .Where(route => route.Attribute.Environments.HasFlag(env?.GetEnvironmentType() ?? EnvironmentType.None));
+                .Where(route => route.Attribute.Environments.HasFlag(Environment));
             app.UseEndpoints(e =>
             {
                 foreach (var route in routes)
