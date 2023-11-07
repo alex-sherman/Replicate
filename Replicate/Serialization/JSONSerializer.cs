@@ -309,11 +309,8 @@ namespace Replicate.Serialization
             ReadToken(substream);
             substream.SetLength(substream.Position);
             substream.Position = 0;
-            var memoryStream = new MemoryStream((int)substream.Length);
-            substream.CopyTo(memoryStream);
-            var blob = obj ?? (Blob)typeAccessor.Construct();
-            memoryStream.Position = 0;
-            blob.SetStream(memoryStream);
+            var blob = obj ?? new Blob();
+            blob.SetStream(substream);
             return blob;
         }
     }

@@ -337,7 +337,7 @@ namespace ReplicateTest
             Assert.AreEqual("{\"NullableValue\": 1}", output);
         }
         [Test]
-        public void Blob()
+        public void BlobTest()
         {
             var str = "{\"this\": \"is a blob\"}";
             var ser = new JSONSerializer(new ReplicationModel());
@@ -348,6 +348,19 @@ namespace ReplicateTest
             var output = ser.SerializeString(blob);
             Assert.AreEqual("{\"Blob\": {\"this\": \"is a blob\"}}", output);
             var deser = ser.Deserialize<BlobType>(output);
+        }
+        [Test]
+        public void BlobSerializesTwice()
+        {
+            var ser = new JSONSerializer(new ReplicationModel());
+            var blob = Blob.FromString("{\"this\": \"is a blob\"}");
+            var output = ser.SerializeString(blob);
+            Assert.AreEqual("{\"this\": \"is a blob\"}", output);
+            output = ser.SerializeString(blob);
+            Assert.AreEqual("{\"this\": \"is a blob\"}", output);
+            output = ser.SerializeString(blob);
+            Assert.AreEqual("{\"this\": \"is a blob\"}", output);
+            var deser = ser.Deserialize<Blob>(output);
         }
         
         [Test]
