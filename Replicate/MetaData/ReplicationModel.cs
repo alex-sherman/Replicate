@@ -121,11 +121,9 @@ namespace Replicate.MetaData
             ));
             var repNodeTypeData = Add(typeof(IRepNode));
             repNodeTypeData.MarshallMethod = MarshallMethod.None;
+            Add(typeof(RepKeyValuePair<,>));
             var kvpTD = Add(typeof(KeyValuePair<,>));
-            kvpTD.MarshallMethod = MarshallMethod.Object;
-            kvpTD.AddMember("Key");
-            kvpTD.AddMember("Value");
-            kvpTD.SetTupleSurrogate();
+            kvpTD.SetSurrogate(new Surrogate(typeof(RepKeyValuePair<,>)));
             LoadTypes();
         }
 
