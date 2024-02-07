@@ -323,6 +323,30 @@ namespace ReplicateTest
             Assert.AreEqual(null, output.ObjectField);
         }
         [Test]
+        public void StrictObjectMistmatchException()
+        {
+            var ser = new JSONSerializer(new ReplicationModel(), new JSONSerializer.Configuration() { Strict = true });
+            Assert.Throws(typeof(SerializationError), () => ser.Deserialize<ObjectWithArrayField>("3"));
+        }
+        [Test]
+        public void NonStrictObjectMismatchNull()
+        {
+            var ser = new JSONSerializer(new ReplicationModel(), new JSONSerializer.Configuration() { Strict = false });
+            Assert.AreEqual(null, ser.Deserialize<ObjectWithArrayField>("3"));
+        }
+        [Test]
+        public void StrictArrayMistmatchException()
+        {
+            var ser = new JSONSerializer(new ReplicationModel(), new JSONSerializer.Configuration() { Strict = true });
+            Assert.Throws(typeof(SerializationError), () => ser.Deserialize<List<int>>("3"));
+        }
+        [Test]
+        public void NonStrictArrayMismatchNull()
+        {
+            var ser = new JSONSerializer(new ReplicationModel(), new JSONSerializer.Configuration() { Strict = false });
+            Assert.AreEqual(null, ser.Deserialize<List<int>>("3"));
+        }
+        [Test]
         public void SkipsNullFields()
         {
             var ser = new JSONSerializer(new ReplicationModel());

@@ -65,9 +65,14 @@ namespace Replicate.Serialization
         static Regex ws = new Regex("\\s");
         static bool IsW(char c) => ws.IsMatch("" + c);
 
-        private void ReadCollection(Stream stream, Action onEntry)
+        private bool ReadCollection(Stream stream, Action onEntry)
         {
-            if (stream.ReadCharOne() != '[') throw new SerializationError();
+            if (stream.ReadCharOne(true) != '[') {
+                if (Config.Strict) throw new SerializationError();
+                ReadToken(stream);
+                return false;
+            }
+            stream.ReadCharOne();
             stream.ReadAllString(IsW);
             char nextChar = stream.ReadCharOne(true);
             if (nextChar == ']') stream.ReadCharOne();
@@ -80,6 +85,7 @@ namespace Replicate.Serialization
                 nextChar = stream.ReadCharOne();
                 CheckAndThrow(nextChar == ',' || nextChar == ']');
             };
+            return true;
         }
         public override object ReadCollection(object obj, Stream stream, TypeAccessor typeAccessor, TypeAccessor collectionValueAccessor, MemberAccessor memberAccessor)
         {
@@ -88,7 +94,7 @@ namespace Replicate.Serialization
             {
                 if (obj == null) obj = typeAccessor.Construct();
                 var dict = obj as IDictionary;
-                ReadObject(stream, name =>
+                return ReadObject(stream, name =>
                 {
                     var keyType = Model.GetTypeAccessor(typeAccessor.Type.GetGenericArguments()[0]);
                     var valueType = Model.GetTypeAccessor(typeAccessor.Type.GetGenericArguments()[1]);
@@ -96,18 +102,22 @@ namespace Replicate.Serialization
                     if (keyType.Surrogate != null) key = keyType.Surrogate.ConvertFrom(this, key);
                     var value = Read(dict[key], stream, valueType, null);
                     dict[key] = value;
-                });
-                return obj;
+                }) ? obj : null;
             }
 
             List<object> values = new List<object>();
-            ReadCollection(stream, () => values.Add(Read(null, stream, collectionValueAccessor, null)));
-            return CollectionUtil.FillCollection(obj, typeAccessor.Type, values);
+            return ReadCollection(stream, () => values.Add(Read(null, stream, collectionValueAccessor, null)))
+                ? CollectionUtil.FillCollection(obj, typeAccessor.Type, values) : null;
         }
 
-        public void ReadObject(Stream stream, Action<string> onEntry)
+        private bool ReadObject(Stream stream, Action<string> onEntry)
         {
-            if (stream.ReadCharOne() != '{') throw new SerializationError();
+            if (stream.ReadCharOne(true) != '{') {
+                if (Config.Strict) throw new SerializationError();
+                ReadToken(stream);
+                return false;
+            }
+            stream.ReadCharOne();
             stream.ReadAllString(IsW);
             char nextChar = stream.ReadCharOne(true);
             if (nextChar == '}') stream.ReadCharOne();
@@ -123,12 +133,13 @@ namespace Replicate.Serialization
                 nextChar = stream.ReadCharOne();
                 CheckAndThrow(nextChar == ',' || nextChar == '}');
             };
+            return true;
         }
         public override object ReadObject(object obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
         {
             if (ReadNull(stream)) return null;
             if (obj == null) obj = typeAccessor.Construct();
-            ReadObject(stream, name =>
+            return ReadObject(stream, name =>
             {
                 var convertedName = Config.KeyConvert.From?.Invoke(name) ?? name;
                 var childMember = typeAccessor.SerializedMembers.Values.FirstOrDefault(m => m.Info.Name == convertedName);
@@ -140,8 +151,7 @@ namespace Replicate.Serialization
                 }
                 var value = Read(childMember.GetValue(obj), stream, childMember.TypeAccessor, childMember);
                 childMember.SetValue(obj, value);
-            });
-            return obj;
+            }) ? obj : null;
         }
 
         public PrimitiveType PeekPrimitiveType(Stream stream)

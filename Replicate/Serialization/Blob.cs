@@ -1,12 +1,14 @@
 ﻿using Replicate.MetaData;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Replicate.Serialization {
+    [DebuggerDisplay("{String}")]
     public class Blob {
         byte[] Bytes;
         public Stream Stream { get => new MemoryStream(Bytes); }
@@ -19,6 +21,10 @@ namespace Replicate.Serialization {
         public Blob(string str) : this(str == null ? null : Encoding.UTF8.GetBytes(str)) { }
         public static Blob FromString(string str) => new Blob(str);
         public string ReadString() => Bytes == null ? null : Encoding.UTF8.GetString(Bytes);
+        public string String {
+            get => ReadString();
+            set => Bytes = value == null ? null : Encoding.UTF8.GetBytes(value);
+        }
         public Blob() { }
     }
     public struct TypedBlob {
