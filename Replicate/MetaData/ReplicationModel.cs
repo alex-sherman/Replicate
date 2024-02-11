@@ -79,7 +79,10 @@ namespace Replicate.MetaData
             if (value == null || dest.TypeData.MarshallMethod == MarshallMethod.None) return value;
             if (dest.Type.IsEnum)
             {
-                if (value is string str) return Enum.Parse(dest.Type, str);
+                if (value is string str) {
+                    if (string.IsNullOrEmpty(str)) return null;
+                    return Enum.Parse(dest.Type, str);
+                }
                 return Enum.ToObject(dest.Type, Convert.ChangeType(value, typeof(int)));
             }
             return Convert.ChangeType(value, dest.Type);
