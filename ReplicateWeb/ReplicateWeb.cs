@@ -96,7 +96,10 @@ namespace Replicate.Web
                         await context.Request.Body.CopyToAsync(stream);
                         logger?.LogDebug($"{route.Attribute.Route}({context.TraceIdentifier}) => {Encoding.UTF8.GetString(stream.ToArray())}");
                         stream.Position = 0;
-                        await (method.GetCustomAttribute<RPCMiddlewareAttribute>()?.Run(context) ?? Task.FromResult(true));
+                        foreach(var attr in method.GetCustomAttributes<RPCMiddlewareAttribute>())
+                        {
+                            await attr.Run(context);
+                        }
                         var contract = new RPCContract(method);
                         var result = await handler(new RPCRequest()
                         {
