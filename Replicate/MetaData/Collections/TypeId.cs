@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Replicate.MetaData.Policy;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,6 +11,7 @@ namespace Replicate.MetaData
     public struct TypeId
     {
         public RepKey Id;
+        [SkipNull]
         public TypeId[] Subtypes;
 
         public override bool Equals(object obj)

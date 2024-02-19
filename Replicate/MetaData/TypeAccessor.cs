@@ -26,7 +26,7 @@ namespace Replicate.MetaData
                 if (!Type.IsSameGeneric(typeof(Dictionary<,>))) return false;
                 var keyType = Type.GetGenericArguments()[0];
                 if (keyType == typeof(string)
-                    || TypeData.Model[keyType].Surrogate?.Type == typeof(string))
+                    || TypeData.Model[keyType].Surrogate?.GetSurrogateType(keyType) == typeof(string))
                     return true;
                 return false;
             }

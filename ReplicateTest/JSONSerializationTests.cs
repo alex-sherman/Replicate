@@ -408,5 +408,32 @@ namespace ReplicateTest
             var output = ser.SerializeString(recursiveObject);
             Assert.AreEqual("{\"Child\": {\"Child\": null}}", output);
         }
+        [ReplicateType]
+        public class Parent { }
+        [ReplicateType]
+        public class ChildA : Parent{ public int Field = 3; }
+        [ReplicateType]
+        public class ChildB : Parent{ public string Property { get; set; } = "herp"; }
+        [Test]
+        public void ParentPolymorphism() {
+            var model = new ReplicationModel();
+            var ser = new JSONSerializer(model);
+            model[typeof(Parent)].UseTypedBlob();
+            Parent parentObjectA = new ChildA();
+            var outputA = ser.SerializeString(parentObjectA);
+            var deserParentA = ser.Deserialize<Parent>(outputA);
+            Assert.AreEqual(deserParentA.GetType(), typeof(ChildA));
+            Assert.AreEqual((deserParentA as ChildA).Field, 3);
+
+            Parent parentObjectB = new ChildB();
+            var outputB = ser.SerializeString(parentObjectB);
+            var deserParentB = ser.Deserialize<Parent>(outputB);
+            Assert.AreEqual(deserParentB.GetType(), typeof(ChildB));
+            Assert.AreEqual((deserParentB as ChildB).Property, "herp");
+
+            Assert.Throws(typeof(InvalidOperationException), () => {
+                ser.Deserialize<Parent>(ser.SerializeString(new Parent()));
+            });
+        }
     }
 }

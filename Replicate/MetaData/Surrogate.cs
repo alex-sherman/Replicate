@@ -11,7 +11,6 @@ namespace Replicate.MetaData
     {
         public delegate object Conversion(IReplicateSerializer serializer, object source);
         public delegate Conversion ConversionGenerator(TypeAccessor originalType, TypeAccessor surrogateType);
-        public readonly Type Type;
         public readonly ConversionGenerator GetConvertTo;
         public readonly ConversionGenerator GetConvertFrom;
         public readonly Func<Type, Type> GetSurrogateType;
@@ -19,15 +18,16 @@ namespace Replicate.MetaData
             return new Surrogate(typeof(U), (o, s) => ((r, t) => convertTo((T)t)), (o, s) => ((r, u) => convertFrom((U)u)));
         }
         public Surrogate(Type type, ConversionGenerator getConvertTo = null,
-            ConversionGenerator getConvertFrom = null, Func<Type, Type> getSurrogateType = null)
-        {
-            Type = type;
-            GetSurrogateType = getSurrogateType ?? (originalType =>
+            ConversionGenerator getConvertFrom = null) : this(originalType =>
             {
                 // TODO: This is untested and maybe confusing?
-                if (!Type.IsGenericTypeDefinition) return Type;
-                return Type.MakeGenericType(originalType.GetGenericArguments());
-            });
+                if (!type.IsGenericTypeDefinition) return type;
+                return type.MakeGenericType(originalType.GetGenericArguments());
+            }, getConvertTo, getConvertFrom) { }
+        public Surrogate(Func<Type, Type> getSurrogateType, ConversionGenerator getConvertTo = null,
+            ConversionGenerator getConvertFrom = null)
+        {
+            GetSurrogateType = getSurrogateType;
             GetConvertTo = getConvertTo ?? ((originalAccessor, surrogateAccessor) =>
             {
                 var originalType = originalAccessor.Type;
