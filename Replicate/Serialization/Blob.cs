@@ -32,6 +32,19 @@ namespace Replicate.Serialization {
         public TypeId Type;
         [Replicate]
         public Blob Value;
+        public static Surrogate MakeSurrogate(Type fromType, bool throwIfSameType = true) {
+            string message = "Cannot serialize parent directly, add an intermediate or use a member surrogate instead.";
+            return new Surrogate(
+                (sourceType) => typeof(TypedBlob),
+                (ta, __) => (s, source) => {
+                    if (throwIfSameType && source.GetType() == fromType) throw new InvalidOperationException(message);
+                    return ConvertTo(s, source);
+                },
+                (ta, __) => (s, dest) => {
+                    if (throwIfSameType && dest.GetType() == fromType) throw new InvalidOperationException(message);
+                    return ConvertFrom(s, dest);
+                });
+        }
         public static object ConvertTo(IReplicateSerializer serializer, object obj) {
             if (obj == null) return null;
             var type = obj.GetType();

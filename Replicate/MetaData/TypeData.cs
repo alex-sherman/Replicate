@@ -124,19 +124,6 @@ namespace Replicate.MetaData
             Model.SurrogateTypes.Add(Model.GetTypeData(surrogate.GetSurrogateType(Type)).Type);
             Surrogate = surrogate;
         }
-        public void UseTypedBlob() {
-            string message = "Cannot serialize parent directly, add an intermediate or use a member surrogate instead.";
-            SetSurrogate(new Surrogate(
-                (sourceType) => typeof(TypedBlob),
-                (ta, __) => (s, source) => {
-                    if (source.GetType() == Type) throw new InvalidOperationException(message);
-                    return TypedBlob.ConvertTo(s, source);
-                },
-                (ta, __) => (s, dest) => {
-                    if (dest.GetType() == Type) throw new InvalidOperationException(message);
-                    return TypedBlob.ConvertFrom(s, dest);
-                }));
-        }
         public override string ToString()
         {
             return $"{Name}";

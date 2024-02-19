@@ -411,6 +411,8 @@ namespace ReplicateTest
         [ReplicateType]
         public class Parent { }
         [ReplicateType]
+        public class ClassWithParent { public Parent Parent; }
+        [ReplicateType]
         public class ChildA : Parent{ public int Field = 3; }
         [ReplicateType]
         public class ChildB : Parent{ public string Property { get; set; } = "herp"; }
@@ -418,7 +420,7 @@ namespace ReplicateTest
         public void ParentPolymorphism() {
             var model = new ReplicationModel();
             var ser = new JSONSerializer(model);
-            model[typeof(Parent)].UseTypedBlob();
+            model[typeof(Parent)].SetSurrogate(TypedBlob.MakeSurrogate(typeof(Parent)));
             Parent parentObjectA = new ChildA();
             var outputA = ser.SerializeString(parentObjectA);
             var deserParentA = ser.Deserialize<Parent>(outputA);
@@ -434,6 +436,29 @@ namespace ReplicateTest
             Assert.Throws(typeof(InvalidOperationException), () => {
                 ser.Deserialize<Parent>(ser.SerializeString(new Parent()));
             });
+        }
+        [Test]
+        public void ParentPolymorphismFromMember() {
+            var model = new ReplicationModel();
+            var ser = new JSONSerializer(model);
+            model[typeof(ClassWithParent)][nameof(ClassWithParent.Parent)]
+                .SetSurrogate(TypedBlob.MakeSurrogate(typeof(Parent), throwIfSameType: false));
+            var parentObjectA = new ClassWithParent() { Parent = new ChildA() };
+            var outputA = ser.SerializeString(parentObjectA);
+            var deserParentA = ser.Deserialize<ClassWithParent>(outputA);
+            Assert.AreEqual(deserParentA.Parent.GetType(), typeof(ChildA));
+            Assert.AreEqual((deserParentA.Parent as ChildA).Field, 3);
+
+            var parentObjectB = new ClassWithParent() { Parent = new ChildB() };
+            var outputB = ser.SerializeString(parentObjectB);
+            var deserParentB = ser.Deserialize<ClassWithParent>(outputB);
+            Assert.AreEqual(deserParentB.Parent.GetType(), typeof(ChildB));
+            Assert.AreEqual((deserParentB.Parent as ChildB).Property, "herp");
+
+            var parentObject = new ClassWithParent() { Parent = new Parent() };
+            var output = ser.SerializeString(parentObject);
+            var deserParent = ser.Deserialize<ClassWithParent>(output);
+            Assert.AreEqual(deserParent.Parent.GetType(), typeof(Parent));
         }
     }
 }
