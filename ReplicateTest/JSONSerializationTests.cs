@@ -47,6 +47,12 @@ namespace ReplicateTest
             public int? NullableValue;
         }
         [ReplicateType]
+        public class ObjectWithSkipEmptyField
+        {
+            [SkipEmpty]
+            public List<int> List = new List<int>();
+        }
+        [ReplicateType]
         public class SubClass : PropClass
         {
             [Replicate]
@@ -352,6 +358,17 @@ namespace ReplicateTest
             var ser = new JSONSerializer(new ReplicationModel());
             var output = ser.SerializeString(new ObjectWithNullableField());
             Assert.AreEqual("{}", output);
+        }
+        [Test]
+        public void SkipsEmptyFields()
+        {
+            var ser = new JSONSerializer(new ReplicationModel());
+            var output = ser.SerializeString(new ObjectWithSkipEmptyField());
+            Assert.AreEqual("{}", output);
+            output = ser.SerializeString(new ObjectWithSkipEmptyField() { List = { 1 } });
+            Assert.AreEqual("{\"List\": [1]}", output);
+            output = ser.SerializeString(new ObjectWithSkipEmptyField() { List = null });
+            Assert.AreEqual("{\"List\": null}", output);
         }
         [Test]
         public void IncludesNotNullFields()

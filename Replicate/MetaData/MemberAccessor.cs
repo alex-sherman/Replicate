@@ -14,6 +14,7 @@ namespace Replicate.MetaData
         private Action<object, object> setter;
         public MemberInfo Info { get; private set; }
         public readonly bool SkipNull;
+        public readonly bool SkipEmpty;
         public readonly bool IsNullable;
         public TypeAccessor TypeAccessor { get; private set; }
         public SurrogateAccessor Surrogate { get; private set; }
@@ -30,6 +31,9 @@ namespace Replicate.MetaData
                 Surrogate = new SurrogateAccessor(TypeAccessor, info.Surrogate, model);
             Info = info;
             SkipNull = info.GetAttribute<SkipNullAttribute>() != null;
+            SkipEmpty = info.GetAttribute<SkipEmptyAttribute>() != null;
+            if (SkipEmpty && TypeAccessor.TypeData.MarshallMethod != MarshallMethod.Collection)
+                throw new InvalidOperationException("Can't SkipEmpty on a non-collection type");
             IsNullable = info.GetAttribute<NullableAttribute>() != null
                 || (TypeAccessor.IsNullable && info.GetAttribute<NonNullAttribute>() == null);
             if (info.Field != null)

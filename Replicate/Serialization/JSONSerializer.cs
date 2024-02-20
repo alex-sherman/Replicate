@@ -225,7 +225,10 @@ namespace Replicate.Serialization
                 stream.WriteString("]");
             }
         }
-
+        bool IsEnumerableEmpty(IEnumerable enumerable) {
+            foreach(var item in enumerable) return false;
+            return true;
+        }
         public void SerializeObject(Stream stream, IEnumerable<(string key, object value, TypeAccessor type, MemberAccessor member)> obj)
         {
             if (obj == null)
@@ -237,6 +240,7 @@ namespace Replicate.Serialization
                 foreach (var (key, value, type, member) in obj)
                 {
                     if ((member?.SkipNull ?? false) && value == null) continue;
+                    if (value != null && (member?.SkipEmpty ?? false) && IsEnumerableEmpty((IEnumerable)value)) continue;
                     if (!first) stream.WriteString(", ");
                     else first = false;
                     stream.WriteString($"\"{key}\": ");
