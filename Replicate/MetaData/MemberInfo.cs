@@ -43,20 +43,22 @@ namespace Replicate.MetaData
             if (GetAttribute<AsReferenceAttribute>() != null)
                 SetSurrogate(typeof(ReplicatedReference<>).MakeGenericType(MemberType));
         }
-        public Type GetMemberType(Type declaringType)
+        public Type GetMemberType(Type memberType)
         {
             if (IsGenericParameter)
-                return declaringType.GetGenericArguments()[GenericParameterPosition];
+                return memberType.GetGenericArguments()[GenericParameterPosition];
             else
                 return MemberType;
         }
-        public FieldInfo GetField(Type declaringType)
+        public FieldInfo GetField(Type memberType)
         {
-            return declaringType.GetField(Name, BindingAll);
+            // Private does not work on derived types, find the declaring type's field.
+            return memberType.GetField(Name, BindingAll).DeclaringType.GetField(Name, BindingAll);
         }
-        public PropertyInfo GetProperty(Type declaringType)
+        public PropertyInfo GetProperty(Type memberType)
         {
-            return declaringType.GetProperty(Name, BindingAll);
+            // Private does not work on derived types, find the declaring type's property.
+            return memberType.GetProperty(Name, BindingAll).DeclaringType.GetProperty(Name, BindingAll);
         }
         public void SetSurrogate(Surrogate surrogate)
         {

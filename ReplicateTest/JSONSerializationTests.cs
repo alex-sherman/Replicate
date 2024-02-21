@@ -426,13 +426,13 @@ namespace ReplicateTest
             Assert.AreEqual("{\"Child\": {\"Child\": null}}", output);
         }
         [ReplicateType]
-        public class Parent { }
+        public class Parent { public Parent() { } public Parent(float herp) { Herp = herp; } public float Herp {get; private set; } }
         [ReplicateType]
         public class ClassWithParent { public Parent Parent; }
         [ReplicateType]
-        public class ChildA : Parent{ public int Field = 3; }
+        public class ChildA : Parent { public ChildA(){ } public ChildA(float herp) : base(herp) { } public int Field = 3; }
         [ReplicateType]
-        public class ChildB : Parent{ public string Property { get; set; } = "herp"; }
+        public class ChildB : Parent { public string Property { get; set; } = "herp"; }
         [Test]
         public void ParentPolymorphism() {
             var model = new ReplicationModel();
@@ -476,6 +476,19 @@ namespace ReplicateTest
             var output = ser.SerializeString(parentObject);
             var deserParent = ser.Deserialize<ClassWithParent>(output);
             Assert.AreEqual(deserParent.Parent.GetType(), typeof(Parent));
+        }
+        [Test]
+        public void ParentPropertyWithPrivateAccessor() {
+            var model = new ReplicationModel(false);
+            model.Add(typeof(Parent));
+            model.Add(typeof(ChildA));
+            var ser = new JSONSerializer(model, new JSONSerializer.Configuration() { Strict = false });
+            var deser = ser.Deserialize<Parent>(ser.SerializeString(new Parent(1)));
+            Assert.AreEqual(deser.Herp, 1);
+            deser = ser.Deserialize<Parent>(ser.SerializeString(new ChildA(1)));
+            Assert.AreEqual(deser.Herp, 1);
+            deser = ser.Deserialize<ChildA>(ser.SerializeString(new ChildA(1)));
+            Assert.AreEqual(deser.Herp, 1);
         }
     }
 }
