@@ -88,7 +88,6 @@ namespace Replicate.Web
                         ILogger logger = context.RequestServices.GetService<ILogger<ReplicateWebRPC>>();
                         var method = model.GetMethod(route.Key);
                         var implementation = ActivatorUtilities.CreateInstance(context.RequestServices, method.DeclaringType);
-                        context.RequestServices.FillObject(implementation);
                         var ser = context.RequestServices.GetRequiredService<IReplicateSerializer>();
                         var handler = TypeUtil.CreateHandler(method, _ => implementation);
 
@@ -147,8 +146,7 @@ namespace Replicate.Web
             foreach (var field in obj.GetType().GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)) {
                 var attr = field.GetCustomAttribute<FromDIAttribute>(true);
                 if (attr == null) continue;
-                var service = field.FieldType == typeof(IServiceProvider) ? services : services.GetService(field.FieldType);
-                if (service == null) throw new InvalidOperationException($"No service found for {field.FieldType}");
+                var service = field.FieldType == typeof(IServiceProvider) ? services : services.GetRequiredService(field.FieldType);
                 field.SetValue(obj, service);
             }
         }

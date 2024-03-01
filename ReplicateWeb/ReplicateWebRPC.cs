@@ -17,6 +17,7 @@ namespace Replicate.Web
         public ReplicateWebRPC(IServiceProvider services)
         {
             Services = services;
+
             // If this fails, add `services.AddHttpContextAccessor();` in startup
             contextAccessor = Services.GetRequiredService<IHttpContextAccessor>();
         }
