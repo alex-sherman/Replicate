@@ -490,5 +490,11 @@ namespace ReplicateTest
             deser = ser.Deserialize<ChildA>(ser.SerializeString(new ChildA(1)));
             Assert.AreEqual(deser.Herp, 1);
         }
+        [Test]
+        public void TrailingCommaInArray() {
+            var model = new ReplicationModel(false);
+            var ser = new JSONSerializer(model, new JSONSerializer.Configuration() { Strict = false });
+            CollectionAssert.AreEqual(new[] { 1 }, ser.Deserialize<List<int>>("[1,]"));
+        }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -26,7 +27,8 @@ namespace Replicate
     }
     public class SerializationError : ReplicateError
     {
-        public SerializationError(string message) : base(message) { }
+        public SerializationError(Stream stream) : base($"Error at position {stream.Position}") { }
+        public SerializationError(string message, Stream stream) : base($"Error at position {stream.Position}: {message}") { }
         public SerializationError(string message, Exception exception) : base(message, exception) { }
         public SerializationError() { }
     }

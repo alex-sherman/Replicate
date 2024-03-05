@@ -43,7 +43,8 @@ namespace Replicate.Serialization
             public object Read(Stream stream)
             {
                 string s = stream.ReadAllString(c => rx.IsMatch("" + c));
-                return double.Parse(s);
+                if (double.TryParse(s, out var result)) return result;
+                throw new SerializationError("Invalid number", stream);
             }
             public void Write(object obj, Stream stream) => stream.WriteString(obj.ToString());
         }

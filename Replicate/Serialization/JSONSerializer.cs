@@ -56,10 +56,14 @@ namespace Replicate.Serialization
             }
         }
 
-        static void CheckAndThrow(bool condition, string message = null)
+        static void CheckAndThrow(Stream stream, bool condition, string message = null)
         {
-            if (!condition)
-                throw new SerializationError(message);
+            if (!condition) {
+                if (message == null)
+                    throw new SerializationError(stream);
+                else
+                    throw new SerializationError(message, stream);
+            }
         }
 
         static Regex ws = new Regex("\\s");
@@ -79,11 +83,17 @@ namespace Replicate.Serialization
             while (nextChar != ']')
             {
                 stream.ReadAllString(IsW);
+                // Handle trailing commas.
+                var peekChar = stream.ReadCharOne(true);
+                if (peekChar == ']') {
+                    nextChar = stream.ReadCharOne();
+                    break;
+                }
                 onEntry();
 
                 stream.ReadAllString(IsW);
                 nextChar = stream.ReadCharOne();
-                CheckAndThrow(nextChar == ',' || nextChar == ']');
+                CheckAndThrow(stream, nextChar == ',' || nextChar == ']');
             };
             return true;
         }
@@ -126,12 +136,12 @@ namespace Replicate.Serialization
                 stream.ReadAllString(IsW);
                 var name = stringSer.Read(stream);
                 stream.ReadAllString(IsW);
-                CheckAndThrow(stream.ReadCharOne() == ':');
+                CheckAndThrow(stream, stream.ReadCharOne() == ':');
                 stream.ReadAllString(IsW);
                 onEntry(name);
                 stream.ReadAllString(IsW);
                 nextChar = stream.ReadCharOne();
-                CheckAndThrow(nextChar == ',' || nextChar == '}');
+                CheckAndThrow(stream, nextChar == ',' || nextChar == '}');
             };
             return true;
         }
@@ -145,7 +155,7 @@ namespace Replicate.Serialization
                 var childMember = typeAccessor.SerializedMembers.Values.FirstOrDefault(m => m.Info.Name == convertedName);
                 if (childMember == null)
                 {
-                    CheckAndThrow(!Config.Strict, $"Unknown field {name}");
+                    CheckAndThrow(stream, !Config.Strict, $"Unknown field {name}");
                     ReadToken(stream);
                     return;
                 }
@@ -186,7 +196,7 @@ namespace Replicate.Serialization
             stream.ReadAllString(IsW);
             if (stream.ReadCharOne(true) == 'n')
             {
-                CheckAndThrow(stream.ReadChars(4) == "null");
+                CheckAndThrow(stream, stream.ReadChars(4) == "null");
                 return true;
             }
             return false;
