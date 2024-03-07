@@ -326,12 +326,12 @@ namespace Replicate.MetaData
                     ?? assemblies.Select(a => a.GetType(typeName)).Where(t => t != null).FirstOrDefault();
                 if (found != null) return found;
             }
-            else
+            else if (Builder != null)
             {
                 var found = Builder.GetType(type.Key.Name);
                 if (found != null) return found;
             }
-            if (type.IsFake || fakeMissing)
+            if (Builder != null && (type.IsFake || fakeMissing))
             {
                 var fake = new Fake(type.Key.Name, Builder);
                 if (type.GenericParameters != null)
