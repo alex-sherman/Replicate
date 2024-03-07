@@ -20,6 +20,12 @@ namespace Replicate.MetaData
         public SurrogateAccessor Surrogate { get; private set; }
         public Type Type { get; private set; }
         public Type DeclaringType { get; private set; }
+        private static readonly bool AllowEmit = true;
+        static MemberAccessor() {
+            try {
+                new DynamicMethod("getter", typeof(object), new Type[] { typeof(object) });
+            } catch { AllowEmit = false; }
+        }
 
         public MemberAccessor(MemberInfo info, TypeAccessor declaringType, ReplicationModel model)
         {
@@ -38,20 +44,25 @@ namespace Replicate.MetaData
                 || (TypeAccessor.IsNullable && info.GetAttribute<NonNullAttribute>() == null);
             if (info.Field != null)
             {
-                var meth = new DynamicMethod("getter", typeof(object), new Type[] { typeof(object) });
-                var il = meth.GetILGenerator();
-                il.Emit(OpCodes.Ldarg, 0);
-                if (DeclaringType.IsValueType)
-                    il.Emit(OpCodes.Unbox, DeclaringType);
-                else
-                    il.Emit(OpCodes.Castclass, DeclaringType);
-                il.Emit(OpCodes.Ldfld, info.GetField(DeclaringType));
-                if (Type.IsValueType)
-                    il.Emit(OpCodes.Box, Type);
-                il.Emit(OpCodes.Ret);
-                getter = (Func<object, object>)meth.CreateDelegate(
-                    typeof(Func<object, object>));
-                setter = info.GetField(DeclaringType).SetValue;
+                if (AllowEmit) {
+                    var meth = new DynamicMethod("getter", typeof(object), new Type[] { typeof(object) });
+                    var il = meth.GetILGenerator();
+                    il.Emit(OpCodes.Ldarg, 0);
+                    if (DeclaringType.IsValueType)
+                        il.Emit(OpCodes.Unbox, DeclaringType);
+                    else
+                        il.Emit(OpCodes.Castclass, DeclaringType);
+                    il.Emit(OpCodes.Ldfld, info.GetField(DeclaringType));
+                    if (Type.IsValueType)
+                        il.Emit(OpCodes.Box, Type);
+                    il.Emit(OpCodes.Ret);
+                    getter = (Func<object, object>)meth.CreateDelegate(
+                        typeof(Func<object, object>));
+                    setter = info.GetField(DeclaringType).SetValue;
+                } else {
+                    getter = info.GetField(DeclaringType).GetValue;
+                    setter = info.GetField(DeclaringType).SetValue;
+                }
             }
             else
             {
