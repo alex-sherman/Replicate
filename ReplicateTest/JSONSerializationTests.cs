@@ -452,6 +452,10 @@ namespace ReplicateTest {
             public int Num;
         }
         [ReplicateType]
+        public struct ChildWithSurrogate {
+            public int Num;
+        }
+        [ReplicateType]
         public enum Enum {
             A, B, C
         }
@@ -459,13 +463,16 @@ namespace ReplicateTest {
         public void NestedStructType() {
             var model = new ReplicationModel(false) { DictionaryAsObject = true };
             model.Add(typeof(ChildStruct));
+            model.Add(typeof(ChildWithSurrogate)).SetSurrogate(Surrogate.Simple<ChildWithSurrogate, int>(c => c.Num, n => new ChildWithSurrogate() { Num = n }));
             model.Add(typeof(ParentStruct));
             model.Add(typeof(Enum));
             var ser = new JSONSerializer(model);
             var str = ser.SerializeString(new ParentStruct() { Child = new ChildStruct() { Num = 0xFAFF } });
             Assert.AreEqual(str, "{\"Child\": {\"Num\": 64255}}");
-            str = ser.SerializeString(new Dictionary<Enum, ChildStruct> { { Enum.B, new ChildStruct() { Num = 0xFAFF } } });
-            Assert.AreEqual(str, "[{\"Key\": 1, \"Value\": {\"Num\": 64255}}]");
+            str = ser.SerializeString(new Dictionary<string, KeyValuePair<string, ChildStruct>> { { "a", new KeyValuePair<string, ChildStruct>("b", new ChildStruct() { Num = 0xFAFF }) } });
+            Assert.AreEqual(str, "{\"a\": {\"Key\": \"b\", \"Value\": {\"Num\": 64255}}}");
+            str = ser.SerializeString(new Dictionary<string, KeyValuePair<string, ChildWithSurrogate>> { { "a", new KeyValuePair<string, ChildWithSurrogate>("b", new ChildWithSurrogate() { Num = 0xFAFF }) } });
+            Assert.AreEqual(str, "{\"a\": {\"Key\": \"b\", \"Value\": 64255}}");
         }
     }
 }

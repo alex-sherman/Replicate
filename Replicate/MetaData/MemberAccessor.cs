@@ -20,7 +20,7 @@ namespace Replicate.MetaData
         public SurrogateAccessor Surrogate { get; private set; }
         public Type Type { get; private set; }
         public Type DeclaringType { get; private set; }
-        private static readonly bool AllowEmit = true;
+        private static readonly bool AllowEmit = false;
         static MemberAccessor() {
             try {
                 new DynamicMethod("getter", typeof(object), new Type[] { typeof(object) });
