@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -35,9 +36,10 @@ namespace Replicate.MetaData
             {
                 var originalType = originalAccessor.Type;
                 var surrogateType = surrogateAccessor.Type;
-                var castToOp = surrogateType.GetMethod("op_Implicit", new Type[] { originalType });
+                //var castToOp = surrogateType.GetMethod("op_Implicit", new Type[] { originalType });
+                var castToOp = surrogateType.GetMethod("op_Implicit", BindingFlags.Static | BindingFlags.Public, null, new Type[] { originalType }, new ParameterModifier[] { });
                 if (castToOp == null)
-                    castToOp = surrogateType.GetMethod("Convert", new Type[] { originalType });
+                    castToOp = surrogateType.GetMethod("Convert", BindingFlags.Static | BindingFlags.Public, null, new Type[] { originalType }, new ParameterModifier[] { });
                 if (castToOp != null)
                     return (_, obj) => obj == null ? null : castToOp.Invoke(null, new[] { obj });
                 // TODO: Defaulting to copying members is confusing
@@ -48,9 +50,9 @@ namespace Replicate.MetaData
             {
                 var originalType = originalAccessor.Type;
                 var surrogateType = surrogateAccessor.Type;
-                var castFromOp = surrogateType.GetMethod("op_Implicit", new Type[] { surrogateType });
+                var castFromOp = surrogateType.GetMethod("op_Implicit", BindingFlags.Static | BindingFlags.Public, null, new Type[] { surrogateType }, new ParameterModifier[] { });
                 if (castFromOp == null)
-                    castFromOp = surrogateType.GetMethod("Convert", new Type[] { surrogateType });
+                    castFromOp = surrogateType.GetMethod("Convert", BindingFlags.Static | BindingFlags.Public, null, new Type[] { surrogateType }, new ParameterModifier[] { });
                 if (castFromOp != null)
                     return (_, obj) => obj == null ? null : castFromOp.Invoke(null, new[] { obj });
                 return (_, obj) => TypeUtil.CopyToRaw(obj, surrogateType, Activator.CreateInstance(originalType), originalType);
