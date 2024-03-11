@@ -17,6 +17,9 @@ namespace Replicate.MetaData
         public static Surrogate Simple<T, U>(Func<T, U> convertTo, Func<U, T> convertFrom) {
             return new Surrogate(typeof(U), (o, s) => ((r, t) => convertTo((T)t)), (o, s) => ((r, u) => convertFrom((U)u)));
         }
+        public static Surrogate EnumAsString<E>() where E : struct {
+            return Simple<E, string>(e => e.ToString(), s => Enum.TryParse<E>(s, out var e) ? e : default);
+        }
         public Surrogate(Type type, ConversionGenerator getConvertTo = null,
             ConversionGenerator getConvertFrom = null) : this(originalType =>
             {
@@ -33,22 +36,24 @@ namespace Replicate.MetaData
                 var originalType = originalAccessor.Type;
                 var surrogateType = surrogateAccessor.Type;
                 var castToOp = surrogateType.GetMethod("op_Implicit", new Type[] { originalType });
+                if (castToOp == null)
+                    castToOp = surrogateType.GetMethod("Convert", new Type[] { originalType });
                 if (castToOp != null)
                     return (_, obj) => obj == null ? null : castToOp.Invoke(null, new[] { obj });
                 // TODO: Defaulting to copying members is confusing
                 // should maybe just be explicit for fakes
-                else
-                    return (_, obj) => TypeUtil.CopyToRaw(obj, originalType, Activator.CreateInstance(surrogateType), surrogateType);
+                return (_, obj) => TypeUtil.CopyToRaw(obj, originalType, Activator.CreateInstance(surrogateType), surrogateType);
             });
             GetConvertFrom = getConvertFrom ?? ((originalAccessor, surrogateAccessor) =>
             {
                 var originalType = originalAccessor.Type;
                 var surrogateType = surrogateAccessor.Type;
                 var castFromOp = surrogateType.GetMethod("op_Implicit", new Type[] { surrogateType });
+                if (castFromOp == null)
+                    castFromOp = surrogateType.GetMethod("Convert", new Type[] { surrogateType });
                 if (castFromOp != null)
                     return (_, obj) => obj == null ? null : castFromOp.Invoke(null, new[] { obj });
-                else
-                    return (_, obj) => TypeUtil.CopyToRaw(obj, surrogateType, Activator.CreateInstance(originalType), originalType);
+                return (_, obj) => TypeUtil.CopyToRaw(obj, surrogateType, Activator.CreateInstance(originalType), originalType);
             });
         }
         public static implicit operator Surrogate(Type type) => new Surrogate(type);
