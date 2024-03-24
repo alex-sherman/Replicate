@@ -11,7 +11,7 @@ namespace Replicate.Serialization {
     [DebuggerDisplay("{String}")]
     public class Blob {
         byte[] Bytes;
-        public Stream Stream { get => new MemoryStream(Bytes); }
+        public Stream Stream { get => Bytes == null ? null : new MemoryStream(Bytes); }
         public virtual void SetStream(Stream stream) {
             Bytes = new byte[(int)stream.Length];
             stream.Read(Bytes, 0, Bytes.Length);
