@@ -20,11 +20,9 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Replicate.Web
-{
+namespace Replicate.Web {
     [Flags]
-    public enum EnvironmentType
-    {
+    public enum EnvironmentType {
         None = 0,
         Development = 1,
         Staging = 1 << 1,
@@ -32,24 +30,20 @@ namespace Replicate.Web
         All = Development | Staging | Production,
         NotProd = Development | Staging,
     }
-    public static class ReplicateWeb
-    {
-        public static EnvironmentType GetEnvironmentType(this IWebHostEnvironment env)
-        {
+    public static class ReplicateWeb {
+        public static EnvironmentType GetEnvironmentType(this IWebHostEnvironment env) {
             if (env.IsDevelopment()) return EnvironmentType.Development;
             if (env.IsStaging()) return EnvironmentType.Staging;
             if (env.IsProduction()) return EnvironmentType.Production;
             return EnvironmentType.None;
         }
         public static EnvironmentType Environment { get; private set; }
-        public static (int StatusCode, ErrorData Error) FromException(Exception exception)
-        {
+        public static (int StatusCode, ErrorData Error) FromException(Exception exception) {
             while (exception is AggregateException aggregate && aggregate.InnerExceptions.Count == 1)
                 exception = aggregate.InnerExceptions[0];
             return (exception is HTTPError e ? e.Status : 500, new ErrorData(exception));
         }
-        public static string GetRoute(MethodInfo endpoint)
-        {
+        public static string GetRoute(MethodInfo endpoint) {
             var methodRoute = endpoint.GetCustomAttribute<ReplicateRouteAttribute>();
             var name = methodRoute?.Route ?? endpoint.Name.ToLower();
             var classRoute = endpoint.DeclaringType.GetCustomAttribute<ReplicateRouteAttribute>();
@@ -59,15 +53,13 @@ namespace Replicate.Web
                 name = name.Substring(0, name.Length - 1);
             return name;
         }
-        public static ReplicateRouteAttribute GetRouteAttribute(MethodInfo endpoint)
-        {
+        public static ReplicateRouteAttribute GetRouteAttribute(MethodInfo endpoint) {
             var methodRoute = endpoint.GetCustomAttribute<ReplicateRouteAttribute>();
             if (methodRoute == null) methodRoute = new ReplicateRouteAttribute();
             methodRoute.Route = GetRoute(endpoint);
             return methodRoute;
         }
-        public static void UseEndpoints(this IApplicationBuilder app, IWebHostEnvironment env, ReplicationModel model)
-        {
+        public static void UseEndpoints(this IApplicationBuilder app, IWebHostEnvironment env, ReplicationModel model) {
             Environment = env?.GetEnvironmentType() ?? EnvironmentType.None;
             model.LoadTypes(typeof(ErrorData).Assembly);
             var serviceTypes = model.Types.Values.Where(t => t.Type.GetCustomAttribute<ReplicateRouteAttribute>() != null).ToList();
@@ -79,12 +71,9 @@ namespace Replicate.Web
             var routes = implTypes.SelectMany(t => t.Methods)
                 .Select(m => (Attribute: GetRouteAttribute(m), Key: model.MethodKey(m)))
                 .Where(route => route.Attribute.Environments.HasFlag(Environment));
-            app.UseEndpoints(e =>
-            {
-                foreach (var route in routes)
-                {
-                    e.Map(RoutePatternFactory.Parse(route.Attribute.Route), async context =>
-                    {
+            app.UseEndpoints(e => {
+                foreach (var route in routes) {
+                    e.Map(RoutePatternFactory.Parse(route.Attribute.Route), async context => {
                         ILogger logger = context.RequestServices.GetService<ILogger<ReplicateWebRPC>>();
                         var method = model.GetMethod(route.Key);
                         var implementation = ActivatorUtilities.CreateInstance(context.RequestServices, method.DeclaringType);
@@ -95,13 +84,11 @@ namespace Replicate.Web
                         await context.Request.Body.CopyToAsync(stream);
                         logger?.LogDebug($"{route.Attribute.Route}({context.TraceIdentifier}) => {Encoding.UTF8.GetString(stream.ToArray())}");
                         stream.Position = 0;
-                        foreach(var attr in method.GetCustomAttributes<RPCMiddlewareAttribute>())
-                        {
+                        foreach (var attr in method.GetCustomAttributes<RPCMiddlewareAttribute>()) {
                             await attr.Run(context);
                         }
                         var contract = new RPCContract(method);
-                        var result = await handler(new RPCRequest()
-                        {
+                        var result = await handler(new RPCRequest() {
                             Contract = contract,
                             Endpoint = route.Key,
                             Request = stream.Length == 0 ? null : ser.Deserialize(contract.RequestType, stream)
@@ -115,10 +102,8 @@ namespace Replicate.Web
                 }
             });
         }
-        public static void UseErrorHandling(this IApplicationBuilder app, IReplicateSerializer serializer)
-        {
-            app.Use((context, next) => next().ContinueWith(t =>
-            {
+        public static void UseErrorHandling(this IApplicationBuilder app, IReplicateSerializer serializer) {
+            app.Use((context, next) => next().ContinueWith(t => {
                 if (t.Exception == null) return t;
                 var e = t.Exception;
                 var logger = context.RequestServices.GetService<ILogger<HTTPError>>();
@@ -146,7 +131,12 @@ namespace Replicate.Web
             foreach (var field in obj.GetType().GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)) {
                 var attr = field.GetCustomAttribute<FromDIAttribute>(true);
                 if (attr == null) continue;
-                var service = field.FieldType == typeof(IServiceProvider) ? services : services.GetRequiredService(field.FieldType);
+                object service;
+                if (field.FieldType == typeof(IServiceProvider)) {
+                    service = services;
+                } else {
+                    service = attr.Optional ? services.GetService(field.FieldType) : services.GetRequiredService(field.FieldType);
+                }
                 field.SetValue(obj, service);
             }
         }

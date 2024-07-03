@@ -13,20 +13,19 @@ using Replicate.MetaData;
 using Replicate.RPC;
 using Replicate.Serialization;
 
-namespace Replicate.Web
-{
+namespace Replicate.Web {
     [AttributeUsage(AttributeTargets.Method, Inherited = true)]
-    public abstract class RPCMiddlewareAttribute : Attribute
-    {
+    public abstract class RPCMiddlewareAttribute : Attribute {
         public abstract Task Run(HttpContext context);
     }
-    public class ReplicateRouteAttribute : Attribute
-    {
+    public class ReplicateRouteAttribute : Attribute {
         public string Route;
         public EnvironmentType Environments = EnvironmentType.All;
     }
     [AttributeUsage(AttributeTargets.Field, AllowMultiple = false, Inherited = true)]
-    public class FromDIAttribute : Attribute { }
+    public class FromDIAttribute : Attribute {
+        public bool Optional = false;
+    }
     /// <summary>
     /// NOTE: Configuration members must be __PROPERTIES__ to be filled in
     /// </summary>
