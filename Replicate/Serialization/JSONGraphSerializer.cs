@@ -16,7 +16,7 @@ namespace Replicate.Serialization
         public class JSONIntSerializer : ITypedSerializer
         {
             Regex rx = new Regex(@"[0-9\.\+\-eE]");
-            public object Read(Stream stream) => long.Parse(stream.ReadAllString(c => rx.IsMatch("" + c)));
+            public object Read(Stream stream) => long.Parse(stream.ReadAllString(c => rx.IsMatch("" + c)), CultureInfo.InvariantCulture);
             public void Write(object obj, Stream stream)
                 => stream.WriteString(((long)Convert.ChangeType(obj, typeof(long))).ToString(CultureInfo.InvariantCulture));
         }
