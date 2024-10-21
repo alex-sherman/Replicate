@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -16,7 +17,8 @@ namespace Replicate.Serialization
         {
             Regex rx = new Regex(@"[0-9\.\+\-eE]");
             public object Read(Stream stream) => long.Parse(stream.ReadAllString(c => rx.IsMatch("" + c)));
-            public void Write(object obj, Stream stream) => stream.WriteString(Convert.ChangeType(obj, typeof(long)).ToString());
+            public void Write(object obj, Stream stream)
+                => stream.WriteString(((long)Convert.ChangeType(obj, typeof(long))).ToString(CultureInfo.InvariantCulture));
         }
         public class JSONBoolSerializer : ITypedSerializer
         {
@@ -35,7 +37,7 @@ namespace Replicate.Serialization
                 }
                 throw new SerializationError();
             }
-            public void Write(object obj, Stream stream) => stream.WriteString(obj.ToString().ToLower());
+            public void Write(object obj, Stream stream) => stream.WriteString(((bool)obj) ? "true" : "false");
         }
         public class JSONFloatSerializer : ITypedSerializer
         {
@@ -43,10 +45,11 @@ namespace Replicate.Serialization
             public object Read(Stream stream)
             {
                 string s = stream.ReadAllString(c => rx.IsMatch("" + c));
-                if (double.TryParse(s, out var result)) return result;
+                if (double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var result)) return result;
                 throw new SerializationError("Invalid number", stream);
             }
-            public void Write(object obj, Stream stream) => stream.WriteString(obj.ToString());
+            public void Write(object obj, Stream stream)
+                => stream.WriteString(((double)Convert.ChangeType(obj, typeof(double))).ToString(CultureInfo.InvariantCulture));
         }
 
         public class JSONStringSerializer : ITypedSerializer
