@@ -25,6 +25,16 @@ namespace ReplicateTest {
             public T Prop { get; set; }
         }
         [ReplicateType]
+        public class ReadOnlyClass {
+            [Replicate]
+            public string Value => "Derp";
+        }
+        [ReplicateType]
+        public class WriteOnlyClass {
+            [Replicate]
+            public string Value { set { } }
+        }
+        [ReplicateType]
         public class PropClass {
             public int Property { get; set; }
         }
@@ -154,6 +164,18 @@ namespace ReplicateTest {
             var output = ser.Deserialize<GenericClass<string>>("{\"Value\": \"herp\", \"Prop\": \"derp\"}");
             Assert.AreEqual("herp", output.Value);
             Assert.AreEqual("derp", output.Prop);
+        }
+        [Test]
+        public void ReadOnlyProp() {
+            var ser = new JSONSerializer(new ReplicationModel());
+            var output = ser.Deserialize<ReadOnlyClass>("{\"Value\": \"NotDerp\"}");
+            Assert.AreEqual("Derp", output.Value);
+        }
+        [Test]
+        public void WriteOnlyProp() {
+            var ser = new JSONSerializer(new ReplicationModel());
+            var output = ser.SerializeString(new WriteOnlyClass());
+            Assert.AreEqual("{}", output);
         }
         [TestCase(null, typeof(string), "null")]
         [TestCase(0, typeof(int?), "0")]

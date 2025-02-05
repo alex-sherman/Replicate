@@ -77,7 +77,7 @@ namespace Replicate.MetaData
         {
             get
             {
-                return Model.GetRepNode(member.GetValue(Value), member.TypeAccessor, member);
+                return Model.GetRepNode(Value == null ? null : member.GetValue(Value), member.TypeAccessor, member);
             }
         }
 

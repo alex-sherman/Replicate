@@ -6,16 +6,16 @@ using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Replicate.MetaData
-{
-    public class MemberAccessor
-    {
+namespace Replicate.MetaData {
+    public class MemberAccessor {
         private Func<object, object> getter;
         private Action<object, object> setter;
         public MemberInfo Info { get; private set; }
         public readonly bool SkipNull;
         public readonly bool SkipEmpty;
         public readonly bool IsNullable;
+        public bool CanRead => getter != null;
+        public bool CanWrite => setter != null;
         public TypeAccessor TypeAccessor { get; private set; }
         public SurrogateAccessor Surrogate { get; private set; }
         public Type Type { get; private set; }
@@ -27,8 +27,7 @@ namespace Replicate.MetaData
             } catch { AllowEmit = false; }
         }
 
-        public MemberAccessor(MemberInfo info, TypeAccessor declaringType, ReplicationModel model)
-        {
+        public MemberAccessor(MemberInfo info, TypeAccessor declaringType, ReplicationModel model) {
             if (info.IsStatic) throw new InvalidOperationException("Can't access static members");
             DeclaringType = declaringType.Type;
             Type = info.GetMemberType(declaringType.Type);
@@ -42,8 +41,8 @@ namespace Replicate.MetaData
                 throw new InvalidOperationException("Can't SkipEmpty on a non-collection type");
             IsNullable = info.GetAttribute<NullableAttribute>() != null
                 || (TypeAccessor.IsNullable && info.GetAttribute<NonNullAttribute>() == null);
-            if (info.Field != null)
-            {
+            if (info.Field != null) {
+                var field = info.GetField(DeclaringType);
                 if (AllowEmit) {
                     var meth = new DynamicMethod("getter", typeof(object), new Type[] { typeof(object) });
                     var il = meth.GetILGenerator();
@@ -52,43 +51,31 @@ namespace Replicate.MetaData
                         il.Emit(OpCodes.Unbox, DeclaringType);
                     else
                         il.Emit(OpCodes.Castclass, DeclaringType);
-                    il.Emit(OpCodes.Ldfld, info.GetField(DeclaringType));
+                    il.Emit(OpCodes.Ldfld, field);
                     if (Type.IsValueType)
                         il.Emit(OpCodes.Box, Type);
                     il.Emit(OpCodes.Ret);
                     getter = (Func<object, object>)meth.CreateDelegate(
                         typeof(Func<object, object>));
-                    setter = info.GetField(DeclaringType).SetValue;
+                    setter = field.SetValue;
                 } else {
-                    getter = info.GetField(DeclaringType).GetValue;
-                    setter = info.GetField(DeclaringType).SetValue;
+                    getter = field.GetValue;
+                    setter = field.SetValue;
                 }
-            }
-            else
-            {
-                getter = info.GetProperty(DeclaringType).GetValue;
-                setter = info.GetProperty(DeclaringType).SetValue;
+            } else {
+                var prop = info.GetProperty(DeclaringType);
+                if (prop.CanRead)
+                    getter = prop.GetValue;
+                if (prop.CanWrite)
+                    setter = prop.SetValue;
             }
         }
 
-        public void SetValue(object obj, object value)
-        {
-            try
-            {
-                setter(obj, value);
-            }
-            catch { }
+        public void SetValue(object obj, object value) {
+            setter?.Invoke(obj, value);
         }
-        public object GetValue(object obj)
-        {
-            try
-            {
-                return getter(obj);
-            }
-            catch
-            {
-                return null;
-            }
+        public object GetValue(object obj) {
+            return getter(obj);
         }
         public override string ToString() => $"{Info}";
     }
