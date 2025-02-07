@@ -8,78 +8,64 @@ using Replicate.MetaData;
 using Replicate.MetaData.Policy;
 using Replicate.Serialization;
 
-namespace ReplicateTest
-{
+namespace ReplicateTest {
     [TestFixture]
-    public class ProtoSerializationTests
-    {
+    public class ProtoSerializationTests {
         #region Types
         [ReplicateType]
-        public enum ProtoEnum
-        {
+        public enum ProtoEnum {
             One = 1,
             Two = 2,
         }
         [ReplicateType]
-        public class GenericClass<T>
-        {
+        public class GenericClass<T> {
             [Replicate]
             public T Value;
             [Replicate]
             public T Prop { get; set; }
         }
         [ReplicateType]
-        public class PropClass
-        {
+        public class PropClass {
             [Replicate(1)]
             public uint Property { get; set; }
         }
         [ReplicateType]
-        public class ObjectWithArrayField
-        {
+        public class ObjectWithArrayField {
             public List<double> ArrayField;
         }
         [ReplicateType]
-        public class ObjectWithNullableField
-        {
+        public class ObjectWithNullableField {
             [SkipNull]
             public uint? NullableValue;
         }
         [ReplicateType]
-        public class SubClass : PropClass
-        {
+        public class SubClass : PropClass {
             [Replicate(2)]
             public string Field;
         }
         [ReplicateType]
-        public class GenericSubClass<T, V> : GenericClass<T>
-        {
+        public class GenericSubClass<T, V> : GenericClass<T> {
             [Replicate]
             public V OtherValue;
         }
         [ReplicateType]
-        public class ObjectWithDictField
-        {
+        public class ObjectWithDictField {
             public Dictionary<string, string> Dict;
         }
         [ReplicateType]
-        public class ObjectWithDictFieldSurrogate
-        {
+        public class ObjectWithDictFieldSurrogate {
             public Dictionary<string, string> Dict;
-            public static implicit operator ObjectWithDictField(ObjectWithDictFieldSurrogate @this)
-            {
+            public static implicit operator ObjectWithDictField(ObjectWithDictFieldSurrogate @this) {
                 return new ObjectWithDictField() { Dict = @this.Dict?.ToDictionary(kvp => kvp.Key.Replace("faff", ""), kvp => kvp.Value) };
             }
-            public static implicit operator ObjectWithDictFieldSurrogate(ObjectWithDictField @this)
-            {
+            public static implicit operator ObjectWithDictFieldSurrogate(ObjectWithDictField @this) {
                 return new ObjectWithDictFieldSurrogate() { Dict = @this.Dict?.ToDictionary(kvp => kvp.Key + "faff", kvp => kvp.Value) };
             }
         }
         #endregion
 
         [Test]
-        public void SerDesProperty()
-        {
+        public void SerDesProperty() {
             var ser = new ProtoSerializer(new ReplicationModel());
             var bytes = ser.SerializeBytes(new PropClass() { Property = 3 });
             Assert.AreEqual(new byte[] { 0x08, 0x03 }, bytes);
@@ -87,8 +73,7 @@ namespace ReplicateTest
             Assert.AreEqual(3, obj.Property);
         }
         [Test]
-        public void SerDesSubClass()
-        {
+        public void SerDesSubClass() {
             var ser = new ProtoSerializer(new ReplicationModel());
             var bytes = ser.SerializeBytes(new SubClass() { Property = 3, Field = "faff" });
             Assert.AreEqual(new byte[] {
@@ -100,8 +85,7 @@ namespace ReplicateTest
             Assert.AreEqual("faff", obj.Field);
         }
         [Test]
-        public void SerDesUnknownString()
-        {
+        public void SerDesUnknownString() {
             var ser = new ProtoSerializer(new ReplicationModel());
             var bytes = new byte[] { 0x12, 0x05, 0, 0, 0, 0, 0, 0x08, 0x03 };
             var obj = ser.Deserialize<PropClass>(bytes);
@@ -117,8 +101,7 @@ namespace ReplicateTest
         [TestCase(1.02, typeof(double), new byte[] { 0x52, 0xB8, 0x1E, 0x85, 0xEB, 0x51, 0xF0, 0x3F })]
         [TestCase(300, typeof(uint), new byte[] { 0xAC, 0x02 })]
         [TestCase("faff", typeof(string), new byte[] { (byte)'f', (byte)'a', (byte)'f', (byte)'f' })]
-        public void SerializeDeserialize(object obj, Type type, byte[] serialized)
-        {
+        public void SerializeDeserialize(object obj, Type type, byte[] serialized) {
             var ser = new ProtoSerializer(new ReplicationModel());
             var bytes = ser.SerializeBytes(type, obj);
             CollectionAssert.AreEqual(serialized, bytes);
@@ -126,23 +109,41 @@ namespace ReplicateTest
             Assert.AreEqual(obj, output);
         }
         [Test]
-        public void NullableNullInt()
-        {
+        public void NullableNullInt() {
             var ser = new ProtoSerializer(new ReplicationModel());
             var bytes = ser.SerializeBytes<int?>(null);
             Assert.IsTrue(bytes.Length == 0);
         }
         [Test]
-        public void RepeatedInt()
-        {
+        public void RepeatedInt() {
             var ser = new ProtoSerializer(new ReplicationModel());
-            ObjectWithArrayField arrayObj = new ObjectWithArrayField()
-            {
+            ObjectWithArrayField arrayObj = new ObjectWithArrayField() {
                 ArrayField = new List<double> { 1, 2, 3 }
             };
             var bytes = ser.SerializeBytes(arrayObj);
             var output = ser.Deserialize<ObjectWithArrayField>(bytes);
             CollectionAssert.AreEqual(arrayObj.ArrayField, output.ArrayField);
+        }
+        [Test]
+        public void Dictionary() {
+            var obj = new ObjectWithDictField() { Dict = new Dictionary<string, string> { { "value", "herp" }, { "prop", "derp" } } };
+            var ser = new ProtoSerializer(new ReplicationModel() { });
+            var str = ser.SerializeString(obj);
+            var output = ser.Deserialize<ObjectWithDictField>(str);
+            Assert.AreEqual(obj.Dict, output.Dict);
+        }
+        [ReplicateType]
+        class ObjectWithDefaultedDictField {
+            public Dictionary<string, string> Dict = new Dictionary<string, string> { { "value", "herp" }, { "prop", "derp" } };
+        }
+        [Test]
+        public void DefaultedDictionary() {
+            var obj = new ObjectWithDefaultedDictField();
+            obj.Dict["value"] = "faff";
+            var ser = new ProtoSerializer(new ReplicationModel() { });
+            var str = ser.SerializeString(obj);
+            var output = ser.Deserialize<ObjectWithDefaultedDictField>(str);
+            Assert.AreEqual(obj.Dict, output.Dict);
         }
     }
 }

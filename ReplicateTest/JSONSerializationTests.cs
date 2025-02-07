@@ -258,6 +258,19 @@ namespace ReplicateTest {
             CollectionAssert.AreEqual(expected, str);
             var output = ser.Deserialize<Dictionary<KeyType, string>>(str);
         }
+        [ReplicateType]
+        class ObjectWithDefaultedDictField {
+            public Dictionary<int, string> Dict = new Dictionary<int, string> { { 1, "herp" }, { 2, "derp" } };
+        }
+        [Test]
+        public void DefaultedDictionary() {
+            var obj = new ObjectWithDefaultedDictField();
+            obj.Dict[1] = "faff";
+            var ser = new JSONSerializer(new ReplicationModel() { });
+            var str = ser.SerializeString(obj);
+            var output = ser.Deserialize<ObjectWithDefaultedDictField>(str);
+            Assert.AreEqual(obj.Dict, output.Dict);
+        }
         [Test]
         public void NullableNullInt() {
             var ser = new JSONSerializer(new ReplicationModel());
