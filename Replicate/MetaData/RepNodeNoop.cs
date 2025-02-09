@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Replicate.MetaData
-{
-    public class RepNodeNoop : IRepNode, IRepPrimitive, IRepCollection, IRepObject
-    {
+namespace Replicate.MetaData {
+    public class RepNodeNoop : IRepNode, IRepPrimitive, IRepCollection, IRepObject {
         public static RepNodeNoop Single { get; } = new RepNodeNoop();
         public object RawValue => this;
         public RepKey Key { get; set; }
@@ -29,8 +24,7 @@ namespace Replicate.MetaData
         static readonly IEnumerable<KeyValuePair<RepKey, RepNodeNoop>> Children = Enumerable.Empty<KeyValuePair<RepKey, RepNodeNoop>>();
         public IEnumerable<object> Values { get => Enumerable.Empty<object>(); set { } }
 
-        public IRepNode this[RepKey memberName]
-        {
+        public IRepNode this[RepKey memberName] {
             get => this;
             set { }
         }

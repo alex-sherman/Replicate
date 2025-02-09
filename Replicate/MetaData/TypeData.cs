@@ -1,17 +1,11 @@
-﻿using Replicate.MetaTyping;
-using Replicate.Serialization;
+﻿using Replicate.Serialization;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Replicate.MetaData
-{
-    public class TypeData
-    {
+namespace Replicate.MetaData {
+    public class TypeData {
         public MarshallMethod MarshallMethod;
         public PrimitiveType PrimitiveType;
         public readonly bool PrefixWithType;
@@ -27,24 +21,18 @@ namespace Replicate.MetaData
         public Surrogate Surrogate { get; private set; }
         public ReplicationModel Model { get; private set; }
         public ReplicateTypeAttribute TypeAttribute;
-        public TypeData(Type type, ReplicationModel model)
-        {
+        public TypeData(Type type, ReplicationModel model) {
             Type = type;
             Name = type.Name;
             FullName = type.FullName;
             Model = model;
             PrefixWithType = type == typeof(object);
-            if (type.IsPrimitive || type == typeof(string) || type.IsEnum)
-            {
+            if (type.IsPrimitive || type == typeof(string) || type.IsEnum) {
                 MarshallMethod = MarshallMethod.Primitive;
                 PrimitiveType = PrimitiveTypeMap.MapType(type);
-            }
-            else if (typeof(Blob).IsAssignableFrom(type))
-            {
+            } else if (typeof(Blob).IsAssignableFrom(type)) {
                 MarshallMethod = MarshallMethod.Blob;
-            }
-            else
-            {
+            } else {
                 if (type.Implements(typeof(IEnumerable<>)))
                     MarshallMethod = MarshallMethod.Collection;
                 else
@@ -53,13 +41,11 @@ namespace Replicate.MetaData
             if (type.IsGenericTypeDefinition)
                 GenericTypeParameters = type.GetTypeInfo().GenericTypeParameters.Select(v => v.Name).ToArray();
         }
-        bool AutoAddMember(MemberInfo member)
-        {
+        bool AutoAddMember(MemberInfo member) {
             var autoMembers = Model.Add(member.DeclaringType)?.TypeAttribute?.AutoMembers ?? TypeAttribute?.AutoMembers ?? AutoAdd.None;
             return autoMembers == AutoAdd.All || (autoMembers == AutoAdd.AllPublic && member.IsPublic);
         }
-        public void InitializeMembers()
-        {
+        public void InitializeMembers() {
             if (TypeAttribute == null) TypeAttribute = Type.GetCustomAttribute<ReplicateTypeAttribute>(false);
             IsInstanceRPC = TypeAttribute?.IsInstanceRPC ?? false;
             var surrogateType = TypeAttribute?.SurrogateType;
@@ -68,15 +54,14 @@ namespace Replicate.MetaData
             var bindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
             var autoMethods = TypeAttribute?.AutoMethods ?? AutoAdd.None;
             // TODO: Enforce unique names of methods
-            Methods = Type.GetMethods(bindingFlags| BindingFlags.Static)
+            Methods = Type.GetMethods(bindingFlags | BindingFlags.Static)
                 .Where(meth => meth.DeclaringType.Namespace != "System")
                 .Where(meth => !meth.IsSpecialName)
                 .Where(meth => meth.GetCustomAttribute<ReplicateIgnoreAttribute>() == null)
                 .Where(meth => meth.GetCustomAttribute<ReplicateRPCAttribute>() != null || autoMethods == AutoAdd.All || (autoMethods == AutoAdd.AllPublic && meth.IsPublic))
                 .ToList();
             Members.Clear();
-            foreach (var member in GetMembers(bindingFlags))
-            {
+            foreach (var member in GetMembers(bindingFlags)) {
                 if (member.DeclaringType.Namespace == "System")
                     continue;
                 if (member.GetAttribute<ReplicateIgnoreAttribute>() != null)
@@ -86,8 +71,7 @@ namespace Replicate.MetaData
             }
         }
 
-        IEnumerable<MemberInfo> GetMembers(BindingFlags bindingFlags)
-        {
+        IEnumerable<MemberInfo> GetMembers(BindingFlags bindingFlags) {
             foreach (var field in Type.GetFields(bindingFlags))
                 if (!field.IsLiteral)
                     yield return new MemberInfo(Model, field);
@@ -95,8 +79,7 @@ namespace Replicate.MetaData
                 yield return new MemberInfo(Model, property);
         }
 
-        public TypeData AddMember(string name)
-        {
+        public TypeData AddMember(string name) {
             FieldInfo fieldInfo;
             PropertyInfo propInfo;
             MemberInfo member;
@@ -109,23 +92,20 @@ namespace Replicate.MetaData
             AddMember(member);
             return this;
         }
-        void AddMember(MemberInfo member)
-        {
+        void AddMember(MemberInfo member) {
             RepKey key = member.GetAttribute<ReplicateAttribute>()?.Key ?? member.Name;
             if (member.IsStatic) throw new InvalidOperationException("Can't add static members");
             Members.Add(key, member);
             if (!member.MemberType.IsGenericParameter)
                 Model.Add(member.MemberType);
         }
-        public void SetSurrogate(Surrogate surrogate)
-        {
+        public void SetSurrogate(Surrogate surrogate) {
             if (Model.SurrogateTypes.Contains(Type))
                 throw new InvalidOperationException("Cannot set the surrogate of a surrogate type");
             Model.SurrogateTypes.Add(Model.GetTypeData(surrogate.GetSurrogateType(Type)).Type);
             Surrogate = surrogate;
         }
-        public override string ToString()
-        {
+        public override string ToString() {
             return $"{Name}";
         }
     }

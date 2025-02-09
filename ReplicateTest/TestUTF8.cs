@@ -1,18 +1,12 @@
-﻿using System;
-using System.Text;
-using System.Collections.Generic;
-using System.IO;
+﻿using NUnit.Framework;
 using Replicate.Serialization;
-using NUnit.Framework;
+using System.IO;
 
-namespace ReplicateTest
-{
+namespace ReplicateTest {
     [TestFixture]
-    public class TestUTF8
-    {
+    public class TestUTF8 {
         [Test]
-        public void TestVariableLength()
-        {
+        public void TestVariableLength() {
             var stream = new MemoryStream();
             stream.WriteString("ᚢᚱ᛫ᚠ😈");
             stream.Position = 0;

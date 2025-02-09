@@ -1,21 +1,4 @@
-﻿using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Internal;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.DependencyInjection;
-using NUnit.Framework;
-using Replicate.MetaData;
-using Replicate.Serialization;
-using Replicate.Web;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace ReplicateWebTest
+﻿namespace ReplicateWebTest
 {
     public class BaseTest
     {

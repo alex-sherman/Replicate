@@ -3,23 +3,16 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Replicate.MetaData
-{
-    public class RepBackedNode : IRepNode, IRepObject, IRepPrimitive
-    {
-        public object RawValue
-        {
-            get
-            {
+namespace Replicate.MetaData {
+    public class RepBackedNode : IRepNode, IRepObject, IRepPrimitive {
+        public object RawValue {
+            get {
                 if (surrogate?.ConvertFrom != null)
                     return surrogate.ConvertFrom(null, Value);
                 return Value;
             }
-            set
-            {
+            set {
                 if (surrogate?.ConvertTo != null)
                     value = surrogate.ConvertTo(null, value);
                 Value = value;
@@ -31,15 +24,13 @@ namespace Replicate.MetaData
         private readonly SurrogateAccessor surrogate;
         public RepKey Key { get; set; }
         private object _value;
-        public object Value
-        {
+        public object Value {
             get => _value;
             set => _value = MarshallMethod == MarshallMethod.Primitive ? Model.Coerce(TypeAccessor, value) : value;
         }
 
         public RepBackedNode(object backing, TypeAccessor typeAccessor = null,
-            MemberAccessor memberAccessor = null, ReplicationModel model = null)
-        {
+            MemberAccessor memberAccessor = null, ReplicationModel model = null) {
             MemberAccessor = memberAccessor;
             Model = model ?? ReplicationModel.Default;
             var originalTypeAccessor = typeAccessor ?? Model.GetTypeAccessor(backing.GetType());
@@ -52,8 +43,7 @@ namespace Replicate.MetaData
         public MarshallMethod MarshallMethod => TypeAccessor.TypeData.MarshallMethod;
 
         private PrimitiveType _primitiveType;
-        public PrimitiveType PrimitiveType
-        {
+        public PrimitiveType PrimitiveType {
             get => _primitiveType;
             set => throw new InvalidOperationException();
         }
@@ -63,26 +53,21 @@ namespace Replicate.MetaData
         public IRepPrimitive AsPrimitive => this;
 
         #region Object Fields
-        public IRepNode this[RepKey key]
-        {
+        public IRepNode this[RepKey key] {
             get => this[TypeAccessor[key]];
-            set
-            {
+            set {
                 var member = TypeAccessor[key];
                 if (member == null) throw new KeyNotFoundException(key.ToString());
                 member.SetValue(Value, value.RawValue);
             }
         }
-        IRepNode this[MemberAccessor member]
-        {
-            get
-            {
+        IRepNode this[MemberAccessor member] {
+            get {
                 return Model.GetRepNode(Value == null ? null : member.GetValue(Value), member.TypeAccessor, member);
             }
         }
 
-        public IEnumerator<KeyValuePair<RepKey, IRepNode>> GetEnumerator()
-        {
+        public IEnumerator<KeyValuePair<RepKey, IRepNode>> GetEnumerator() {
             var @this = this;
             return TypeAccessor.TypeData.Keys
                 .Select(m => new KeyValuePair<RepKey, IRepNode>(m, @this[m]))
@@ -90,12 +75,10 @@ namespace Replicate.MetaData
         }
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        public void EnsureConstructed()
-        {
+        public void EnsureConstructed() {
             Value = Value ?? TypeAccessor.Construct();
         }
-        public override string ToString()
-        {
+        public override string ToString() {
             return $"{Key}: {MarshallMethod.ToString()}";
         }
 
@@ -103,14 +86,12 @@ namespace Replicate.MetaData
         #endregion
     }
 
-    public struct RepBackedCollection : IRepCollection
-    {
+    public struct RepBackedCollection : IRepCollection {
         private RepBackedNode Node;
         public object RawValue => Node.RawValue;
         public RepKey Key { get; set; }
         public object Value { get => Node.Value; set => Node.Value = value; }
-        public RepBackedCollection(RepBackedNode node)
-        {
+        public RepBackedCollection(RepBackedNode node) {
             Node = node;
             Key = node.Key;
             CollectionType = node.Model.GetCollectionValueAccessor(node.TypeAccessor.Type);
@@ -119,11 +100,9 @@ namespace Replicate.MetaData
         public TypeAccessor TypeAccessor { get => Node.TypeAccessor; }
         public MemberAccessor MemberAccessor { get => Node.MemberAccessor; }
 
-        public IEnumerable<object> Values
-        {
+        public IEnumerable<object> Values {
             get => _values();
-            set
-            {
+            set {
                 Node.Value = CollectionUtil.FillCollection(Node.Value, TypeAccessor.Type, value?.ToList());
             }
         }
@@ -133,14 +112,12 @@ namespace Replicate.MetaData
         public IRepObject AsObject => throw new InvalidOperationException();
         public IRepCollection AsCollection => this;
 
-        IEnumerable<object> _values()
-        {
+        IEnumerable<object> _values() {
             foreach (var item in (IEnumerable)Node.Value)
                 yield return item;
         }
 
-        public IEnumerator<IRepNode> GetEnumerator()
-        {
+        public IEnumerator<IRepNode> GetEnumerator() {
             var collectionType = CollectionType;
             foreach (var item in Values)
                 yield return Node.Model.GetRepNode(item, CollectionType, null);

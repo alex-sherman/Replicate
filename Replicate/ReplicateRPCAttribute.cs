@@ -1,13 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Replicate
-{
+namespace Replicate {
     [AttributeUsage(AttributeTargets.Method)]
-    public class ReplicateRPCAttribute : Attribute
-    {
+    public class ReplicateRPCAttribute : Attribute {
     }
 }

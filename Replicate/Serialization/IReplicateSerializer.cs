@@ -1,22 +1,15 @@
 ﻿using Replicate.MetaData;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Replicate.Serialization
-{
-    public interface IReplicateSerializer
-    {
+namespace Replicate.Serialization {
+    public interface IReplicateSerializer {
         ReplicationModel Model { get; }
         Stream Serialize(Type type, object obj, Stream stream);
         object Deserialize(Type type, Stream wireValue, object existing = null);
         T Deserialize<T>(Stream wireValue);
     }
-    public static class SerializerExtensions
-    {
+    public static class SerializerExtensions {
         public static Stream Serialize<T>(this IReplicateSerializer ser, T obj, Stream stream) => ser.Serialize(typeof(T), obj, stream);
         public static Stream Serialize<T>(this IReplicateSerializer ser, T obj) => ser.Serialize(typeof(T), obj);
         public static Stream Serialize(this IReplicateSerializer ser, Type type, object obj) {
@@ -35,11 +28,9 @@ namespace Replicate.Serialization
         public static object Deserialize(this IReplicateSerializer ser, Type type, byte[] bytes, object existing = null) => ser.Deserialize(type, new MemoryStream(bytes), existing);
         public static T Deserialize<T>(this IReplicateSerializer ser, byte[] bytes) => ser.Deserialize<T>(new MemoryStream(bytes));
 
-        public static Stream GetStream(string wireValue)
-        {
+        public static Stream GetStream(string wireValue) {
             var stream = new MemoryStream();
-            if (wireValue != null)
-            {
+            if (wireValue != null) {
                 var sw = new StreamWriter(stream);
                 sw.Write(wireValue);
                 sw.Flush();
@@ -47,15 +38,13 @@ namespace Replicate.Serialization
             }
             return stream;
         }
-        public static byte[] GetBytes(Stream stream)
-        {
+        public static byte[] GetBytes(Stream stream) {
             var output = new byte[(int)stream.Length];
             stream.Read(output, 0, output.Length);
             return output;
         }
     }
-    public interface ITypedSerializer
-    {
+    public interface ITypedSerializer {
         void Write(object obj, Stream stream);
         object Read(Stream stream);
     }

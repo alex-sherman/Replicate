@@ -1,19 +1,4 @@
-﻿using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.FileProviders;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Primitives;
-using Replicate;
-using Replicate.MetaData;
-using Replicate.Serialization;
-using Replicate.Web;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace ReplicateWebTest
+﻿namespace ReplicateWebTest
 {
     public class MockServiceProvider : List<ServiceDescriptor>, IServiceProvider, IServiceCollection
     {

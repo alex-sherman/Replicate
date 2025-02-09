@@ -6,66 +6,53 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ReplicateBenchmarks
-{
+namespace ReplicateBenchmarks {
     [ProtoBuf.ProtoContract]
     [ReplicateType]
-    public struct Derp
-    {
+    public struct Derp {
         [ProtoBuf.ProtoMember(1)]
         [Replicate]
         public string faff;
     }
     [ProtoBuf.ProtoContract]
     [ReplicateType]
-    public struct GenericDerp<T>
-    {
+    public struct GenericDerp<T> {
         [ProtoBuf.ProtoMember(1)]
         [Replicate]
         public T faff;
     }
-    public class Program
-    {
-        public interface IEchoService
-        {
+    public class Program {
+        public interface IEchoService {
             [ReplicateRPC]
             Task<string> Echo(string value);
         }
-        public class EchoService : IEchoService
-        {
+        public class EchoService : IEchoService {
             public Task<string> Echo(string value) { return Task.FromResult(value); }
         }
         static MemoryStream stream = new MemoryStream((int)1e8);
-        static void TimeSerialize<T>(string name, T value, Action<Stream, T> serialize, double count = 1e6)
-        {
+        static void TimeSerialize<T>(string name, T value, Action<Stream, T> serialize, double count = 1e6) {
             stream.Seek(0, SeekOrigin.Begin);
             var s = Stopwatch.StartNew();
-            for (int i = 0; i < count; i++)
-            {
+            for (int i = 0; i < count; i++) {
                 serialize(stream, value);
             }
             s.Stop();
             Console.WriteLine(name + ": " + s.ElapsedTicks * 1.0 / Stopwatch.Frequency);
         }
-        static void TimeSerialize<T>(string name, T value, IReplicateSerializer serializer, double count = 1e6)
-        {
+        static void TimeSerialize<T>(string name, T value, IReplicateSerializer serializer, double count = 1e6) {
             stream.Seek(0, SeekOrigin.Begin);
             var s = Stopwatch.StartNew();
-            for (int i = 0; i < count; i++)
-            {
+            for (int i = 0; i < count; i++) {
                 serializer.Serialize(value);
             }
             s.Stop();
             Console.WriteLine(name + ": " + s.ElapsedTicks * 1.0 / Stopwatch.Frequency);
         }
 
-        static void Main(string[] args)
-        {
+        static void Main(string[] args) {
             //JsonCompare();
             BinaryCompare();
             //ProtoCompare();
@@ -74,8 +61,7 @@ namespace ReplicateBenchmarks
         }
         static int N = (int)1e5;
         static int n = N;
-        public static void ServerTest()
-        {
+        public static void ServerTest() {
             var model = new ReplicationModel();
             model.Add(typeof(IEchoService));
             //Server side
@@ -89,8 +75,7 @@ namespace ReplicateBenchmarks
             var s = Stopwatch.StartNew();
             List<Task> RPCs = new List<Task>();
             int maxOutstanding = 100;
-            while (n > 0)
-            {
+            while (n > 0) {
                 while (RPCs.Count < maxOutstanding)
                     RPCs.Add(StartRPC(echoService));
                 RPCs[0].GetAwaiter().GetResult();
@@ -99,12 +84,10 @@ namespace ReplicateBenchmarks
             s.Stop();
             Console.WriteLine("RPC/s: " + N / (s.ElapsedTicks * 1.0 / Stopwatch.Frequency));
         }
-        public static Task StartRPC(IEchoService service)
-        {
+        public static Task StartRPC(IEchoService service) {
             return service.Echo("derp").ContinueWith(t => { Interlocked.Decrement(ref n); });
         }
-        static void ProtoCompare()
-        {
+        static void ProtoCompare() {
             var model = ReplicationModel.Default;
             model.Add(typeof(Derp));
             model.Add(typeof(GenericDerp<>));
@@ -127,8 +110,7 @@ namespace ReplicateBenchmarks
             TimeSerialize("Serialize GenericDerp<string>", genDerp, ser);
             TimeSerialize("Proto Serialize GenericDerp<string>", genDerp, ProtoBuf.Serializer.Serialize);
         }
-        static void BinaryCompare()
-        {
+        static void BinaryCompare() {
             var model = ReplicationModel.Default;
             model.Add(typeof(Derp));
             model.Add(typeof(GenericDerp<>));
@@ -152,8 +134,7 @@ namespace ReplicateBenchmarks
             TimeSerialize("Serialize GenericDerp<string>", genDerp, ser);
             TimeSerialize("Graph Serialize GenericDerp<string>", genDerp, serGraph);
         }
-        static void JsonCompare()
-        {
+        static void JsonCompare() {
             var model = ReplicationModel.Default;
             model.Add(typeof(Derp));
 

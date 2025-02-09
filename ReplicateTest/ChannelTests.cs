@@ -1,29 +1,18 @@
 ﻿using NUnit.Framework;
 using Replicate;
 using Replicate.MetaData;
-using Replicate.Serialization;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
 using System.Threading.Tasks;
 
-namespace ReplicateTest
-{
+namespace ReplicateTest {
     [TestFixture]
     [ReplicateType]
-    public class ChannelTests
-    {
+    public class ChannelTests {
         [ReplicateRPC]
-        public static Task<string> TestMethod(string input)
-        {
+        public static Task<string> TestMethod(string input) {
             return Task.FromResult(input + " TEST");
         }
         [Test]
-        public void LambdaRequestString()
-        {
+        public void LambdaRequestString() {
             PassThroughChannel channel = new PassThroughChannel();
             channel.SetSerializer(new NonSerializer(new ReplicationModel()));
             channel.PointB.Server.Respond<string, string>(TestMethod);

@@ -1,11 +1,3 @@
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using NUnit.Framework;
-using Replicate;
-using Replicate.MetaData;
-using Replicate.Web;
-using System.Threading.Tasks;
-
 namespace ReplicateWebTest
 {
     public class CustomAuthAttribute : RPCMiddlewareAttribute

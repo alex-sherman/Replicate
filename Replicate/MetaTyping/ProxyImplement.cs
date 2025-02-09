@@ -3,40 +3,31 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Replicate.MetaTyping
-{
-    public interface IInterceptor
-    {
+namespace Replicate.MetaTyping {
+    public interface IInterceptor {
         T Intercept<T>(MethodInfo method, object[] args);
     }
 
-    public class ProxyImplement
-    {
+    public class ProxyImplement {
         private const MethodAttributes ImplicitImplementation =
             MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.HideBySig;
         static readonly MethodInfo interceptInfo = typeof(ProxyImplement).GetMethod("Intercept", BindingFlags.Instance | BindingFlags.NonPublic);
         static readonly MethodInfo interceptInfoVoid = typeof(ProxyImplement).GetMethod("InterceptVoid", BindingFlags.Instance | BindingFlags.NonPublic);
         MethodInfo[] methods;
         public IInterceptor Implementor { get; private set; }
-        protected T Intercept<T>(int methodIndex, List<object> args)
-        {
+        protected T Intercept<T>(int methodIndex, List<object> args) {
             object output = Implementor.Intercept<T>(methods[methodIndex], args.ToArray());
             if (output == null)
                 return default(T);
             return (T)output;
         }
-        protected void InterceptVoid(int methodIndex, List<object> args)
-        {
+        protected void InterceptVoid(int methodIndex, List<object> args) {
             Implementor.Intercept<None>(methods[methodIndex], args.ToArray());
         }
-        class LambdaInterceptor : IInterceptor
-        {
+        class LambdaInterceptor : IInterceptor {
             readonly Func<MethodInfo, object[], object> func;
-            public LambdaInterceptor(Func<MethodInfo, object[], object> interceptor)
-            {
+            public LambdaInterceptor(Func<MethodInfo, object[], object> interceptor) {
                 func = interceptor;
             }
 
@@ -46,14 +37,12 @@ namespace Replicate.MetaTyping
 
         public static T HookUp<T>(Func<MethodInfo, object[], object> interceptor) => HookUp<T>(new LambdaInterceptor(interceptor));
 
-        public static T HookUp<T>(IInterceptor implementor)
-        {
+        public static T HookUp<T>(IInterceptor implementor) {
             Type target = typeof(T);
             TypeBuilder typeBuilder = DynamicModule.Create().DefineType(target.Name + "_Proxy", TypeAttributes.Class, typeof(ProxyImplement));
             typeBuilder.AddInterfaceImplementation(target);
             var methods = target.GetMethods();
-            for (int i = 0; i < methods.Length; i++)
-            {
+            for (int i = 0; i < methods.Length; i++) {
                 var info = methods[i];
                 if (info.ContainsGenericParameters)
                     throw new ReplicateError("Generic parameters in RPC interfaces are not supported");
@@ -69,15 +58,13 @@ namespace Replicate.MetaTyping
             return output;
         }
 
-        static void Implement(int methodIndex, MethodBuilder builder, MethodInfo info)
-        {
+        static void Implement(int methodIndex, MethodBuilder builder, MethodInfo info) {
             var il = builder.GetILGenerator();
             LocalBuilder arr = il.DeclareLocal(typeof(List<object>), true);
             il.Emit(OpCodes.Newobj, typeof(List<object>).GetConstructor(Type.EmptyTypes));
             il.Emit(OpCodes.Stloc_0);
             var paramInfos = info.GetParameters();
-            for (int i = 0; i < paramInfos.Length; i++)
-            {
+            for (int i = 0; i < paramInfos.Length; i++) {
                 var paramInfo = paramInfos[i];
                 il.Emit(OpCodes.Ldloc_0);
                 il.Emit(OpCodes.Ldarg, i + 1);

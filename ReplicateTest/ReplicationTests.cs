@@ -1,24 +1,20 @@
-﻿using System;
+﻿using NUnit.Framework;
 using Replicate;
 using Replicate.MetaData;
-using System.Linq;
-using System.Reflection;
-using System.Collections.Generic;
-using NUnit.Framework;
-using System.Threading.Tasks;
 using Replicate.MetaData.Policy;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
-namespace ReplicateTest
-{
+namespace ReplicateTest {
     [ReplicateType]
-    public class ReplicatedType2
-    {
+    public class ReplicatedType2 {
         [Replicate]
         public float field3;
     }
     [ReplicateType]
-    public class ReplicatedType
-    {
+    public class ReplicatedType {
         public int field1;
         public string field2;
         [AsReference]
@@ -27,55 +23,46 @@ namespace ReplicateTest
 
     [TestFixture]
     [ReplicateType]
-    public class ReplicationTests
-    {
+    public class ReplicationTests {
         static TypeAccessor typeAccessor;
         static ReplicationModel model = new ReplicationModel();
         [OneTimeSetUp]
-        public static void InitTypes()
-        {
+        public static void InitTypes() {
             typeAccessor = model.GetTypeAccessor(typeof(ReplicatedType));
         }
         [Test]
-        public void TypeDataTest()
-        {
+        public void TypeDataTest() {
             Assert.AreEqual(model[typeof(ReplicatedType)][0].Name, "field1");
         }
         [ReplicateType]
-        public struct IgnoredFields
-        {
+        public struct IgnoredFields {
             public float exist;
             [ReplicateIgnore]
             public float ignored;
         }
         [Test]
-        public void TestReplicateIgnore()
-        {
+        public void TestReplicateIgnore() {
             var members = model[typeof(IgnoredFields)].Members;
             Assert.AreEqual(1, members.Count);
             Assert.AreEqual("exist", members[0].Name);
         }
         [ReplicateType]
-        public class SimpleMessage
-        {
+        public class SimpleMessage {
             public float time;
             public string faff;
         }
         static bool called = false;
         static SimpleMessage testMessage;
         [ReplicateRPC]
-        public static Task<bool> messageMethod(SimpleMessage message)
-        {
+        public static Task<bool> messageMethod(SimpleMessage message) {
             called = true;
             Assert.AreEqual(message.time, testMessage.time);
             Assert.AreEqual(message.faff, testMessage.faff);
             return Task.FromResult(false);
         }
         [Test, Timeout(1000)]
-        public void TestSendRecv()
-        {
-            testMessage = new SimpleMessage()
-            {
+        public void TestSendRecv() {
+            testMessage = new SimpleMessage() {
                 time = 10,
                 faff = "FAFF"
             };
@@ -86,10 +73,8 @@ namespace ReplicateTest
             Assert.IsTrue(called);
         }
         [Test]
-        public void GetSetTest()
-        {
-            ReplicatedType replicated = new ReplicatedType()
-            {
+        public void GetSetTest() {
+            ReplicatedType replicated = new ReplicatedType() {
                 field1 = 3,
                 field2 = "herpderp"
             };
@@ -99,8 +84,7 @@ namespace ReplicateTest
             Assert.AreEqual(typeAccessor[1].GetValue(replicated), "FAFF");
         }
         [Test]
-        public void RegisterObj()
-        {
+        public void RegisterObj() {
             ReplicatedType replicated = new ReplicatedType();
             var cs = BinarySerializerUtil.MakeClientServer();
             cs.server.RegisterObject(replicated);
@@ -108,10 +92,8 @@ namespace ReplicateTest
         }
         // TODO: Re-enable
         //[Test]
-        public void ReplicateObj()
-        {
-            ReplicatedType replicated = new ReplicatedType()
-            {
+        public void ReplicateObj() {
+            ReplicatedType replicated = new ReplicatedType() {
                 field1 = 3,
                 field2 = "herpderp"
             };
@@ -125,18 +107,14 @@ namespace ReplicateTest
         }
         // TODO: Re-enable
         //[Test]
-        public void ReplicateObjReference()
-        {
-            ReplicatedType2 child = new ReplicatedType2()
-            {
+        public void ReplicateObjReference() {
+            ReplicatedType2 child = new ReplicatedType2() {
                 field3 = .9f
             };
-            ReplicatedType replicated1 = new ReplicatedType()
-            {
+            ReplicatedType replicated1 = new ReplicatedType() {
                 child1 = child
             };
-            ReplicatedType replicated2 = new ReplicatedType()
-            {
+            ReplicatedType replicated2 = new ReplicatedType() {
                 child1 = child
             };
             var cs = BinarySerializerUtil.MakeClientServer();
@@ -153,10 +131,8 @@ namespace ReplicateTest
         }
         // TODO: Re-enable
         //[Test]
-        public void ReplicateDictionary()
-        {
-            Dictionary<string, int> faff = new Dictionary<string, int>
-            {
+        public void ReplicateDictionary() {
+            Dictionary<string, int> faff = new Dictionary<string, int> {
                 ["herp"] = 3
             };
             var cs = BinarySerializerUtil.MakeClientServer();
@@ -172,16 +148,14 @@ namespace ReplicateTest
         [ReplicateType(SurrogateType = typeof(ClassSurrogate))]
         public class ClassWithSurrogate { }
         [Test]
-        public void RegisterSurrogatedType()
-        {
+        public void RegisterSurrogatedType() {
             var v = new ClassWithSurrogate();
             var cs = BinarySerializerUtil.MakeClientServer();
             Assert.Throws<InvalidOperationException>(() => cs.server.RegisterObject(v));
         }
         class Unknown { }
         [Test]
-        public void RegisterUnknownType()
-        {
+        public void RegisterUnknownType() {
             var cs = BinarySerializerUtil.MakeClientServer();
             Assert.Throws<InvalidOperationException>(() => cs.server.RegisterObject(new Unknown()));
         }

@@ -1,25 +1,20 @@
-﻿using System;
-using System.Reflection;
+﻿using NUnit.Framework;
+using Replicate;
+using Replicate.MetaData;
 using Replicate.MetaTyping;
 using System.Linq;
-using Replicate;
-using static ReplicateTest.BinarySerializerUtil;
+using System.Reflection;
 using System.Threading.Tasks;
-using NUnit.Framework;
-using Replicate.RPC;
-using Replicate.MetaData;
+using static ReplicateTest.BinarySerializerUtil;
 
-namespace ReplicateTest
-{
-    public class AddImplementor : IAutoAddNone, IAutoAddAllPublic
-    {
+namespace ReplicateTest {
+    public class AddImplementor : IAutoAddNone, IAutoAddAllPublic {
         public bool AddModifier() => true;
         public bool IgnoreModifier() => true;
         public bool NoModifiers() => true;
     }
     [ReplicateType(AutoMethods = AutoAdd.AllPublic)]
-    public interface IAutoAddAllPublic
-    {
+    public interface IAutoAddAllPublic {
         bool NoModifiers();
         [ReplicateRPC]
         bool AddModifier();
@@ -27,8 +22,7 @@ namespace ReplicateTest
         bool IgnoreModifier();
     }
     [ReplicateType(AutoMethods = AutoAdd.None)]
-    public interface IAutoAddNone
-    {
+    public interface IAutoAddNone {
         bool NoModifiers();
         [ReplicateRPC]
         bool AddModifier();
@@ -36,58 +30,47 @@ namespace ReplicateTest
         bool IgnoreModifier();
     }
     [ReplicateType]
-    public interface IMultipleParameters
-    {
+    public interface IMultipleParameters {
         bool TwoParameters(int a, bool b);
     }
     [ReplicateType]
-    public interface IDefaultParameter
-    {
+    public interface IDefaultParameter {
         int TwoParameters(int a, bool b = false);
     }
-    public class DefaultParameter : IDefaultParameter
-    {
-        public int TwoParameters(int a, bool b = false)
-        {
+    public class DefaultParameter : IDefaultParameter {
+        public int TwoParameters(int a, bool b = false) {
             Assert.IsFalse(b);
             return a;
         }
     }
     [TestFixture]
-    public class RPCTests
-    {
+    public class RPCTests {
         [ReplicateType(IsInstanceRPC = true)]
-        public interface ITestInterface
-        {
+        public interface ITestInterface {
             int Herp(string faff);
             void Derp();
             Task<int> AsyncHerp(string faff);
             Task AsyncDerp();
         }
         [ReplicateType]
-        public interface ITestGenericInterface
-        {
+        public interface ITestGenericInterface {
             T Generic<T>(T value);
         }
         [ReplicateType(IsInstanceRPC = true)]
-        public interface ITestInterface2
-        {
+        public interface ITestInterface2 {
             [ReplicateRPC]
             int Herp(string faff);
             void Derp();
         }
-        public interface ITestInterface<T>
-        {
+        public interface ITestInterface<T> {
             int Herp(T faff);
             void Derp();
         }
-        public class TestImplementor : IInterceptor
-        {
+        public class TestImplementor : IInterceptor {
             MethodInfo derp = typeof(ITestInterface).GetMethod("Derp");
             MethodInfo herp = typeof(ITestInterface).GetMethod("Herp");
 
-            public T Intercept<T>(MethodInfo method, object[] args)
-            {
+            public T Intercept<T>(MethodInfo method, object[] args) {
                 if (method.Name == "Generic")
                     return (T)args[0];
                 Assert.IsTrue(method == derp || method == herp);
@@ -97,29 +80,24 @@ namespace ReplicateTest
             }
         }
         [ReplicateType]
-        public class TestTarget : ITestInterface, ITestInterface2
-        {
+        public class TestTarget : ITestInterface, ITestInterface2 {
             public ITestInterface RPC;
             public bool DerpCalled = false;
             public string HerpValue = null;
-            public void Derp()
-            {
+            public void Derp() {
                 DerpCalled = true;
             }
-            public async Task AsyncDerp()
-            {
+            public async Task AsyncDerp() {
                 await Task.Yield();
                 Derp();
             }
-            public int Herp(string faff)
-            {
+            public int Herp(string faff) {
                 if (!ReplicateContext.IsInRPC)
                     RPC.Herp(faff);
                 HerpValue = faff;
                 return faff.Length;
             }
-            public async Task<int> AsyncHerp(string faff)
-            {
+            public async Task<int> AsyncHerp(string faff) {
                 await Task.Yield();
                 return Herp(faff);
             }
@@ -127,28 +105,23 @@ namespace ReplicateTest
             public void Ignored() { }
         }
         [Test]
-        public void ProxyImplementTest1()
-        {
+        public void ProxyImplementTest1() {
             ITestInterface test = ProxyImplement.HookUp<ITestInterface>(new TestImplementor());
             Assert.AreEqual(4, test.Herp("faff"));
         }
         [Test]
-        public void ProxyImplementGeneric()
-        {
+        public void ProxyImplementGeneric() {
             // TODO: Implement probably
-            Assert.Throws<ReplicateError>(() =>
-            {
+            Assert.Throws<ReplicateError>(() => {
                 ITestGenericInterface test = ProxyImplement.HookUp<ITestGenericInterface>(new TestImplementor());
             });
             //Assert.AreEqual("faff", test.Generic("faff"));
         }
         [Test]
-        public void ProxyOnUnregisteredObject()
-        {
+        public void ProxyOnUnregisteredObject() {
             Assert.Throws<ReplicateError>(() => MakeClientServer().server.CreateProxy(new TestTarget()));
         }
-        ClientServer rpcSetup(out TestTarget serverTarget, out TestTarget clientTarget)
-        {
+        ClientServer rpcSetup(out TestTarget serverTarget, out TestTarget clientTarget) {
             var cs = MakeClientServer();
             serverTarget = new TestTarget();
             cs.server.RegisterObject(serverTarget).Await();
@@ -158,22 +131,19 @@ namespace ReplicateTest
             return cs;
         }
         [Test]
-        public void RPCProxyTest1()
-        {
+        public void RPCProxyTest1() {
             var cs = rpcSetup(out var serverTarget, out var clientTarget);
             serverTarget.RPC.Derp();
             Assert.IsTrue(clientTarget.DerpCalled);
         }
         [Test]
-        public void RPCProxyTest2()
-        {
+        public void RPCProxyTest2() {
             var cs = rpcSetup(out var serverTarget, out var clientTarget);
             serverTarget.Herp("derp");
             Assert.AreEqual("derp", clientTarget.HerpValue);
         }
         [Test]
-        public void AutoAddNone()
-        {
+        public void AutoAddNone() {
             var channel = new PassThroughChannel.Endpoint(new ReplicationModel());
             channel.target = channel;
             channel.Server.RegisterSingleton<IAutoAddNone>(new AddImplementor());
@@ -183,8 +153,7 @@ namespace ReplicateTest
             Assert.Throws<ContractNotFoundError>(() => proxy.NoModifiers());
         }
         [Test]
-        public void AutoAddPublic()
-        {
+        public void AutoAddPublic() {
             var channel = new PassThroughChannel.Endpoint(new ReplicationModel());
             channel.target = channel;
             channel.Server.RegisterSingleton<IAutoAddAllPublic>(new AddImplementor());
@@ -194,8 +163,7 @@ namespace ReplicateTest
             Assert.IsTrue(proxy.NoModifiers());
         }
         [Test]
-        public void TestRPCTargetGetsCalled()
-        {
+        public void TestRPCTargetGetsCalled() {
             var cs = MakeClientServer();
             var target = new TestTarget();
             cs.server.Channel.Server.RegisterSingleton<ITestInterface>(target);
@@ -204,8 +172,7 @@ namespace ReplicateTest
             Assert.IsTrue(target.DerpCalled);
         }
         [Test]
-        public void TestRPCTargetGetsCalledAsync()
-        {
+        public void TestRPCTargetGetsCalledAsync() {
             var cs = MakeClientServer();
             var target = new TestTarget();
             cs.server.Channel.Server.RegisterSingleton<ITestInterface>(target);
@@ -214,8 +181,7 @@ namespace ReplicateTest
             Assert.IsTrue(target.DerpCalled);
         }
         [Test]
-        public void TestRPCReturnValueGetsSent()
-        {
+        public void TestRPCReturnValueGetsSent() {
             var cs = MakeClientServer();
             var target = new TestTarget();
             cs.server.Channel.Server.RegisterSingleton<ITestInterface>(target);
@@ -223,8 +189,7 @@ namespace ReplicateTest
             Assert.AreEqual(4, proxy.Herp("derp"));
         }
         [Test]
-        public void TestRPCReturnValueGetsSentAsync()
-        {
+        public void TestRPCReturnValueGetsSentAsync() {
             var cs = MakeClientServer();
             var target = new TestTarget();
             cs.server.Channel.Server.RegisterSingleton<ITestInterface>(target);
@@ -232,15 +197,13 @@ namespace ReplicateTest
             Assert.AreEqual(4, proxy.AsyncHerp("derp").Result);
         }
         [Test]
-        public void MultipleParametersError()
-        {
+        public void MultipleParametersError() {
             var channel = new PassThroughChannel.Endpoint(new ReplicationModel());
             channel.target = channel;
             Assert.Throws<ReplicateError>(() => channel.Server.RegisterSingleton<IMultipleParameters>(null));
         }
         [Test]
-        public void DefaultParametersSuccess()
-        {
+        public void DefaultParametersSuccess() {
             var channel = new PassThroughChannel.Endpoint(new ReplicationModel());
             channel.target = channel;
             channel.Server.RegisterSingleton<IDefaultParameter>(new DefaultParameter());

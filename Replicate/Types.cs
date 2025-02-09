@@ -1,15 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Replicate
-{
+﻿namespace Replicate {
     public struct None { public static None Value { get; private set; } = new None(); }
-    public class Ref<T> where T : struct
-    {
+    public class Ref<T> where T : struct {
         public Ref(T value) => Value = value;
         public T Value;
         public override string ToString() => Value.ToString();

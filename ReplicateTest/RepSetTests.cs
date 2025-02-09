@@ -3,31 +3,24 @@ using Replicate.MetaData;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace ReplicateTest
-{
+namespace ReplicateTest {
     [TestFixture]
-    class RepSetTests
-    {
+    class RepSetTests {
         [Test]
-        public void InvalidSetKey()
-        {
+        public void InvalidSetKey() {
             var set = new RepSet<string>();
             Assert.Throws<InvalidOperationException>(() => set[null] = null);
         }
         [Test]
-        public void ValidSetKeyRetrieves()
-        {
+        public void ValidSetKeyRetrieves() {
             var set = new RepSet<string>();
             set[new RepKey(0, "derp")] = "derp";
             Assert.AreEqual("derp", set["derp"]);
             Assert.AreEqual("derp", set[0]);
         }
         [Test]
-        public void TestSparseSet()
-        {
+        public void TestSparseSet() {
             var set = new RepSet<string>();
             set[new RepKey(5, "derp")] = "derp";
             Assert.AreEqual("derp", set["derp"]);
@@ -40,8 +33,7 @@ namespace ReplicateTest
             Assert.AreEqual(null, set[6]);
         }
         [Test]
-        public void ToRepSet()
-        {
+        public void ToRepSet() {
             var set = new RepSet<string>();
             set[new RepKey(0, "derp")] = "derp";
             var set2 = set.Select(v => new KeyValuePair<RepKey, string>(v.Key, "herp" + v.Value)).ToRepSet();

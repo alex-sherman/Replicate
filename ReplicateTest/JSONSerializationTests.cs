@@ -1,12 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using Replicate;
 using Replicate.MetaData;
 using Replicate.MetaData.Policy;
 using Replicate.Serialization;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
 namespace ReplicateTest {
     [TestFixture]

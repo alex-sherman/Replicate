@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Replicate.MetaData
-{
-    public class RepNodeTypeless : IRepNode, IRepPrimitive, IRepCollection, IRepObject
-    {
+namespace Replicate.MetaData {
+    public class RepNodeTypeless : IRepNode, IRepPrimitive, IRepCollection, IRepObject {
         public ReplicationModel Model { get; }
         public object RawValue => this;
         public RepKey Key { get; set; }
@@ -25,34 +20,27 @@ namespace Replicate.MetaData
         public TypeAccessor CollectionType => Model.GetTypeAccessor(typeof(IRepNode));
 
         public List<KeyValuePair<string, IRepNode>> Children = new List<KeyValuePair<string, IRepNode>>();
-        public IEnumerable<object> Values
-        {
+        public IEnumerable<object> Values {
             get => Children.Select(c => c.Value);
             set => Children = value.Select(v => new KeyValuePair<string, IRepNode>(null, (IRepNode)v)).ToList();
         }
 
-        public RepNodeTypeless(ReplicationModel model, MemberAccessor memberAccessor = null)
-        {
+        public RepNodeTypeless(ReplicationModel model, MemberAccessor memberAccessor = null) {
             Model = model;
             MemberAccessor = memberAccessor;
         }
 
-        public IRepNode this[int memberIndex]
-        {
+        public IRepNode this[int memberIndex] {
             get => Children[memberIndex].Value;
             set => Children[memberIndex] = new KeyValuePair<string, IRepNode>(null, (IRepNode)value);
         }
-        public IRepNode this[RepKey memberName]
-        {
-            get
-            {
+        public IRepNode this[RepKey memberName] {
+            get {
                 if (memberName.Index.HasValue) return Children[memberName.Index.Value].Value;
                 if (memberName.Index != null) return Children[memberName.Index.Value].Value;
-                if(memberName.Name != null)
-                {
+                if (memberName.Name != null) {
                     var child = Children.Where(c => c.Key == memberName.Name).Select(c => c.Value).FirstOrDefault();
-                    if (child == null)
-                    {
+                    if (child == null) {
                         child = new RepNodeTypeless(Model) { Key = memberName };
                         Children.Add(new KeyValuePair<string, IRepNode>(memberName.Name, child));
                     }
@@ -70,8 +58,7 @@ namespace Replicate.MetaData
 
         public void EnsureConstructed() { }
 
-        public override string ToString()
-        {
+        public override string ToString() {
             var result = MarshallMethod == MarshallMethod.Primitive ? (Value?.ToString() ?? "null") : $"{MarshallMethod.ToString()}";
             if (Key.Name != null)
                 result = $"{Key}: {result}";

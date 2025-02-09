@@ -2,42 +2,31 @@
 using Replicate;
 using Replicate.MetaData;
 using Replicate.MetaTyping;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace ReplicateTest
-{
+namespace ReplicateTest {
     [ReplicateType]
-    public class CustomType
-    {
+    public class CustomType {
         public string Field;
         public string Property { get; set; }
     }
-    namespace Nested
-    {
+    namespace Nested {
         [ReplicateType]
-        public class CustomType
-        {
+        public class CustomType {
             public string Field;
             public string Property { get; set; }
         }
     }
     [TestFixture]
-    public class ModelTests
-    {
+    public class ModelTests {
         [Test]
-        public void TestGetsByteArrayTypeId()
-        {
+        public void TestGetsByteArrayTypeId() {
             var model = new ReplicationModel();
             var typeId = model.GetId(typeof(byte[]));
             Assert.AreEqual(typeof(ICollection<byte>), model.GetType(typeId));
         }
         [Test]
-        public void TestFakeGetsMarked()
-        {
+        public void TestFakeGetsMarked() {
             var model = new ReplicationModel(false, false)
             {
                 typeof(string),
@@ -54,8 +43,7 @@ namespace ReplicateTest
             Assert.AreEqual("Property", property.Key.Name);
         }
         [Test]
-        public void TestApplyingAddsNewType()
-        {
+        public void TestApplyingAddsNewType() {
             var model = new ReplicationModel();
             Assert.NotNull(model[typeof(CustomType)]);
             var secondModel = new ReplicationModel(false);
@@ -69,13 +57,11 @@ namespace ReplicateTest
             Assert.AreEqual("Herp", propertyValue);
         }
         [Test]
-        public void CreatesFakeForMissingTypes()
-        {
+        public void CreatesFakeForMissingTypes() {
             var model1 = new ReplicationModel(false);
             var desc = model1.GetDescription();
             var stringId = model1.GetId(typeof(string));
-            desc.Types.Add(new TypeDescription()
-            {
+            desc.Types.Add(new TypeDescription() {
                 Key = new RepKey(model1.Types.Count, "Faff"),
                 Members = new List<MemberDescription>()
                 {
@@ -95,13 +81,11 @@ namespace ReplicateTest
             Assert.AreEqual(typeof(string), derpMember.MemberType);
         }
         [Test]
-        public void CreatesFakeForRecursiveMissingTypes()
-        {
+        public void CreatesFakeForRecursiveMissingTypes() {
             var model1 = new ReplicationModel(false);
             var desc = model1.GetDescription();
             var stringId = model1.GetId(typeof(string));
-            desc.Types.Add(new TypeDescription()
-            {
+            desc.Types.Add(new TypeDescription() {
                 Key = new RepKey(model1.Types.Count, "Faff"),
                 Members = new List<MemberDescription>()
                 {
@@ -121,15 +105,13 @@ namespace ReplicateTest
             Assert.AreEqual("Faff", derpMember.MemberType.Name);
         }
         [Test]
-        public void CreatesFakeForGenericMissingTypes()
-        {
+        public void CreatesFakeForGenericMissingTypes() {
             var model1 = new ReplicationModel(false);
             var desc = model1.GetDescription();
             var stringId = model1.GetId(typeof(string));
-            desc.Types.Add(new TypeDescription()
-            {
+            desc.Types.Add(new TypeDescription() {
                 Key = new RepKey(model1.Types.Count, "Faff"),
-                GenericParameters = new [] { "T" },
+                GenericParameters = new[] { "T" },
                 Members = new List<MemberDescription>()
                 {
                     new MemberDescription()
@@ -148,13 +130,11 @@ namespace ReplicateTest
             Assert.AreEqual(typeof(string), faffStr.Members["Derp"].Type);
         }
         [Test]
-        public void CreatesFakeForLaterMissingTypes()
-        {
+        public void CreatesFakeForLaterMissingTypes() {
             var model1 = new ReplicationModel(false);
             var desc = model1.GetDescription();
             var stringId = model1.GetId(typeof(string));
-            desc.Types.Add(new TypeDescription()
-            {
+            desc.Types.Add(new TypeDescription() {
                 Key = new RepKey(model1.Types.Count, "Faff"),
                 Members = new List<MemberDescription>()
                 {
@@ -165,8 +145,7 @@ namespace ReplicateTest
                     }
                 }
             });
-            desc.Types.Add(new TypeDescription()
-            {
+            desc.Types.Add(new TypeDescription() {
                 Key = new RepKey(model1.Types.Count + 1, "Herp"),
                 Members = new List<MemberDescription>(),
             });
@@ -179,8 +158,7 @@ namespace ReplicateTest
             Assert.AreEqual("Herp", derpMember.MemberType.Name);
         }
         [Test]
-        public void NamingOfTypes()
-        {
+        public void NamingOfTypes() {
             var model = new ReplicationModel(false, false)
             {
                 typeof(string),
@@ -190,8 +168,7 @@ namespace ReplicateTest
             Assert.AreEqual(model.Types["ReplicateTest.CustomType"]?.Type, typeof(CustomType));
         }
         [Test]
-        public void NamingOfTypesWithDuplicates()
-        {
+        public void NamingOfTypesWithDuplicates() {
             var model = new ReplicationModel(false, false)
             {
                 typeof(string),
@@ -203,8 +180,7 @@ namespace ReplicateTest
             Assert.AreEqual(model.Types["ReplicateTest.Nested.CustomType"]?.Type, typeof(Nested.CustomType));
         }
         [Test]
-        public void NamingOfTypesWithDuplicatesAlternateOrder()
-        {
+        public void NamingOfTypesWithDuplicatesAlternateOrder() {
             var model = new ReplicationModel(false, false)
             {
                 typeof(string),

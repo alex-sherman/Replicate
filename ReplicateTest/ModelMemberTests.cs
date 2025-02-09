@@ -1,52 +1,38 @@
 ﻿using NUnit.Framework;
 using Replicate;
 using Replicate.MetaData;
-using Replicate.MetaTyping;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace ReplicateTest
-{
+namespace ReplicateTest {
     [TestFixture]
-    public class ModelMemberTests
-    {
+    public class ModelMemberTests {
         [ReplicateType(AutoMembers = AutoAdd.AllPublic)]
-        public class AutoAddType
-        {
+        public class AutoAddType {
             public string Field;
             public string Property { get; set; }
         }
         [ReplicateType(AutoMembers = AutoAdd.None)]
-        public class NoAutoAddType
-        {
+        public class NoAutoAddType {
             public string Field;
             [Replicate]
             public string Explicit;
             public string Property { get; set; }
         }
         [ReplicateType(AutoMembers = AutoAdd.AllPublic)]
-        public class InheritedNoAutoAddType : NoAutoAddType
-        {
+        public class InheritedNoAutoAddType : NoAutoAddType {
             public string ChildAutoField;
         }
-        public class NoAttributeType
-        {
+        public class NoAttributeType {
             public string Field;
         }
         [ReplicateType(AutoMembers = AutoAdd.AllPublic)]
         public class InheritedNoAttributeType : NoAttributeType { }
         [ReplicateType(AutoMembers = AutoAdd.AllPublic)]
-        public class PrivateSetter
-        {
+        public class PrivateSetter {
             public string Private { get; private set; }
             public string Protected { get; protected set; }
         }
         [ReplicateType(AutoMembers = AutoAdd.None)]
-        public class PrivateMembers
-        {
+        public class PrivateMembers {
             [Replicate]
             string Field;
             public string PublicField => Field;
@@ -56,8 +42,7 @@ namespace ReplicateTest
         }
 
         [Test]
-        public void MembersAutoAdded()
-        {
+        public void MembersAutoAdded() {
             var model = new ReplicationModel();
             var typeData = model[typeof(AutoAddType)];
             Assert.NotNull(typeData);
@@ -65,8 +50,7 @@ namespace ReplicateTest
             Assert.NotNull(typeData["Property"]);
         }
         [Test]
-        public void MembersNotAutoAdded()
-        {
+        public void MembersNotAutoAdded() {
             var model = new ReplicationModel();
             var typeData = model[typeof(NoAutoAddType)];
             Assert.NotNull(typeData);
@@ -75,8 +59,7 @@ namespace ReplicateTest
             Assert.NotNull(typeData["Explicit"]);
         }
         [Test]
-        public void InheritedMembersNotAutoAdded()
-        {
+        public void InheritedMembersNotAutoAdded() {
             var model = new ReplicationModel(false);
             var typeData = model.Add(typeof(InheritedNoAutoAddType));
             Assert.NotNull(typeData);
@@ -86,16 +69,14 @@ namespace ReplicateTest
             Assert.NotNull(typeData["ChildAutoField"]);
         }
         [Test]
-        public void InheritedMembersWithoutAttributeUseChildAttribute()
-        {
+        public void InheritedMembersWithoutAttributeUseChildAttribute() {
             var model = new ReplicationModel(false);
             var typeData = model.Add(typeof(InheritedNoAttributeType));
             Assert.NotNull(typeData);
             Assert.NotNull(typeData["Field"]);
         }
         [Test]
-        public void PrivateSetterWorks()
-        {
+        public void PrivateSetterWorks() {
             var model = new ReplicationModel(false);
             var typeData = model.Add(typeof(PrivateSetter));
             var accessor = model.GetTypeAccessor(typeof(PrivateSetter));
@@ -108,8 +89,7 @@ namespace ReplicateTest
             Assert.AreEqual(obj.Protected, "herp");
         }
         [Test]
-        public void PrivateMembersWork()
-        {
+        public void PrivateMembersWork() {
             var model = new ReplicationModel(false);
             var typeData = model.Add(typeof(PrivateMembers));
             var accessor = model.GetTypeAccessor(typeof(PrivateMembers));

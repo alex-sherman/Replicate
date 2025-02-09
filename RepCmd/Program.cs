@@ -8,12 +8,9 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace RepCmd
-{
-    class Program
-    {
-        public class Options
-        {
+namespace RepCmd {
+    class Program {
+        public class Options {
             [Option('v', "verbose", Required = false, HelpText = "Set output to verbose messages.")]
             public bool Verbose { get; set; }
             //[Option("json", Required = false, HelpText = "Use a Json instead of a BinarySerializer")]
@@ -27,41 +24,32 @@ namespace RepCmd
             [Option('l', "list", Required = false, HelpText = "List methods")]
             public bool ListMethods { get; set; }
         }
-        static void Main(string[] args)
-        {
+        static void Main(string[] args) {
             Parser.Default.ParseArguments<Options>(args)
                 .WithParsed(options => Run(options).GetAwaiter().GetResult())
-                .WithNotParsed(errors =>
-                {
-                    foreach (var e in errors)
-                    {
+                .WithNotParsed(errors => {
+                    foreach (var e in errors) {
                         Console.WriteLine(e.ToString());
                     }
                 });
         }
-        static async Task Run(Options options)
-        {
+        static async Task Run(Options options) {
             var model = new ReplicationModel(false);
             var json = new JSONSerializer(model);
-            if (options.Socket != null)
-            {
+            if (options.Socket != null) {
                 var r = new Regex(@"(.*):(\d*)");
                 var match = r.Match(options.Socket);
-                
+
                 var channel = SocketChannel.Connect(match.Groups[1].Value, int.Parse(match.Groups[2].Value), new BinarySerializer());
                 var reflection = channel.CreateProxy<IReflectionService>();
                 model.LoadFrom(await reflection.Model());
                 var services = await reflection.Services();
-                if (options.ListMethods)
-                {
-                    foreach (var service in services)
-                    {
+                if (options.ListMethods) {
+                    foreach (var service in services) {
                         Console.WriteLine($"{service.Key.Type.Id}:{service.Key.Method}");
                     }
                     return;
-                }
-                else if (options.Method != null)
-                {
+                } else if (options.Method != null) {
                     var splitted = options.Method.Split(':');
                     var type = model.Types[splitted[0]];
 
@@ -70,8 +58,7 @@ namespace RepCmd
                     var requestType = model.GetType(service.Request);
                     var responseType = model.GetType(service.Response);
                     var request = json.Deserialize(requestType, options.Request ?? "null");
-                    var resultStream = await channel.Request(new RPCRequest()
-                    {
+                    var resultStream = await channel.Request(new RPCRequest() {
                         Request = request,
                         Contract = new RPCContract(requestType, responseType),
                         Endpoint = service.Key,

@@ -1,32 +1,20 @@
 ﻿using Replicate;
 using Replicate.MetaData;
 using Replicate.Serialization;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace ReplicateTest
-{
-    public static class BinarySerializerUtil
-    {
-        public struct ClientServer
-        {
+namespace ReplicateTest {
+    public static class BinarySerializerUtil {
+        public struct ClientServer {
             public ReplicationModel model;
             public PassThroughChannel channel;
             public ReplicationManager server;
             public ReplicationManager client;
         }
-        public static ClientServer MakeClientServer()
-        {
+        public static ClientServer MakeClientServer() {
             ReplicationModel model = new ReplicationModel();
             PassThroughChannel channel = new PassThroughChannel();
             channel.SetSerializer(new BinarySerializer(model));
-            return new ClientServer()
-            {
+            return new ClientServer() {
                 model = model,
                 channel = channel,
                 server = new ReplicationManager(channel.PointA, model),
@@ -34,8 +22,7 @@ namespace ReplicateTest
             };
         }
 
-        public static T SerializeDeserialize<T>(T data, ReplicationModel model = null)
-        {
+        public static T SerializeDeserialize<T>(T data, ReplicationModel model = null) {
             model = model ?? new ReplicationModel();
             var ser = new BinarySerializer(model);
             var bytes = ser.Serialize(data);

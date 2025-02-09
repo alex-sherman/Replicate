@@ -1,22 +1,13 @@
-﻿using Replicate.Messages;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
-namespace Replicate.MetaData
-{
+namespace Replicate.MetaData {
     [ReplicateType]
-    public struct MethodKey
-    {
+    public struct MethodKey {
         public TypeId Type;
         public RepKey Method;
 
-        public override bool Equals(object obj)
-        {
-            if (!(obj is MethodKey))
-            {
+        public override bool Equals(object obj) {
+            if (!(obj is MethodKey)) {
                 return false;
             }
 
@@ -25,15 +16,13 @@ namespace Replicate.MetaData
                    EqualityComparer<RepKey>.Default.Equals(Method, key.Method);
         }
 
-        public override int GetHashCode()
-        {
+        public override int GetHashCode() {
             var hashCode = 314988997;
             hashCode = hashCode * -1521134295 + EqualityComparer<TypeId>.Default.GetHashCode(Type);
             hashCode = hashCode * -1521134295 + EqualityComparer<RepKey>.Default.GetHashCode(Method);
             return hashCode;
         }
-        public override string ToString()
-        {
+        public override string ToString() {
             return $"{Type}.{Method}";
         }
     }

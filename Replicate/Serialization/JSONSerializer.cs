@@ -1,22 +1,17 @@
-﻿using System;
+﻿using Replicate.MetaData;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Threading.Tasks;
-using Replicate.MetaData;
 using static Replicate.Serialization.JSONGraphSerializer;
 
-namespace Replicate.Serialization
-{
-    public class JSONSerializer : Serializer
-    {
-        public struct Configuration
-        {
+namespace Replicate.Serialization {
+    public class JSONSerializer : Serializer {
+        public struct Configuration {
             public bool Strict;
             public (Func<string, string> To, Func<string, string> From) KeyConvert;
         }
@@ -38,26 +33,22 @@ namespace Replicate.Serialization
         };
 
         private ThreadLocal<Stack<object>> ObjectStack = new ThreadLocal<Stack<object>>();
-        private struct ObjectTracker : IDisposable
-        {
+        private struct ObjectTracker : IDisposable {
             object Obj;
             JSONSerializer Ser;
-            public ObjectTracker(JSONSerializer ser, object obj)
-            {
+            public ObjectTracker(JSONSerializer ser, object obj) {
                 Obj = obj;
                 Ser = ser;
                 Ser.ObjectStack.Value.Push(Obj);
             }
-            public void Dispose()
-            {
+            public void Dispose() {
                 var obj = Ser.ObjectStack.Value.Pop();
                 Debug.Assert(obj == Obj);
                 if (Ser.ObjectStack.Value.Count == 0) Ser.ObjectStack.Value = null;
             }
         }
 
-        static void CheckAndThrow(Stream stream, bool condition, string message = null)
-        {
+        static void CheckAndThrow(Stream stream, bool condition, string message = null) {
             if (!condition) {
                 if (message == null)
                     throw new SerializationError(stream);
@@ -69,8 +60,7 @@ namespace Replicate.Serialization
         static Regex ws = new Regex("\\s");
         static bool IsW(char c) => ws.IsMatch("" + c);
 
-        private bool ReadCollection(Stream stream, Action onEntry)
-        {
+        private bool ReadCollection(Stream stream, Action onEntry) {
             if (stream.ReadCharOne(true) != '[') {
                 if (Config.Strict) throw new SerializationError();
                 ReadToken(stream);
@@ -80,8 +70,7 @@ namespace Replicate.Serialization
             stream.ReadAllString(IsW);
             char nextChar = stream.ReadCharOne(true);
             if (nextChar == ']') stream.ReadCharOne();
-            while (nextChar != ']')
-            {
+            while (nextChar != ']') {
                 stream.ReadAllString(IsW);
                 // Handle trailing commas.
                 var peekChar = stream.ReadCharOne(true);
@@ -97,15 +86,12 @@ namespace Replicate.Serialization
             };
             return true;
         }
-        public override object ReadCollection(object obj, Stream stream, TypeAccessor typeAccessor, TypeAccessor collectionValueAccessor, MemberAccessor memberAccessor)
-        {
+        public override object ReadCollection(object obj, Stream stream, TypeAccessor typeAccessor, TypeAccessor collectionValueAccessor, MemberAccessor memberAccessor) {
             if (ReadNull(stream)) return null;
-            if (typeAccessor.IsDictObj)
-            {
+            if (typeAccessor.IsDictObj) {
                 if (obj == null) obj = typeAccessor.Construct();
                 var dict = obj as IDictionary;
-                return ReadObject(stream, name =>
-                {
+                return ReadObject(stream, name => {
                     var keyType = Model.GetTypeAccessor(typeAccessor.Type.GetGenericArguments()[0]);
                     var valueType = Model.GetTypeAccessor(typeAccessor.Type.GetGenericArguments()[1]);
                     object key = name;
@@ -120,8 +106,7 @@ namespace Replicate.Serialization
                 ? CollectionUtil.FillCollection(obj, typeAccessor.Type, values) : null;
         }
 
-        private bool ReadObject(Stream stream, Action<string> onEntry)
-        {
+        private bool ReadObject(Stream stream, Action<string> onEntry) {
             if (stream.ReadCharOne(true) != '{') {
                 if (Config.Strict) throw new SerializationError();
                 ReadToken(stream);
@@ -131,8 +116,7 @@ namespace Replicate.Serialization
             stream.ReadAllString(IsW);
             char nextChar = stream.ReadCharOne(true);
             if (nextChar == '}') stream.ReadCharOne();
-            while (nextChar != '}')
-            {
+            while (nextChar != '}') {
                 stream.ReadAllString(IsW);
                 var name = stringSer.Read(stream);
                 stream.ReadAllString(IsW);
@@ -145,16 +129,13 @@ namespace Replicate.Serialization
             };
             return true;
         }
-        public override object ReadObject(object obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
-        {
+        public override object ReadObject(object obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor) {
             if (ReadNull(stream)) return null;
             if (obj == null) obj = typeAccessor.Construct();
-            return ReadObject(stream, name =>
-            {
+            return ReadObject(stream, name => {
                 var convertedName = Config.KeyConvert.From?.Invoke(name) ?? name;
                 var childMember = typeAccessor.SerializedMembers.Values.FirstOrDefault(m => m.Info.Name == convertedName);
-                if (childMember == null)
-                {
+                if (childMember == null) {
                     CheckAndThrow(stream, !Config.Strict, $"Unknown field {name}");
                     ReadToken(stream);
                     return;
@@ -164,8 +145,7 @@ namespace Replicate.Serialization
             }) ? obj : null;
         }
 
-        public PrimitiveType PeekPrimitiveType(Stream stream)
-        {
+        public PrimitiveType PeekPrimitiveType(Stream stream) {
             stream.ReadAllString(IsW);
             var c = stream.ReadCharOne(true);
             if (c == '"') return PrimitiveType.String;
@@ -173,61 +153,48 @@ namespace Replicate.Serialization
             return PrimitiveType.Double;
         }
 
-        private object ReadPrimitive(Stream stream)
-        {
+        private object ReadPrimitive(Stream stream) {
             return serializers[PeekPrimitiveType(stream)].Read(stream);
         }
 
-        public override object ReadPrimitive(Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
-        {
+        public override object ReadPrimitive(Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor) {
             if (ReadNull(stream)) return null;
-            try
-            {
+            try {
                 return Model.Coerce(typeAccessor, ReadPrimitive(stream));
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 throw new SerializationError(null, e);
             }
         }
 
-        bool ReadNull(Stream stream)
-        {
+        bool ReadNull(Stream stream) {
             stream.ReadAllString(IsW);
-            if (stream.ReadCharOne(true) == 'n')
-            {
+            if (stream.ReadCharOne(true) == 'n') {
                 CheckAndThrow(stream, stream.ReadChars(4) == "null");
                 return true;
             }
             return false;
         }
         IEnumerable<(string key, object value, TypeAccessor type, MemberAccessor member)>
-            getDictValues(IDictionary dict, TypeAccessor typeAccessor)
-        {
+            getDictValues(IDictionary dict, TypeAccessor typeAccessor) {
             var keyType = Model.GetTypeAccessor(typeAccessor.Type.GetGenericArguments()[0]);
             var valueType = Model.GetTypeAccessor(typeAccessor.Type.GetGenericArguments()[1]);
-            foreach (var key in dict.Keys)
-            {
+            foreach (var key in dict.Keys) {
                 var strKey = key;
                 if (keyType.Surrogate != null) strKey = keyType.Surrogate.ConvertTo(this, strKey);
                 yield return (strKey as string, dict[key], valueType, null);
             }
         }
-        public override void WriteCollection(Stream stream, object obj, TypeAccessor typeAccessor, TypeAccessor collectionValueType, MemberAccessor memberAccessor)
-        {
+        public override void WriteCollection(Stream stream, object obj, TypeAccessor typeAccessor, TypeAccessor collectionValueType, MemberAccessor memberAccessor) {
             if (obj == null)
                 WritePrimitive(stream, null, null, null);
-            else
-            {
-                if (typeAccessor.IsDictObj)
-                {
+            else {
+                if (typeAccessor.IsDictObj) {
                     SerializeObject(stream, getDictValues(obj as IDictionary, typeAccessor));
                     return;
                 }
                 stream.WriteString("[");
                 bool first = true;
-                foreach (var item in (IEnumerable)obj)
-                {
+                foreach (var item in (IEnumerable)obj) {
                     if (!first) stream.WriteString(", ");
                     else first = false;
                     Write(stream, item, collectionValueType, null);
@@ -236,19 +203,16 @@ namespace Replicate.Serialization
             }
         }
         bool IsEnumerableEmpty(IEnumerable enumerable) {
-            foreach(var item in enumerable) return false;
+            foreach (var item in enumerable) return false;
             return true;
         }
-        public void SerializeObject(Stream stream, IEnumerable<(string key, object value, TypeAccessor type, MemberAccessor member)> obj)
-        {
+        public void SerializeObject(Stream stream, IEnumerable<(string key, object value, TypeAccessor type, MemberAccessor member)> obj) {
             if (obj == null)
                 WritePrimitive(stream, null, null, null);
-            else
-            {
+            else {
                 stream.WriteString("{");
                 bool first = true;
-                foreach (var (key, value, type, member) in obj)
-                {
+                foreach (var (key, value, type, member) in obj) {
                     if ((member?.SkipNull ?? false) && value == null) continue;
                     if (value != null && (member?.SkipEmpty ?? false) && IsEnumerableEmpty((IEnumerable)value)) continue;
                     if (!first) stream.WriteString(", ");
@@ -260,45 +224,38 @@ namespace Replicate.Serialization
             }
         }
 
-        public override void WriteObject(Stream stream, object obj, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
-        {
+        public override void WriteObject(Stream stream, object obj, TypeAccessor typeAccessor, MemberAccessor memberAccessor) {
             // Prevent circular references
             if (ObjectStack.Value == null) ObjectStack.Value = new Stack<object>();
-            if (ObjectStack.Value.Contains(obj))
-            {
+            if (ObjectStack.Value.Contains(obj)) {
                 WritePrimitive(stream, null, null, null);
                 return;
             }
             using var objTracker = new ObjectTracker(this, obj);
 
-            var objectSet = obj == null ? null : typeAccessor.SerializedMembers.Keys.Select(key =>
-            {
+            var objectSet = obj == null ? null : typeAccessor.SerializedMembers.Keys.Select(key => {
                 var member = typeAccessor[key];
                 return (Config.KeyConvert.To?.Invoke(key.Name) ?? key.Name, member.GetValue(obj), member.TypeAccessor, member);
             });
             SerializeObject(stream, objectSet);
         }
 
-        public override void WritePrimitive(Stream stream, object obj, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
-        {
+        public override void WritePrimitive(Stream stream, object obj, TypeAccessor typeAccessor, MemberAccessor memberAccessor) {
             if (obj == null)
                 stream.WriteString("null");
             else
                 serializers[typeAccessor.TypeData.PrimitiveType].Write(obj, stream);
         }
 
-        public override void WriteBlob(Stream stream, Blob obj, MemberAccessor memberAccessor)
-        {
-            if (obj?.Stream == null)
-            {
+        public override void WriteBlob(Stream stream, Blob obj, MemberAccessor memberAccessor) {
+            if (obj?.Stream == null) {
                 WritePrimitive(stream, null, null, null);
                 return;
             }
             obj.Stream.CopyTo(stream);
         }
 
-        public MarshallMethod PeekMarshallMethod(Stream stream)
-        {
+        public MarshallMethod PeekMarshallMethod(Stream stream) {
             stream.ReadAllString(IsW);
             var c = stream.ReadCharOne(true);
             // The 'n' is for null, return it as a null object
@@ -307,12 +264,10 @@ namespace Replicate.Serialization
             return MarshallMethod.Primitive;
         }
 
-        private void ReadToken(Stream stream)
-        {
+        private void ReadToken(Stream stream) {
             if (ReadNull(stream)) return;
             var marshallMethod = PeekMarshallMethod(stream);
-            switch (marshallMethod)
-            {
+            switch (marshallMethod) {
                 case MarshallMethod.Primitive:
                     ReadPrimitive(stream);
                     break;
@@ -327,8 +282,7 @@ namespace Replicate.Serialization
             }
         }
 
-        public override Blob ReadBlob(Blob obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor)
-        {
+        public override Blob ReadBlob(Blob obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor) {
             var substream = new SubStream(stream, stream.Length - stream.Position);
             ReadToken(substream);
             substream.SetLength(substream.Position);

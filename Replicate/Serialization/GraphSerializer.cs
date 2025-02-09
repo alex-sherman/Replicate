@@ -1,38 +1,27 @@
 ﻿using Replicate.MetaData;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Replicate.Serialization
-{
-    public abstract class GraphSerializer : IReplicateSerializer
-    {
+namespace Replicate.Serialization {
+    public abstract class GraphSerializer : IReplicateSerializer {
         public ReplicationModel Model { get; private set; }
-        public GraphSerializer(ReplicationModel model)
-        {
+        public GraphSerializer(ReplicationModel model) {
             Model = model;
         }
         private GraphSerializer() { }
 
-        public Stream Serialize(Type type, object obj, Stream stream)
-        {
+        public Stream Serialize(Type type, object obj, Stream stream) {
             Write(stream, Model.GetRepNode(obj, type));
             return stream;
         }
 
         public T Deserialize<T>(Stream wireValue) => (T)Deserialize(typeof(T), wireValue);
-        public object Deserialize(Type type, Stream wireValue, object existing = null)
-        {
+        public object Deserialize(Type type, Stream wireValue, object existing = null) {
             var node = Model.GetRepNode(existing, type);
             return Read(wireValue, node).RawValue;
         }
-        public void Write(Stream context, IRepNode node)
-        {
-            switch (node.MarshallMethod)
-            {
+        public void Write(Stream context, IRepNode node) {
+            switch (node.MarshallMethod) {
                 case MarshallMethod.Primitive:
                     Write(context, node.AsPrimitive);
                     break;
@@ -51,17 +40,14 @@ namespace Replicate.Serialization
         public abstract void Write(Stream context, IRepCollection value);
         public abstract void Write(Stream context, IRepObject value);
         public abstract (MarshallMethod, PrimitiveType?) ReadNodeType(Stream context);
-        public IRepNode Read(Stream context, IRepNode node)
-        {
+        public IRepNode Read(Stream context, IRepNode node) {
             var marshalMethod = node.MarshallMethod;
             (MarshallMethod, PrimitiveType?) nodeInfo = (node.MarshallMethod, null);
-            if(marshalMethod == MarshallMethod.None)
-            {
+            if (marshalMethod == MarshallMethod.None) {
                 nodeInfo = ReadNodeType(context);
                 marshalMethod = nodeInfo.Item1;
             }
-            switch (marshalMethod)
-            {
+            switch (marshalMethod) {
                 case MarshallMethod.Primitive:
                     var primitive = node.AsPrimitive;
                     if (nodeInfo.Item2.HasValue) primitive.PrimitiveType = nodeInfo.Item2.Value;
@@ -77,8 +63,7 @@ namespace Replicate.Serialization
                     return node;
             }
         }
-        protected static object Default(Type type)
-        {
+        protected static object Default(Type type) {
             if (type.IsValueType)
                 return Activator.CreateInstance(type);
             return null;

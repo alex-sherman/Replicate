@@ -1,31 +1,23 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Replicate.MetaData
-{
-    public class RepDictObject<T> : IRepObject
-    {
+namespace Replicate.MetaData {
+    public class RepDictObject<T> : IRepObject {
         Dictionary<string, T> Backing;
         object IRepNode.RawValue => Backing;
         ReplicationModel Model;
         TypeAccessor childTypeAccessor;
         public RepDictObject(Dictionary<string, T> backing, TypeAccessor typeAccessor,
-            MemberAccessor memberAccessor, ReplicationModel model)
-        {
+            MemberAccessor memberAccessor, ReplicationModel model) {
             Backing = backing;
             Model = model;
             childTypeAccessor = model.GetTypeAccessor(typeof(T));
             TypeAccessor = typeAccessor;
             MemberAccessor = memberAccessor;
         }
-        public IRepNode this[RepKey key]
-        {
-            get
-            {
+        public IRepNode this[RepKey key] {
+            get {
                 Backing.TryGetValue(key.Name, out var value);
                 var node = Model.GetRepNode(value, childTypeAccessor, null);
                 return node;
@@ -43,8 +35,7 @@ namespace Replicate.MetaData
         public IRepCollection AsCollection => null;
         public IRepObject AsObject => this;
 
-        public IEnumerator<KeyValuePair<RepKey, IRepNode>> GetEnumerator()
-        {
+        public IEnumerator<KeyValuePair<RepKey, IRepNode>> GetEnumerator() {
             var @this = this;
             return Backing.Keys
                 .Select(key => new KeyValuePair<RepKey, IRepNode>(key, @this[key]))
