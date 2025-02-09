@@ -9,7 +9,9 @@ namespace Replicate.MetaData {
         public readonly ConversionGenerator GetConvertFrom;
         public readonly Func<Type, Type> GetSurrogateType;
         public static Surrogate Simple<T, U>(Func<T, U> convertTo, Func<U, T> convertFrom) {
-            return new Surrogate(typeof(U), (o, s) => ((r, t) => convertTo((T)t)), (o, s) => ((r, u) => convertFrom((U)u)));
+            return new Surrogate(typeof(U),
+                (o, s) => (r, t) => t == null ? null : (object)convertTo((T)t),
+                (o, s) => (r, u) => u == null ? null : (object)convertFrom((U)u));
         }
         public static Surrogate EnumAsString<E>() where E : struct {
             return Simple<E, string>(e => e.ToString(), s => Enum.TryParse<E>(s, out var e) ? e : default);

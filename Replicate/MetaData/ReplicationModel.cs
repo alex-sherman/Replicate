@@ -94,12 +94,9 @@ namespace Replicate.MetaData {
             Add(typeof(float));
             Add(typeof(double));
             Add(typeof(string));
-            Add(typeof(Guid)).SetSurrogate(new Surrogate(typeof(byte[]),
-                (_, __) => (_, obj) => obj == null ? null : ((Guid)obj).ToByteArray(),
-                (_, __) => (_, obj) => {
-                    if (obj == null) return null;
-                    return new Guid((byte[])(obj));
-                }));
+            Add(typeof(Guid)).SetSurrogate(Surrogate.Simple<Guid, string>(
+                g => g.ToString(),
+                s => Guid.TryParse(s, out var g) ? g : new Guid()));
             Add(typeof(Blob));
             Add(typeof(TypedBlob));
             Add(typeof(object)).SetSurrogate(new Surrogate(typeof(TypedBlob),
