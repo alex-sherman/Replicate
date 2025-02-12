@@ -30,7 +30,8 @@ namespace ReplicateTest {
         }
         [ReplicateType]
         public class ObjectWithArrayField {
-            public List<double> ArrayField;
+            public List<double> ListField;
+            public double[] ArrayField;
         }
         [ReplicateType]
         public class ObjectWithNullableField {
@@ -117,7 +118,7 @@ namespace ReplicateTest {
         public void RepeatedInt() {
             var ser = new ProtoSerializer(new ReplicationModel());
             ObjectWithArrayField arrayObj = new ObjectWithArrayField() {
-                ArrayField = new List<double> { 1, 2, 3 }
+                ListField = new List<double> { 1, 2, 3 }
             };
             var bytes = ser.SerializeBytes(arrayObj);
             var output = ser.Deserialize<ObjectWithArrayField>(bytes);
@@ -131,9 +132,21 @@ namespace ReplicateTest {
             var output = ser.Deserialize<ObjectWithDictField>(str);
             Assert.AreEqual(obj.Dict, output.Dict);
         }
+        // [Test] TODO: Support surrogates in proto serializer.
+        public void ArrayField() {
+            var obj = new ObjectWithArrayField() { ArrayField = new[] { 1, 2, 1.23 } };
+            var ser = new ProtoSerializer(new ReplicationModel() { });
+            var str = ser.SerializeString(obj);
+            var output = ser.Deserialize<ObjectWithArrayField>(str);
+            Assert.AreEqual(obj.ArrayField, output.ArrayField);
+        }
         [ReplicateType]
         class ObjectWithDefaultedDictField {
             public Dictionary<string, string> Dict = new Dictionary<string, string> { { "value", "herp" }, { "prop", "derp" } };
+        }
+        [ReplicateType]
+        class ObjectWithDefaultedDictField2 {
+            public Dictionary<string, string> Dict = new Dictionary<string, string> { { "value", "herp" }, { "new_prop", "herp" } };
         }
         [Test]
         public void DefaultedDictionary() {
@@ -143,6 +156,10 @@ namespace ReplicateTest {
             var str = ser.SerializeString(obj);
             var output = ser.Deserialize<ObjectWithDefaultedDictField>(str);
             Assert.AreEqual(obj.Dict, output.Dict);
+            var output2 = ser.Deserialize<ObjectWithDefaultedDictField2>(str);
+            Assert.AreEqual(output2.Dict["value"], "faff");
+            Assert.AreEqual(output2.Dict["prop"], "derp");
+            Assert.AreEqual(output2.Dict["new_prop"], "herp");
         }
     }
 }

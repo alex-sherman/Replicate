@@ -262,6 +262,10 @@ namespace ReplicateTest {
         class ObjectWithDefaultedDictField {
             public Dictionary<int, string> Dict = new Dictionary<int, string> { { 1, "herp" }, { 2, "derp" } };
         }
+        [ReplicateType]
+        class ObjectWithDefaultedDictField2 {
+            public Dictionary<int, string> Dict = new Dictionary<int, string> { { 1, "herp" }, { 3, "herp" } };
+        }
         [Test]
         public void DefaultedDictionary() {
             var obj = new ObjectWithDefaultedDictField();
@@ -270,6 +274,10 @@ namespace ReplicateTest {
             var str = ser.SerializeString(obj);
             var output = ser.Deserialize<ObjectWithDefaultedDictField>(str);
             Assert.AreEqual(obj.Dict, output.Dict);
+            var output2 = ser.Deserialize<ObjectWithDefaultedDictField2>(str);
+            Assert.AreEqual(output2.Dict[1], "faff");
+            Assert.AreEqual(output2.Dict[2], "derp");
+            Assert.AreEqual(output2.Dict[3], "herp");
         }
         [Test]
         public void NullableNullInt() {

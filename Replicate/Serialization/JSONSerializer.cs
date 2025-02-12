@@ -88,8 +88,8 @@ namespace Replicate.Serialization {
         }
         public override object ReadCollection(object obj, Stream stream, TypeAccessor typeAccessor, TypeAccessor collectionValueAccessor, MemberAccessor memberAccessor) {
             if (ReadNull(stream)) return null;
+            if (obj == null) obj = typeAccessor.Construct();
             if (typeAccessor.IsDictObj) {
-                if (obj == null) obj = typeAccessor.Construct();
                 var dict = obj as IDictionary;
                 return ReadObject(stream, name => {
                     var keyType = Model.GetTypeAccessor(typeAccessor.Type.GetGenericArguments()[0]);
@@ -101,9 +101,9 @@ namespace Replicate.Serialization {
                 }) ? obj : null;
             }
 
-            List<object> values = new List<object>();
-            return ReadCollection(stream, () => values.Add(Read(null, stream, collectionValueAccessor, null)))
-                ? CollectionUtil.FillCollection(obj, typeAccessor.Type, values) : null;
+            return ReadCollection(stream,
+                () => CollectionUtil.AddToCollection(obj, Read(null, stream, collectionValueAccessor, null)))
+                    ? obj : null;
         }
 
         private bool ReadObject(Stream stream, Action<string> onEntry) {

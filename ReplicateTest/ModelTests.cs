@@ -23,7 +23,7 @@ namespace ReplicateTest {
         public void TestGetsByteArrayTypeId() {
             var model = new ReplicationModel();
             var typeId = model.GetId(typeof(byte[]));
-            Assert.AreEqual(typeof(ICollection<byte>), model.GetType(typeId));
+            Assert.AreEqual(typeof(IEnumerable<byte>), model.GetType(typeId));
         }
         [Test]
         public void TestFakeGetsMarked() {

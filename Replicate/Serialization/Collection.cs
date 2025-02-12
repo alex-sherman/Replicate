@@ -29,5 +29,23 @@ namespace Replicate.Serialization {
             }
             return collection;
         }
+        public static void AddToDictionary<TKey, TValue>(IDictionary<TKey, TValue> dict, KeyValuePair<TKey, TValue> value) {
+            dict[value.Key] = value.Value;
+        }
+        public static void AddToCollection(object collection, object value) {
+            var type = collection.GetType();
+            var dictionaryType = type.GetInterface("IDictionary`2");
+            if (dictionaryType != null) {
+                var setMeth = typeof(CollectionUtil).GetMethod("AddToDictionary");
+                if (setMeth == null) throw new ReplicateError($"Cannot deserialize repeated fields into {type.Name}");
+                setMeth = setMeth.MakeGenericMethod(dictionaryType.GetGenericArguments());
+                setMeth.Invoke(null, new[] { collection, value });
+                return;
+            }
+            var collectionType = type.GetInterface("ICollection`1");
+            var addMeth = collectionType?.GetMethod("Add");
+            if (addMeth == null) throw new ReplicateError($"Cannot deserialize repeated fields into {type.Name}");
+            addMeth.Invoke(collection, new[] { value });
+        }
     }
 }

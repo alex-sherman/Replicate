@@ -1,6 +1,7 @@
 ﻿using Replicate.MetaData.Policy;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
 
@@ -9,6 +10,7 @@ namespace Replicate.MetaData {
         public string Name { get; private set; }
         public string FullName { get; private set; }
         public Type Type { get; private set; }
+        public Type ConstructedType { get; private set; }
         public RepSet<MethodInfo> Methods;
         public RepSet<MemberAccessor> Members;
         public RepSet<MemberAccessor> SerializedMembers;
@@ -29,15 +31,21 @@ namespace Replicate.MetaData {
         public SurrogateAccessor Surrogate { get; private set; }
         public TypeAccessor(TypeData typeData, Type type) {
             TypeData = typeData;
-            Type = type;
+            ConstructedType = Type = type;
+            if (type.IsSameGeneric(typeof(IEnumerable<>)) || type.IsSameGeneric(typeof(ICollection<>))) {
+                ConstructedType = typeof(List<>).MakeGenericType(type.GetGenericArguments());
+            }
             if (Type.IsSameGeneric(typeof(Nullable<>))) Type = Type.GetGenericArguments()[0];
             IsTypeless = type == typeof(IRepNode);
             Name = type.Name;
             FullName = type.FullName;
             IsNullable = (type.IsSameGeneric(typeof(Nullable<>)) || type.IsClass || type == typeof(string))
                 && type.GetCustomAttribute(typeof(NonNullAttribute)) == null;
-            if (typeData.Surrogate != null)
+            if (typeData.Surrogate != null) {
                 Surrogate = new SurrogateAccessor(this, typeData.Surrogate, typeData.Model);
+            } else if (Type.IsArray) {
+                Surrogate = new SurrogateAccessor(this, MetaData.Surrogate.ArrayAsList, typeData.Model);
+            }
         }
         internal void InitializeMembers() {
             Members = TypeData.Members
@@ -53,7 +61,8 @@ namespace Replicate.MetaData {
         }
         public object Construct(params object[] args) {
             if (TypeData.MarshallMethod == MarshallMethod.None) return null;
-            return Activator.CreateInstance(Type, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, args, null);
+            return Activator.CreateInstance(ConstructedType,
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, args, null);
         }
         public MemberAccessor this[RepKey key] => Members[key];
         public override string ToString() {

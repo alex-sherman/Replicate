@@ -57,6 +57,7 @@ namespace Replicate.MetaData {
         ConcurrentDictionary<Type, TypeAccessor> typeAccessorLookup = new ConcurrentDictionary<Type, TypeAccessor>();
         ConcurrentDictionary<Type, TypeData> typeLookup = new ConcurrentDictionary<Type, TypeData>();
         public readonly RepSet<TypeData> Types = new RepSet<TypeData>();
+        public Dictionary<Type, Func<Type, Type>> Substitions = new Dictionary<Type, Func<Type, Type>>();
         internal HashSet<Type> SurrogateTypes = new HashSet<Type>();
         public readonly ModuleBuilder Builder = DynamicModule.Create();
         public bool DictionaryAsObject = true;
@@ -78,13 +79,16 @@ namespace Replicate.MetaData {
             if (addBaseTypes) AddBaseTypes();
             if (loadTypes) LoadTypes(Assembly.GetCallingAssembly());
         }
+        public static Type ListSubstitution(Type type) {
+            return type.GenericTypeArguments.Any()
+               ? typeof(List<>).MakeGenericType(type.GenericTypeArguments[0])
+               : typeof(List<>);
+        }
         private void AddBaseTypes() {
             Add(typeof(None));
-            Add(typeof(Dictionary<,>));
-            Add(typeof(List<>));
-            Add(typeof(ICollection<>));
             Add(typeof(IEnumerable<>));
             Add(typeof(byte));
+            Add(typeof(char));
             Add(typeof(short));
             Add(typeof(int));
             Add(typeof(long));
@@ -164,17 +168,18 @@ namespace Replicate.MetaData {
         }
         public void ClearTypeAccessorCache() => typeAccessorLookup.Clear();
         public TypeAccessor GetTypeAccessor(Type type) {
-            lock (typeAccessorLookup) {
-                if (type.IsGenericTypeDefinition)
-                    throw new InvalidOperationException("Cannot create a type accessor for a generic type definition");
-                if (!typeAccessorLookup.TryGetValue(type, out TypeAccessor typeAccessor)) {
-                    var internalType = type;
-                    if (internalType.IsSameGeneric(typeof(Nullable<>))) internalType = type.GetGenericArguments()[0];
-                    typeAccessor = typeAccessorLookup[type] = new TypeAccessor(GetTypeData(internalType), type);
-                    typeAccessor.InitializeMembers();
+            if (type.IsGenericTypeDefinition)
+                throw new InvalidOperationException("Cannot create a type accessor for a generic type definition");
+            if (!typeAccessorLookup.TryGetValue(type, out TypeAccessor typeAccessor)) {
+                var internalType = type;
+                if (internalType.IsSameGeneric(typeof(Nullable<>))) internalType = type.GetGenericArguments()[0];
+                if (Substitions.TryGetValue(type.IsGenericType ? type.GetGenericTypeDefinition() : type, out var substitution)) {
+                    type = substitution(type);
                 }
-                return typeAccessor;
+                typeAccessor = typeAccessorLookup[type] = new TypeAccessor(GetTypeData(internalType), type);
+                typeAccessor.InitializeMembers();
             }
+            return typeAccessor;
         }
         public TypeAccessor GetCollectionValueAccessor(Type collectionType) {
             Type interfacedCollectionType = null;
@@ -194,14 +199,11 @@ namespace Replicate.MetaData {
         public bool TryGetTypeData(Type type, out TypeData typeData) {
             if (type.IsGenericType)
                 type = type.GetGenericTypeDefinition();
-            if (typeLookup.TryGetValue(type, out typeData))
-                return true;
-            if (type.Implements(typeof(IRepNode))) {
-                typeData = ResolveFrom(type, typeof(IRepNode));
-                return true;
-            }
+
+            if (typeLookup.TryGetValue(type, out typeData)) return true;
+
             if (type.Implements(typeof(IEnumerable<>))) {
-                typeData = ResolveFrom(type, type.Implements(typeof(ICollection<>)) ? typeof(ICollection<>) : typeof(IEnumerable<>));
+                typeData = ResolveFrom(type, typeof(IEnumerable<>));
                 return true;
             }
             return false;

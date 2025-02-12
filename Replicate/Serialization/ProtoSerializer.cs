@@ -180,36 +180,18 @@ namespace Replicate.Serialization {
                 var subStream = length != 0 ? new SubStream(stream, length) : stream;
                 var memberTypeAccessor = ObjectMemberType(member);
                 var value = Read(null, subStream, memberTypeAccessor, member);
-                if (member.TypeAccessor.TypeData.MarshallMethod == MarshallMethod.Collection)
-                    AddToCollection(obj, value, member);
-                else
+                if (member.TypeAccessor.TypeData.MarshallMethod == MarshallMethod.Collection) {
+                    var collection = member.GetValue(obj);
+                    if (collection == null) {
+                        collection = member.TypeAccessor.Construct();
+                        member.SetValue(obj, collection);
+                    }
+                    CollectionUtil.AddToCollection(collection, value);
+                } else {
                     member.SetValue(obj, value);
+                }
             }
             return obj;
-        }
-        public static void AddToDictionary<TKey, TValue>(IDictionary<TKey, TValue> dict, KeyValuePair<TKey, TValue> value) {
-            dict[value.Key] = value.Value;
-        }
-        // TODO: Cleanup
-        private void AddToCollection(object parent, object value, MemberAccessor member) {
-            var type = member.Type;
-            var dictionaryType = type.GetInterface("IDictionary`2");
-            var collection = member.GetValue(parent);
-            if (collection == null) {
-                collection = member.TypeAccessor.Construct();
-                member.SetValue(parent, collection);
-            }
-            if (dictionaryType != null) {
-                var setMeth = typeof(ProtoSerializer).GetMethod("AddToDictionary");
-                if (setMeth == null) throw new ReplicateError($"Cannot deserialize repeated fields into {type.Name}");
-                setMeth = setMeth.MakeGenericMethod(dictionaryType.GetGenericArguments());
-                setMeth.Invoke(null, new[] { collection, value });
-                return;
-            }
-            var collectionType = type.GetInterface("ICollection`1");
-            var addMeth = collectionType?.GetMethod("Add");
-            if (addMeth == null) throw new ReplicateError($"Cannot deserialize repeated fields into {type.Name}");
-            addMeth.Invoke(collection, new[] { value });
         }
 
         // Protobuf doesn't support collections that aren't a member of a message

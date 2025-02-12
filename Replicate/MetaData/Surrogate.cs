@@ -1,5 +1,7 @@
 ﻿using Replicate.Serialization;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Replicate.MetaData {
     public class Surrogate {
@@ -8,14 +10,25 @@ namespace Replicate.MetaData {
         public readonly ConversionGenerator GetConvertTo;
         public readonly ConversionGenerator GetConvertFrom;
         public readonly Func<Type, Type> GetSurrogateType;
-        public static Surrogate Simple<T, U>(Func<T, U> convertTo, Func<U, T> convertFrom) {
-            return new Surrogate(typeof(U),
-                (o, s) => (r, t) => t == null ? null : (object)convertTo((T)t),
-                (o, s) => (r, u) => u == null ? null : (object)convertFrom((U)u));
+        public static Surrogate Simple<O, S>(Func<O, S> convertTo, Func<S, O> convertFrom) {
+            return new Surrogate(typeof(S),
+                (o, s) => (r, t) => t == null ? null : (object)convertTo((O)t),
+                (o, s) => (r, u) => u == null ? null : (object)convertFrom((S)u));
         }
         public static Surrogate EnumAsString<E>() where E : struct {
             return Simple<E, string>(e => e.ToString(), s => Enum.TryParse<E>(s, out var e) ? e : default);
         }
+        public static T[] ListToArray<T>(List<T> list) => list?.ToArray();
+        public static List<T> ArrayToList<T>(T[] array) => array?.ToList();
+        public static Surrogate ArrayAsList = new Surrogate(
+            t => typeof(List<>).MakeGenericType(t.GetElementType()),
+            (ot, st) => {
+                var meth = typeof(Surrogate).GetMethod(nameof(ArrayToList)).MakeGenericMethod(ot.Type.GetElementType());
+                return (r, o) => meth.Invoke(null, new[] { o });
+            }, (ot, st) => {
+                var meth = typeof(Surrogate).GetMethod(nameof(ListToArray)).MakeGenericMethod(ot.Type.GetElementType());
+                return (r, o) => meth.Invoke(null, new[] { o });
+            });
         public Surrogate(Type type, ConversionGenerator getConvertTo = null,
             ConversionGenerator getConvertFrom = null) : this(originalType => {
                 // TODO: This is untested and maybe confusing?
