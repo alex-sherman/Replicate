@@ -210,6 +210,11 @@ namespace ReplicateTest {
             Assert.AreEqual(obj, output);
         }
         [Test]
+        public void SerDesGuid() {
+            string guid = "dcae97d8-0315-4aa8-94fe-92a91e5983bc";
+            SerializeDeserialize(new Guid(guid), typeof(Guid), $"\"{guid}\"");
+        }
+        [Test]
         public void FieldEmptyString() {
             var ser = new JSONSerializer(new ReplicationModel());
             var str = ser.SerializeString(new SubClass() { Field = "" });
