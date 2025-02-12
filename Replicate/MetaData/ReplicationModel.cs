@@ -57,7 +57,6 @@ namespace Replicate.MetaData {
         ConcurrentDictionary<Type, TypeAccessor> typeAccessorLookup = new ConcurrentDictionary<Type, TypeAccessor>();
         ConcurrentDictionary<Type, TypeData> typeLookup = new ConcurrentDictionary<Type, TypeData>();
         public readonly RepSet<TypeData> Types = new RepSet<TypeData>();
-        public Dictionary<Type, Func<Type, Type>> Substitions = new Dictionary<Type, Func<Type, Type>>();
         internal HashSet<Type> SurrogateTypes = new HashSet<Type>();
         public readonly ModuleBuilder Builder = DynamicModule.Create();
         public bool DictionaryAsObject = true;
@@ -78,11 +77,6 @@ namespace Replicate.MetaData {
         public ReplicationModel(bool loadTypes = true, bool addBaseTypes = true) {
             if (addBaseTypes) AddBaseTypes();
             if (loadTypes) LoadTypes(Assembly.GetCallingAssembly());
-        }
-        public static Type ListSubstitution(Type type) {
-            return type.GenericTypeArguments.Any()
-               ? typeof(List<>).MakeGenericType(type.GenericTypeArguments[0])
-               : typeof(List<>);
         }
         private void AddBaseTypes() {
             Add(typeof(None));
@@ -173,9 +167,6 @@ namespace Replicate.MetaData {
             if (!typeAccessorLookup.TryGetValue(type, out TypeAccessor typeAccessor)) {
                 var internalType = type;
                 if (internalType.IsSameGeneric(typeof(Nullable<>))) internalType = type.GetGenericArguments()[0];
-                if (Substitions.TryGetValue(type.IsGenericType ? type.GetGenericTypeDefinition() : type, out var substitution)) {
-                    type = substitution(type);
-                }
                 typeAccessor = typeAccessorLookup[type] = new TypeAccessor(GetTypeData(internalType), type);
                 typeAccessor.InitializeMembers();
             }
