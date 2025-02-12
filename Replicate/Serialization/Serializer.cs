@@ -25,8 +25,7 @@ namespace Replicate.Serialization {
                     WritePrimitive(stream, obj, typeAccessor, memberAccessor);
                     break;
                 case MarshallMethod.Collection:
-                    var collectionValueType = Model.GetCollectionValueAccessor(typeAccessor.Type);
-                    WriteCollection(stream, obj, typeAccessor, collectionValueType, memberAccessor);
+                    WriteCollection(stream, obj, typeAccessor, memberAccessor);
                     break;
                 case MarshallMethod.Object:
                     WriteObject(stream, obj, typeAccessor, memberAccessor);
@@ -38,7 +37,7 @@ namespace Replicate.Serialization {
         }
         public abstract void WriteBlob(Stream stream, Blob blob, MemberAccessor memberAccessor);
         public abstract void WritePrimitive(Stream stream, object obj, TypeAccessor typeAccessor, MemberAccessor memberAccessor);
-        public abstract void WriteCollection(Stream stream, object obj, TypeAccessor typeAccessor, TypeAccessor collectionValueType, MemberAccessor memberAccessor);
+        public abstract void WriteCollection(Stream stream, object obj, TypeAccessor typeAccessor, MemberAccessor memberAccessor);
         public abstract void WriteObject(Stream stream, object obj, TypeAccessor typeAccessor, MemberAccessor memberAccessor);
         public T Deserialize<T>(Stream wireValue) => (T)Deserialize(typeof(T), wireValue, null);
         public object Deserialize(Type type, Stream wire, object existing = null)
@@ -57,7 +56,7 @@ namespace Replicate.Serialization {
                 case MarshallMethod.Primitive:
                     return ReadPrimitive(stream, typeAccessor, memberAccessor);
                 case MarshallMethod.Collection:
-                    return ReadCollection(obj, stream, typeAccessor, Model.GetCollectionValueAccessor(typeAccessor.Type), memberAccessor);
+                    return ReadCollection(obj, stream, typeAccessor, memberAccessor);
                 case MarshallMethod.Object:
                     return ReadObject(obj, stream, typeAccessor, memberAccessor);
                 case MarshallMethod.Blob:
@@ -74,6 +73,6 @@ namespace Replicate.Serialization {
         public abstract Blob ReadBlob(Blob obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor);
         public abstract object ReadPrimitive(Stream stream, TypeAccessor type, MemberAccessor memberAccessor);
         public abstract object ReadObject(object obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor);
-        public abstract object ReadCollection(object obj, Stream stream, TypeAccessor typeAccessor, TypeAccessor collectionAccessor, MemberAccessor memberAccessor);
+        public abstract object ReadCollection(object obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor);
     }
 }

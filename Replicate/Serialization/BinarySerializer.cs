@@ -68,7 +68,7 @@ namespace Replicate.Serialization {
                 throw new SerializationError();
         }
 
-        public override void WriteCollection(Stream stream, object obj, TypeAccessor typeAccessor, TypeAccessor collectionValueType, MemberAccessor memberAccessor) {
+        public override void WriteCollection(Stream stream, object obj, TypeAccessor typeAccessor, MemberAccessor memberAccessor) {
             var count = 0;
             if ((memberAccessor?.IsNullable ?? typeAccessor.IsNullable))
                 stream.WriteInt32((obj == null) ? 0 : 1);
@@ -78,7 +78,7 @@ namespace Replicate.Serialization {
                 count++;
             stream.WriteInt32(count);
             foreach (var item in (IEnumerable)obj)
-                Write(stream, item, collectionValueType, null);
+                Write(stream, item, typeAccessor.CollectionValue, null);
         }
 
         void WriteKey(Stream stream, RepKey key) {
@@ -141,12 +141,12 @@ namespace Replicate.Serialization {
             return obj;
         }
 
-        public override object ReadCollection(object obj, Stream stream, TypeAccessor typeAccessor, TypeAccessor collectionValueAccessor, MemberAccessor memberAccessor) {
+        public override object ReadCollection(object obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor) {
             if ((memberAccessor?.IsNullable ?? typeAccessor.IsNullable) && (stream.ReadInt32() == 0)) return null;
             int count = stream.ReadInt32();
             if (count == -1) return null;
             return CollectionUtil.FillCollection(obj, typeAccessor.Type, Enumerable.Range(0, count)
-                .Select(i => Read(null, stream, collectionValueAccessor, null))
+                .Select(i => Read(null, stream, typeAccessor.CollectionValue, null))
                 .ToList());
         }
 

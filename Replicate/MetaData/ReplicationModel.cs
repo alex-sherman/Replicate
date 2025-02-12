@@ -172,20 +172,6 @@ namespace Replicate.MetaData {
             }
             return typeAccessor;
         }
-        public TypeAccessor GetCollectionValueAccessor(Type collectionType) {
-            Type interfacedCollectionType = null;
-            if (collectionType.IsSameGeneric(typeof(IEnumerable<>))) {
-                interfacedCollectionType = collectionType;
-            } else if (collectionType.Implements(typeof(IEnumerable<>))) {
-                if (collectionType.GetInterface("ICollection`1") != null)
-                    interfacedCollectionType = collectionType.GetInterface("ICollection`1");
-                else if (collectionType.GetInterface("IEnumerable`1") != null)
-                    interfacedCollectionType = collectionType.GetInterface("IEnumerable`1");
-            }
-            if (interfacedCollectionType == null)
-                throw new InvalidOperationException($"{collectionType.FullName} is not a valid collection type");
-            return GetTypeAccessor(interfacedCollectionType.GetGenericArguments()[0]);
-        }
         // Will never add to typeIndex, but may add a reference in typeLookup to an existing typeData in typeIndex
         public bool TryGetTypeData(Type type, out TypeData typeData) {
             if (type.IsGenericType)

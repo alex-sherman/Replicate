@@ -86,7 +86,7 @@ namespace Replicate.Serialization {
             };
             return true;
         }
-        public override object ReadCollection(object obj, Stream stream, TypeAccessor typeAccessor, TypeAccessor collectionValueAccessor, MemberAccessor memberAccessor) {
+        public override object ReadCollection(object obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor) {
             if (ReadNull(stream)) return null;
             if (obj == null) obj = typeAccessor.Construct();
             if (typeAccessor.IsDictObj) {
@@ -102,7 +102,7 @@ namespace Replicate.Serialization {
             }
 
             return ReadCollection(stream,
-                () => CollectionUtil.AddToCollection(obj, Read(null, stream, collectionValueAccessor, null)))
+                () => CollectionUtil.AddToCollection(obj, Read(null, stream, typeAccessor.CollectionValue, null)))
                     ? obj : null;
         }
 
@@ -184,7 +184,7 @@ namespace Replicate.Serialization {
                 yield return (strKey as string, dict[key], valueType, null);
             }
         }
-        public override void WriteCollection(Stream stream, object obj, TypeAccessor typeAccessor, TypeAccessor collectionValueType, MemberAccessor memberAccessor) {
+        public override void WriteCollection(Stream stream, object obj, TypeAccessor typeAccessor, MemberAccessor memberAccessor) {
             if (obj == null)
                 WritePrimitive(stream, null, null, null);
             else {
@@ -197,7 +197,7 @@ namespace Replicate.Serialization {
                 foreach (var item in (IEnumerable)obj) {
                     if (!first) stream.WriteString(", ");
                     else first = false;
-                    Write(stream, item, collectionValueType, null);
+                    Write(stream, item, typeAccessor.CollectionValue, null);
                 }
                 stream.WriteString("]");
             }

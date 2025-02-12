@@ -94,7 +94,7 @@ namespace Replicate.MetaData {
         public RepBackedCollection(RepBackedNode node) {
             Node = node;
             Key = node.Key;
-            CollectionType = node.Model.GetCollectionValueAccessor(node.TypeAccessor.Type);
+            CollectionType = node.TypeAccessor.CollectionValue;
         }
         public TypeAccessor CollectionType { get; private set; }
         public TypeAccessor TypeAccessor { get => Node.TypeAccessor; }

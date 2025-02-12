@@ -11,6 +11,7 @@ namespace Replicate.MetaData {
         public string FullName { get; private set; }
         public Type Type { get; private set; }
         public Type ConstructedType { get; private set; }
+        public TypeAccessor CollectionValue { get; private set; }
         public RepSet<MethodInfo> Methods;
         public RepSet<MemberAccessor> Members;
         public RepSet<MemberAccessor> SerializedMembers;
@@ -32,6 +33,7 @@ namespace Replicate.MetaData {
         public TypeAccessor(TypeData typeData, Type type) {
             TypeData = typeData;
             ConstructedType = Type = type;
+            CollectionValue = GetCollectionValueAccessor();
             if (type.IsSameGeneric(typeof(IEnumerable<>)) || type.IsSameGeneric(typeof(ICollection<>))) {
                 ConstructedType = typeof(List<>).MakeGenericType(type.GetGenericArguments());
             }
@@ -58,6 +60,18 @@ namespace Replicate.MetaData {
             // TODO: Actually handle generic RPC methods
             Methods = TypeData.Methods
                 .Select((m, i) => new KeyValuePair<RepKey, MethodInfo>(new RepKey(i, m.Name), m)).ToRepSet();
+        }
+        private TypeAccessor GetCollectionValueAccessor() {
+            if (TypeData.MarshallMethod != MarshallMethod.Collection) return null;
+            Type interfacedCollectionType = null;
+            if (Type.IsSameGeneric(typeof(IEnumerable<>))) {
+                interfacedCollectionType = Type;
+            } else if (Type.Implements(typeof(IEnumerable<>))) {
+                interfacedCollectionType = Type.GetInterface("IEnumerable`1");
+            }
+            if (interfacedCollectionType == null)
+                throw new InvalidOperationException($"Collection type {Type.FullName} does not implement IEnumerable`1");
+            return TypeData.Model.GetTypeAccessor(interfacedCollectionType.GetGenericArguments()[0]);
         }
         public object Construct(params object[] args) {
             if (TypeData.MarshallMethod == MarshallMethod.None) return null;

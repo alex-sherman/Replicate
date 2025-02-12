@@ -141,9 +141,7 @@ namespace Replicate.Serialization {
         }
         private TypeAccessor ObjectMemberType(MemberAccessor member) {
             var typeAccessor = member.TypeAccessor;
-            if (typeAccessor.TypeData.MarshallMethod == MarshallMethod.Collection)
-                return Model.GetCollectionValueAccessor(typeAccessor.Type);
-            return typeAccessor;
+            return typeAccessor.CollectionValue ?? typeAccessor;
         }
         private void WriteObjectEntry(Stream stream, object obj, RepKey key, MemberAccessor member) {
             var typeAccessor = ObjectMemberType(member);
@@ -195,11 +193,11 @@ namespace Replicate.Serialization {
         }
 
         // Protobuf doesn't support collections that aren't a member of a message
-        public override void WriteCollection(Stream stream, object obj, TypeAccessor typeAccessor, TypeAccessor collectionValueType, MemberAccessor memberAccessor) {
+        public override void WriteCollection(Stream stream, object obj, TypeAccessor typeAccessor, MemberAccessor memberAccessor) {
             throw new NotImplementedException();
         }
         // Protobuf doesn't support collections that aren't a member of a message
-        public override object ReadCollection(object obj, Stream stream, TypeAccessor typeAccessor, TypeAccessor collectionAccessor, MemberAccessor memberAccessor) {
+        public override object ReadCollection(object obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor) {
             throw new NotImplementedException();
         }
 
