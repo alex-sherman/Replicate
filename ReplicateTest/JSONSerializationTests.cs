@@ -96,6 +96,13 @@ namespace ReplicateTest {
         public class RecursiveType {
             public RecursiveType Child;
         }
+        [ReplicateType(AutoMembers = AutoAdd.None)]
+        public class ExplicitMembersType {
+            [Replicate(1)]
+            public string FirstString { get; set; }
+            [Replicate(2)]
+            public string SecondString { get; set; }
+        }
         #endregion
 
         [Test]
@@ -516,6 +523,15 @@ namespace ReplicateTest {
             Assert.AreEqual(str, "{\"a\": {\"Key\": \"b\", \"Value\": {\"Num\": 64255}}}");
             str = ser.SerializeString(new Dictionary<string, KeyValuePair<string, ChildWithSurrogate>> { { "a", new KeyValuePair<string, ChildWithSurrogate>("b", new ChildWithSurrogate() { Num = 0xFAFF }) } });
             Assert.AreEqual(str, "{\"a\": {\"Key\": \"b\", \"Value\": 64255}}");
+        }
+        [Test]
+        public void ExplicityMembersType() {
+            var model = new ReplicationModel();
+            var ser = new JSONSerializer(model);
+            var obj = new ExplicitMembersType() { FirstString = "A", SecondString = "B" };
+            var json = ser.SerializeString(obj);
+            var deser = ser.Deserialize<ExplicitMembersType>(json);
+            Assert.AreEqual(obj.FirstString, deser.FirstString);
         }
     }
 }

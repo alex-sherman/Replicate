@@ -4,7 +4,7 @@ using System;
 namespace Replicate {
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
     public class ReplicateAttribute : Attribute {
-        public RepKey? Key;
+        public RepKey Key;
         public ReplicateAttribute(int key) { Key = key; }
         public ReplicateAttribute() { }
     }

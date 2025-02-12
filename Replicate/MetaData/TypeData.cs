@@ -93,8 +93,9 @@ namespace Replicate.MetaData {
             return this;
         }
         void AddMember(MemberInfo member) {
-            RepKey key = member.GetAttribute<ReplicateAttribute>()?.Key ?? member.Name;
             if (member.IsStatic) throw new InvalidOperationException("Can't add static members");
+            RepKey key = member.GetAttribute<ReplicateAttribute>()?.Key ?? new RepKey();
+            if (string.IsNullOrEmpty(key.Name)) key.Name = member.Name;
             Members.Add(key, member);
             if (!member.MemberType.IsGenericParameter)
                 Model.Add(member.MemberType);
