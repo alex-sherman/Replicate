@@ -8,32 +8,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using static ReplicateTest.SerializerTest;
-using static System.Net.WebRequestMethods;
-
-#pragma warning disable CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
 
 namespace ReplicateTest {
     [TestFixture]
     public class JSONSerializationTests {
         #region Types
-        [ReplicateType]
-        public enum JSONEnum {
-            One = 1,
-            Two = 2,
-        }
-        [ReplicateType]
-        public class GenericClass<T> {
-            [Replicate]
-            public T Value;
-            [Replicate]
-            public T Prop { get; set; }
-
-            public override bool Equals(object obj) {
-                return (obj is GenericClass<T> other) &&
-                       Value.Equals(other.Value) &&
-                       Prop.Equals(other.Prop);
-            }
-        }
         [ReplicateType]
         public class ReadOnlyClass {
             [Replicate]
@@ -43,15 +22,6 @@ namespace ReplicateTest {
         public class WriteOnlyClass {
             [Replicate]
             public string Value { set { } }
-        }
-        [ReplicateType]
-        public class PropClass {
-            public int Property { get; set; }
-
-            public override bool Equals(object obj) {
-                return (obj is PropClass other) &&
-                       Property.Equals(other.Property);
-            }
         }
         [ReplicateType]
         public class ObjectWithArrayField {
@@ -70,28 +40,9 @@ namespace ReplicateTest {
             public List<int> List = new List<int>();
         }
         [ReplicateType]
-        public class SubClass : PropClass {
-            [Replicate]
-            public string Field;
-
-            public override bool Equals(object obj) {
-                return (obj is SubClass other) &&
-                       Property == other.Property &&
-                       Field == other.Field;
-            }
-        }
-        [ReplicateType]
         public class GenericSubClass<T, V> : GenericClass<T> {
             [Replicate]
             public V OtherValue;
-        }
-        [ReplicateType]
-        public class ObjectWithDictField {
-            public Dictionary<string, string> Dict;
-
-            public override bool Equals(object obj) {
-                return (obj is ObjectWithDictField other) && Dict.SequenceEqual(other.Dict);
-            }
         }
         [ReplicateType]
         public class ObjectWithDictFieldSurrogate {
@@ -193,8 +144,11 @@ namespace ReplicateTest {
 
         public static IEnumerable<Args> ObjectArgs() {
             return new[] {
+                Case(new SubClass()),
+                Case(new SubClass() { Field = "derp" }),
+                Case(new SubClass() { Property = 2 }),
                 Case(new SubClass() { Field = "" },
-                    "{\"Field\": \"\", \"Property\": 0}"),
+                    "{\"Property\": 0, \"Field\": \"\"}"),
                 Case(new Dictionary<string, string>() { { "value", "herp" }, { "prop", "derp" } },
                     "{\"value\": \"herp\", \"prop\": \"derp\"}"),
                 Case(new Dictionary<int, string>() { { 0, "herp" }, { 1, "derp" } },

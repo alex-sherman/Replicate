@@ -19,18 +19,6 @@ namespace ReplicateTest {
             Two = 2,
         }
         [ReplicateType]
-        public class GenericClass<T> {
-            [Replicate]
-            public T Value;
-            [Replicate]
-            public T Prop { get; set; }
-        }
-        [ReplicateType]
-        public class PropClass {
-            [Replicate(1)]
-            public uint Property { get; set; }
-        }
-        [ReplicateType]
         public class ObjectWithArrayField {
             public List<double> ListField;
             public double[] ArrayField;
@@ -41,18 +29,9 @@ namespace ReplicateTest {
             public uint? NullableValue;
         }
         [ReplicateType]
-        public class SubClass : PropClass {
-            [Replicate(2)]
-            public string Field;
-        }
-        [ReplicateType]
         public class GenericSubClass<T, V> : GenericClass<T> {
             [Replicate]
             public V OtherValue;
-        }
-        [ReplicateType]
-        public class ObjectWithDictField {
-            public Dictionary<string, string> Dict;
         }
         [ReplicateType]
         public class ObjectWithDictFieldSurrogate {
@@ -102,6 +81,7 @@ namespace ReplicateTest {
                 Case((int?)0x123, 0xC6, 0x04),
                 Case(1u, 1),
                 Case(1, 2),
+                Case(19.41428f, 0x72, 0x50, 0x9B, 0x41),
                 Case(300u, 0xAC, 0x02),
                 Case((short)-1, 1),
                 Case((ushort)0xfaff, 0xFF, 0xF5, 0x03),
@@ -124,6 +104,23 @@ namespace ReplicateTest {
         [TestCaseSource(nameof(SimpleArgs))]
         public void SerDes(Args args) {
             args.SerDes(new ProtoSerializer(new ReplicationModel()));
+        }
+
+        public static IEnumerable<Args> ObjectArgs() {
+            return new[] {
+                Case(new SubClass()),
+                Case(new SubClass() { Field = "derp" }),
+                Case(new SubClass() { Property = 2 }),
+                Case(new Dictionary<string, string>() { { "value", "herp" }, { "prop", "derp" } }),
+                Case(new Dictionary<int, string>() { { 0, "herp" }, { 1, "derp" } }),
+                Case(new ObjectWithDictField() { Dict = new Dictionary<string, string>() { { "value", "herp" }, { "prop", "derp" } } }),
+                Case(new GenericClass<string>() { Value = "herp", Prop = "derp" }),
+                Case(new PropClass() { Property = 3 }),
+            };
+        }
+        [TestCaseSource(nameof(ObjectArgs))]
+        public void ObjectSerDes(Args args) {
+            args.SerDes(new JSONSerializer(new ReplicationModel() { DictionaryAsObject = true }));
         }
 
         [Test]
