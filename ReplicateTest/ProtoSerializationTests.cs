@@ -6,6 +6,8 @@ using Replicate.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using static ReplicateTest.JSONSerializationTests;
+using static ReplicateTest.SerializerTest;
 
 namespace ReplicateTest {
     [TestFixture]
@@ -91,34 +93,39 @@ namespace ReplicateTest {
             var obj = ser.Deserialize<PropClass>(bytes);
             Assert.AreEqual(3, obj.Property);
         }
-        [TestCase(true, typeof(bool), new byte[] { 1 })]
-        [TestCase(false, typeof(bool), new byte[] { 0 })]
-        [TestCase(0, typeof(int), new byte[] { 0 })]
-        [TestCase(1, typeof(int), new byte[] { 2 })]
-        [TestCase(1, typeof(uint), new byte[] { 1 })]
-        [TestCase(-1, typeof(int), new byte[] { 1 })]
-        [TestCase(1.02f, typeof(float), new byte[] { 0x5c, 0x8f, 0x82, 0x3f })]
-        [TestCase(1.02, typeof(double), new byte[] { 0x52, 0xB8, 0x1E, 0x85, 0xEB, 0x51, 0xF0, 0x3F })]
-        [TestCase(300, typeof(uint), new byte[] { 0xAC, 0x02 })]
-        [TestCase("faff", typeof(string), new byte[] { (byte)'f', (byte)'a', (byte)'f', (byte)'f' })]
-        public void SerializeDeserialize(object obj, Type type, byte[] serialized) {
-            var ser = new ProtoSerializer(new ReplicationModel());
-            var bytes = ser.SerializeBytes(type, obj);
-            CollectionAssert.AreEqual(serialized, bytes);
-            var output = ser.Deserialize(type, bytes);
-            Assert.AreEqual(obj, output);
+
+        public static IEnumerable<Args> SimpleArgs() {
+            return new[] {
+                Case(true, 1),
+                Case(false, 0),
+                Case((int?)0, 0),
+                Case((int?)0x123, 0xC6, 0x04),
+                Case(1u, 1),
+                Case(1, 2),
+                Case(300u, 0xAC, 0x02),
+                Case((short)-1, 1),
+                Case((ushort)0xfaff, 0xFF, 0xF5, 0x03),
+                Case(0.5f, 0x00, 0x00, 0x00, 0x3F),
+                Case(0.5d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xE0, 0x3F),
+                Case(1.02f, 0x5c, 0x8f, 0x82, 0x3f),
+                Case(1.02d, 0x52, 0xB8, 0x1E, 0x85, 0xEB, 0x51, 0xF0, 0x3F),
+                Case((float?)0, 0x00, 0x00, 0x00, 0x00),
+                Case((float?)1, 0x00, 0x00, 0x80, 0x3F),
+                Case(""),
+                Case("😈", 0xF0, 0x9F, 0x98, 0x88),
+                Case("\"", (byte)'\"'),
+                Case("faff", (byte)'f', (byte)'a', (byte)'f', (byte)'f'),
+                Case(76561198000857376L, 0xC0, 0x84, 0xDB, 0xA6, 0xA0, 0x80, 0x80, 0x90, 0x02),
+                Case(JSONEnum.One,1),
+                Case(JSONEnum.Two, 2),
+                Case(new Guid("dcae97d8-0315-4aa8-94fe-92a91e5983bc"), "dcae97d8-0315-4aa8-94fe-92a91e5983bc".Select(c => (byte)c).ToArray()),
+            };
         }
-        [Test]
-        public void SerDesGuid() {
-            string guid = "dcae97d8-0315-4aa8-94fe-92a91e5983bc";
-            SerializeDeserialize(new Guid(guid), typeof(Guid), guid.Select(c => (byte)c).ToArray());
+        [TestCaseSource(nameof(SimpleArgs))]
+        public void SerDes(Args args) {
+            args.SerDes(new ProtoSerializer(new ReplicationModel()));
         }
-        [Test]
-        public void NullableNullInt() {
-            var ser = new ProtoSerializer(new ReplicationModel());
-            var bytes = ser.SerializeBytes<int?>(null);
-            Assert.IsTrue(bytes.Length == 0);
-        }
+
         [Test]
         public void RepeatedInt() {
             var ser = new ProtoSerializer(new ReplicationModel());
