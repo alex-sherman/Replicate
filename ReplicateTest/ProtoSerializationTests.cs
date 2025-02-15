@@ -6,7 +6,6 @@ using Replicate.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using static ReplicateTest.JSONSerializationTests;
 using static ReplicateTest.SerializerTest;
 
 namespace ReplicateTest {
@@ -103,6 +102,19 @@ namespace ReplicateTest {
         }
         [TestCaseSource(nameof(SimpleArgs))]
         public void SerDes(Args args) {
+            args.SerDes(new ProtoSerializer(new ReplicationModel()));
+        }
+        public static IEnumerable<Args> CollectionArgs() {
+            return new[] {
+                //Case(new Collection<int> { Array = new int[] { 1, 2, 3, 4 } }),
+                Case(new Collection<int> { List = new List<int> { 1, 2, 3, 4 } }),
+                Case(new Collection<int> { ICollection = new List<int> { 1, 2, 3, 4 } }),
+                Case(new Collection<int> { IEnumerable = new List<int> { 1, 2, 3, 4 } }),
+                Case(new Collection<int> { HashSet = new HashSet<int> { 1, 2, 3, 4 } }),
+            };
+        }
+        [TestCaseSource(nameof(CollectionArgs))]
+        public void CollectionSerDes(Args args) {
             args.SerDes(new ProtoSerializer(new ReplicationModel()));
         }
 

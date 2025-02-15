@@ -97,8 +97,10 @@ namespace Replicate.MetaData {
             RepKey key = member.GetAttribute<ReplicateAttribute>()?.Key ?? new RepKey();
             if (string.IsNullOrEmpty(key.Name)) key.Name = member.Name;
             Members.Add(key, member);
-            if (!member.MemberType.IsGenericParameter)
-                Model.Add(member.MemberType);
+            var addType = member.MemberType;
+            if (addType.IsArray) addType = addType.GetElementType();
+            if (!addType.IsGenericParameter)
+                Model.Add(addType.ContainsGenericParameters ? addType.GetGenericTypeDefinition() : addType);
         }
         public void SetSurrogate(Surrogate surrogate) {
             if (Model.SurrogateTypes.Contains(Type))

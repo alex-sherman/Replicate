@@ -164,6 +164,8 @@ namespace Replicate.MetaData {
         public TypeAccessor GetTypeAccessor(Type type) {
             if (type.IsGenericTypeDefinition)
                 throw new InvalidOperationException("Cannot create a type accessor for a generic type definition");
+            if (type.IsGenericParameter || type.ContainsGenericParameters)
+                throw new InvalidOperationException("Cannot create a type accessor for a type containing generic parameters");
             if (!typeAccessorLookup.TryGetValue(type, out TypeAccessor typeAccessor)) {
                 var internalType = type;
                 if (internalType.IsSameGeneric(typeof(Nullable<>))) internalType = type.GetGenericArguments()[0];
@@ -172,6 +174,10 @@ namespace Replicate.MetaData {
             }
             return typeAccessor;
         }
+        // TODO: This whole setup is goofy.
+        //       We should just add every type we encounter to the type lookup, regardless. And then
+        //       only add `Add`ed types to `Types`. It's fine to get TypeAccessors for any type, but
+        //       only `Add`ed types should have a `TypeId`.
         // Will never add to typeIndex, but may add a reference in typeLookup to an existing typeData in typeIndex
         public bool TryGetTypeData(Type type, out TypeData typeData) {
             if (type.IsGenericType)
@@ -186,7 +192,7 @@ namespace Replicate.MetaData {
             return false;
         }
         private TypeData ResolveFrom(Type incoming, Type existing) {
-            var typeData = this[existing];
+            var typeData = new TypeData(existing, this);
             typeLookup.TryAdd(incoming, typeData);
             return typeData;
         }
@@ -208,16 +214,14 @@ namespace Replicate.MetaData {
                     .Where(t => !t.IsGenericParameter);
                 type = type.GetGenericTypeDefinition();
             }
-            if (!typeLookup.TryGetValue(type, out var typeData)) {
+            if (!Types.TryGetValue(type.FullName, out var typeData)) {
                 if (Frozen) throw new InvalidOperationException($"Attempted to add a type to a frozen model");
                 typeData = new TypeData(type, this) { TypeAttribute = attr };
-                typeLookup.TryAdd(type, typeData);
-                if (Types.ContainsKey(typeData.FullName))
-                    throw new ArgumentException($"Failed to add type {type.FullName}, a type with that name already exists");
+                typeLookup[type] = typeData;
                 var key = Types.Add(typeData.FullName, typeData);
+                if (addMembers) typeData.InitializeMembers();
                 if (typeData.FullName != typeData.Name && !Types.ContainsKey(typeData.Name))
                     Types.AddAlias(key, typeData.Name, typeData);
-                if (addMembers) typeData.InitializeMembers();
             }
             if (genericParameters != null)
                 foreach (var generic in genericParameters)
@@ -235,6 +239,7 @@ namespace Replicate.MetaData {
                         var desc = new MemberDescription() {
                             Key = key,
                         };
+                        // TODO: Handle members with generic parameters.
                         if (member.IsGenericParameter)
                             desc.GenericPosition = (byte)member.GenericParameterPosition;
                         else

@@ -2,6 +2,7 @@
 using Replicate;
 using Replicate.MetaData;
 using Replicate.MetaTyping;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace ReplicateTest {
@@ -16,6 +17,19 @@ namespace ReplicateTest {
             public string Field;
             public string Property { get; set; }
         }
+    }
+    public class NonReplicateType {
+        public int Derp;
+    }
+    public class NonReplicateEnumerable : IEnumerable<NonReplicateType> {
+        public IEnumerator<NonReplicateType> GetEnumerator() {
+            return list.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() {
+            return list.GetEnumerator();
+        }
+        private List<NonReplicateType> list = new List<NonReplicateType>();
     }
     [TestFixture]
     public class ModelTests {
@@ -55,6 +69,20 @@ namespace ReplicateTest {
             Assert.AreEqual("Derp", fieldValue);
             var propertyValue = secondModel.GetTypeAccessor(typeof(CustomType))["Property"].GetValue(testValue);
             Assert.AreEqual("Herp", propertyValue);
+        }
+        [Test]
+        public void SurrogatedCollectionWithNonReplicatedElementType() {
+            var model = new ReplicationModel();
+            Assert.NotNull(model[typeof(CustomType)]);
+            Assert.NotNull(model[typeof(NonReplicateEnumerable)]);
+            Assert.AreNotEqual(model[typeof(NonReplicateEnumerable)], model[typeof(IEnumerable<>)]);
+            Assert.Catch<KeyNotFoundException>(
+                () => { var derp = model[typeof(NonReplicateType)]; });
+            // This doesn't need to fail, it's probably fine to return TypeAccessors for non-added types.
+            Assert.Catch<KeyNotFoundException>(
+                () => { var derp = model.GetTypeAccessor(typeof(NonReplicateEnumerable)); });
+            model[typeof(NonReplicateEnumerable)].SetSurrogate(new Surrogate(typeof(List<int>)));
+            Assert.NotNull(model.GetTypeAccessor(typeof(NonReplicateEnumerable)));
         }
         [Test]
         public void CreatesFakeForMissingTypes() {

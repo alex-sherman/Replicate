@@ -3,6 +3,8 @@ using Replicate;
 using Replicate.Serialization;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Data.Odbc;
 using System.Linq;
 using System.Text;
 
@@ -56,7 +58,36 @@ namespace ReplicateTest {
             return (obj is ObjectWithDictField other) && Dict.SequenceEqual(other.Dict);
         }
     }
+    [ReplicateType]
+    public class Collection<T> {
+        // TODO: Generic arrays don't work?
+        //public T[] Array;
+        public IEnumerable<T> IEnumerable;
+        public ICollection<T> ICollection;
+        public List<T> List;
+        public HashSet<T> HashSet;
+        public override bool Equals(object obj) {
+            return (obj is Collection<T> other) &&
+                //Array.SequenceEqual(other.Array) &&
+                SerializerTest.SequenceEqual(IEnumerable, other.IEnumerable) &&
+                SerializerTest.SequenceEqual(ICollection, other.ICollection) &&
+                SerializerTest.SequenceEqual(List, other.List) &&
+                SerializerTest.SequenceEqual(HashSet, other.HashSet);
+        }
+        public override string ToString() {
+            List<string> members = new List<string>();
+            if (IEnumerable != null) members.Add("IEnumerable");
+            if (ICollection != null) members.Add("ICollection");
+            if (List != null) members.Add("List");
+            if (HashSet != null) members.Add("HashSet");
+            return $"{{{string.Join("|", members)}}}>";
+        }
+    }
     public class SerializerTest {
+        public static bool SequenceEqual<T>(IEnumerable<T> a, IEnumerable<T> b) {
+            if (a == null) return b == null;
+            return a.SequenceEqual<T>(b);
+        }
         public static Args Case<T>(T obj, string str) {
             return new Args() { Object = obj, Type = typeof(T), String = str };
         }

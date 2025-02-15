@@ -1,5 +1,6 @@
 ﻿using Replicate.MetaData.Policy;
 using System;
+using System.Linq;
 using System.Reflection;
 
 namespace Replicate.MetaData {
@@ -35,8 +36,13 @@ namespace Replicate.MetaData {
         public Type GetMemberType(Type memberType) {
             if (IsGenericParameter)
                 return memberType.GetGenericArguments()[GenericParameterPosition];
-            else
-                return MemberType;
+            if (MemberType.ContainsGenericParameters) {
+                return MemberType.GetGenericTypeDefinition().MakeGenericType(
+                    MemberType.GenericTypeArguments
+                    .Select(t => memberType.GenericTypeArguments[t.GenericParameterPosition])
+                    .ToArray());
+            }
+            return MemberType;
         }
         public FieldInfo GetField(Type memberType) {
             // Private does not work on derived types, find the declaring type's field.

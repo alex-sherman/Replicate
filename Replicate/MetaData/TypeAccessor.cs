@@ -33,7 +33,6 @@ namespace Replicate.MetaData {
         public TypeAccessor(TypeData typeData, Type type) {
             TypeData = typeData;
             ConstructedType = Type = type;
-            CollectionValue = GetCollectionValueAccessor();
             if (type.IsSameGeneric(typeof(IEnumerable<>)) || type.IsSameGeneric(typeof(ICollection<>))) {
                 ConstructedType = typeof(List<>).MakeGenericType(type.GetGenericArguments());
             }
@@ -47,6 +46,8 @@ namespace Replicate.MetaData {
                 Surrogate = new SurrogateAccessor(this, typeData.Surrogate, typeData.Model);
             } else if (Type.IsArray) {
                 Surrogate = new SurrogateAccessor(this, MetaData.Surrogate.ArrayAsList, typeData.Model);
+            } else {
+                CollectionValue = GetCollectionValueAccessor();
             }
         }
         internal void InitializeMembers() {
