@@ -10,23 +10,6 @@ using static ReplicateTest.BinarySerializerUtil;
 namespace ReplicateTest {
     [TestFixture]
     public class BinarySerializationTests {
-        [ReplicateType]
-        public class GenericClass<T> {
-            public T Value;
-            public T Prop { get; set; }
-        }
-        [ReplicateType]
-        public class PropClass {
-            public int Property { get; set; }
-        }
-        [ReplicateType]
-        public class SubClass : PropClass {
-            public string Field;
-        }
-        [ReplicateType]
-        public class GenericSubClass<T, V> : GenericClass<T> {
-            public V OtherValue;
-        }
         [Test]
         public void TestProperty() {
             var output = SerializeDeserialize(new PropClass() { Property = 3 });

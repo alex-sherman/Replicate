@@ -4,7 +4,9 @@ using System.Collections.Generic;
 namespace Replicate.MetaData {
     [ReplicateType]
     public struct TypeId {
+        [Replicate(1)]
         public RepKey Id;
+        [Replicate(2)]
         [SkipNull]
         public TypeId[] Subtypes;
 

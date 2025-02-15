@@ -51,7 +51,13 @@ namespace ReplicateTest {
         }
     }
     [ReplicateType]
+    public class GenericSubClass<T, V> : GenericClass<T> {
+        [Replicate(3)]
+        public V OtherValue;
+    }
+    [ReplicateType]
     public class ObjectWithDictField {
+        [Replicate(1)]
         public Dictionary<string, string> Dict;
 
         public override bool Equals(object obj) {
@@ -62,9 +68,13 @@ namespace ReplicateTest {
     public class Collection<T> {
         // TODO: Generic arrays don't work?
         //public T[] Array;
+        [Replicate]
         public IEnumerable<T> IEnumerable;
+        [Replicate]
         public ICollection<T> ICollection;
+        [Replicate]
         public List<T> List;
+        [Replicate]
         public HashSet<T> HashSet;
         public override bool Equals(object obj) {
             return (obj is Collection<T> other) &&

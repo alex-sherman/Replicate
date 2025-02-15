@@ -25,9 +25,9 @@ namespace Replicate.Serialization {
         public Blob() { }
     }
     public struct TypedBlob {
-        [Replicate]
+        [Replicate(1)]
         public TypeId Type;
-        [Replicate]
+        [Replicate(2)]
         public Blob Value;
         public static Surrogate MakeSurrogate(Type fromType, bool throwIfSameType = true) {
             string message = "Cannot serialize parent directly, add an intermediate or use a member surrogate instead.";

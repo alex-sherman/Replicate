@@ -3,7 +3,9 @@
 namespace Replicate.MetaData {
     [ReplicateType]
     public struct MethodKey {
+        [Replicate]
         public TypeId Type;
+        [Replicate]
         public RepKey Method;
 
         public override bool Equals(object obj) {

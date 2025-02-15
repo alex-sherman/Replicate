@@ -46,7 +46,7 @@ namespace Replicate.MetaData {
             return autoMembers == AutoAdd.All || (autoMembers == AutoAdd.AllPublic && member.IsPublic);
         }
         public void InitializeMembers() {
-            if (TypeAttribute == null) TypeAttribute = Type.GetCustomAttribute<ReplicateTypeAttribute>(false);
+            TypeAttribute ??= Type.GetCustomAttribute<ReplicateTypeAttribute>(false);
             IsInstanceRPC = TypeAttribute?.IsInstanceRPC ?? false;
             var surrogateType = TypeAttribute?.SurrogateType;
             if (surrogateType != null) SetSurrogate(surrogateType);

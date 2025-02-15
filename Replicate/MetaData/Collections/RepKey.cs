@@ -3,7 +3,9 @@
 namespace Replicate.MetaData {
     [ReplicateType]
     public struct RepKey {
+        [Replicate]
         public int? Index;
+        [Replicate]
         public string Name;
         public RepKey(int index, string str) { Index = index; Name = str; }
 

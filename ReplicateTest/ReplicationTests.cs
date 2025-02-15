@@ -15,8 +15,11 @@ namespace ReplicateTest {
     }
     [ReplicateType]
     public class ReplicatedType {
+        [Replicate]
         public int field1;
+        [Replicate]
         public string field2;
+        [Replicate]
         [AsReference]
         public ReplicatedType2 child1;
     }
@@ -36,6 +39,7 @@ namespace ReplicateTest {
         }
         [ReplicateType]
         public struct IgnoredFields {
+            [Replicate]
             public float exist;
             [ReplicateIgnore]
             public float ignored;
@@ -48,7 +52,9 @@ namespace ReplicateTest {
         }
         [ReplicateType]
         public class SimpleMessage {
+            [Replicate]
             public float time;
+            [Replicate]
             public string faff;
         }
         static bool called = false;

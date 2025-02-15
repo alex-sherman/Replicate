@@ -81,6 +81,7 @@ namespace Replicate.MetaData {
         private void AddBaseTypes() {
             Add(typeof(None));
             Add(typeof(IEnumerable<>));
+            Add(typeof(bool));
             Add(typeof(byte));
             Add(typeof(char));
             Add(typeof(short));
@@ -104,7 +105,7 @@ namespace Replicate.MetaData {
             var repNodeTypeData = Add(typeof(IRepNode));
             repNodeTypeData.MarshallMethod = MarshallMethod.None;
             Add(typeof(RepKeyValuePair<,>));
-            var kvpTD = Add(typeof(KeyValuePair<,>));
+            var kvpTD = Add(typeof(KeyValuePair<,>)).AddMember("Key").AddMember("Value");
             kvpTD.SetSurrogate(new Surrogate(typeof(RepKeyValuePair<,>)));
             LoadTypes();
         }
@@ -204,7 +205,7 @@ namespace Replicate.MetaData {
         public TypeData this[Type type] {
             get { return GetTypeData(type); }
         }
-        public TypeData Add(Type type, ReplicateTypeAttribute attr = null, bool addMembers = true) {
+        public TypeData Add(Type type, ReplicateTypeAttribute attr = null) {
             if (type.IsNotPublic)
                 throw new InvalidOperationException("Cannot add a non public type to the replication model");
             IEnumerable<Type> genericParameters = null;
@@ -219,7 +220,7 @@ namespace Replicate.MetaData {
                 typeData = new TypeData(type, this) { TypeAttribute = attr };
                 typeLookup[type] = typeData;
                 var key = Types.Add(typeData.FullName, typeData);
-                if (addMembers) typeData.InitializeMembers();
+                typeData.InitializeMembers();
                 if (typeData.FullName != typeData.Name && !Types.ContainsKey(typeData.Name))
                     Types.AddAlias(key, typeData.Name, typeData);
             }

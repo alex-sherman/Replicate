@@ -8,21 +8,29 @@ using System.Linq;
 namespace ReplicateTest {
     [ReplicateType]
     public class ObjectType {
+        [Replicate]
         public string Field1;
+        [Replicate]
         public ObjectType Field2;
+        [Replicate]
         public List<ObjectType> ListField;
+        [Replicate]
         public ObjectType[] ArrayField;
+        [Replicate]
         public IEnumerable<ObjectType> EnumerableField;
+        //[Replicate]
         //[ReplicatePolicy(AsReference = true)]
         //public ObjectType ReferenceField;
     }
     [ReplicateType]
     public struct ValueType {
+        [Replicate]
         public string Field1;
     }
 
     [ReplicateType]
     public class SurrogateType {
+        [Replicate]
         public string OtherField;
         public static implicit operator ObjectType(SurrogateType @this) {
             return new ObjectType() { Field1 = @this.OtherField };

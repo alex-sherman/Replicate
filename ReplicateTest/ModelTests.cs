@@ -8,13 +8,17 @@ using System.Collections.Generic;
 namespace ReplicateTest {
     [ReplicateType]
     public class CustomType {
+        [Replicate]
         public string Field;
+        [Replicate]
         public string Property { get; set; }
     }
     namespace Nested {
         [ReplicateType]
         public class CustomType {
+            [Replicate]
             public string Field;
+            [Replicate]
             public string Property { get; set; }
         }
     }

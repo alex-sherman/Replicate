@@ -25,17 +25,22 @@ namespace ReplicateTest {
         }
         [ReplicateType]
         public class ObjectWithArrayField {
+            [Replicate]
             public ObjectWithArrayField ObjectField;
+            [Replicate]
             public double[] ArrayField;
+            [Replicate]
             public int? NullableValue;
         }
         [ReplicateType]
         public class ObjectWithNullableField {
+            [Replicate]
             [SkipNull]
             public int? NullableValue;
         }
         [ReplicateType]
         public class ObjectWithSkipEmptyField {
+            [Replicate]
             [SkipEmpty]
             public List<int> List = new List<int>();
         }
@@ -46,6 +51,7 @@ namespace ReplicateTest {
         }
         [ReplicateType]
         public class ObjectWithDictFieldSurrogate {
+            [Replicate]
             public Dictionary<string, string> Dict;
             public static implicit operator ObjectWithDictField(ObjectWithDictFieldSurrogate @this) {
                 return new ObjectWithDictField() { Dict = @this.Dict?.ToDictionary(kvp => kvp.Key.Replace("faff", ""), kvp => kvp.Value) };
@@ -56,13 +62,15 @@ namespace ReplicateTest {
         }
         [ReplicateType]
         public class BlobType {
+            [Replicate]
             public Blob Blob;
         }
         [ReplicateType]
         public struct KeyType {
+            [Replicate]
             public string Name;
         }
-        [ReplicateType]
+        [ReplicateType(AutoMembers =AutoAdd.All)]
         public struct NonSerializedField {
             [NonSerialized]
             public string Skipped;
@@ -70,6 +78,7 @@ namespace ReplicateTest {
         }
         [ReplicateType]
         public class RecursiveType {
+            [Replicate]
             public RecursiveType Child;
         }
         [ReplicateType(AutoMembers = AutoAdd.None)]
@@ -185,10 +194,12 @@ namespace ReplicateTest {
         }
         [ReplicateType]
         class ObjectWithDefaultedDictField {
+            [Replicate]
             public Dictionary<int, string> Dict = new Dictionary<int, string> { { 1, "herp" }, { 2, "derp" } };
         }
         [ReplicateType]
         class ObjectWithDefaultedDictField2 {
+            [Replicate]
             public Dictionary<int, string> Dict = new Dictionary<int, string> { { 1, "herp" }, { 3, "herp" } };
         }
         [Test]
@@ -327,13 +338,13 @@ namespace ReplicateTest {
             var output = ser.SerializeString(recursiveObject);
             Assert.AreEqual("{\"Child\": {\"Child\": null}}", output);
         }
-        [ReplicateType]
+        [ReplicateType(AutoMembers = AutoAdd.AllPublic)]
         public class Parent { public Parent() { } public Parent(float herp) { Herp = herp; } public float Herp { get; private set; } }
-        [ReplicateType]
+        [ReplicateType(AutoMembers = AutoAdd.AllPublic)]
         public class ClassWithParent { public Parent Parent; }
-        [ReplicateType]
+        [ReplicateType(AutoMembers = AutoAdd.AllPublic)]
         public class ChildA : Parent { public ChildA() { } public ChildA(float herp) : base(herp) { } public int Field = 3; }
-        [ReplicateType]
+        [ReplicateType(AutoMembers = AutoAdd.AllPublic)]
         public class ChildB : Parent { public string Property { get; set; } = "herp"; }
         [Test]
         public void ParentPolymorphism() {
@@ -400,14 +411,17 @@ namespace ReplicateTest {
         }
         [ReplicateType]
         public struct ParentStruct {
+            [Replicate]
             public ChildStruct Child;
         }
         [ReplicateType]
         public struct ChildStruct {
+            [Replicate]
             public int Num;
         }
         [ReplicateType]
         public struct ChildWithSurrogate {
+            [Replicate]
             public int Num;
         }
         [Test]

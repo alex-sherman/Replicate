@@ -10,11 +10,14 @@ namespace ReplicateTest {
     public class MetaTypingTests {
         [ReplicateType]
         public class MockType {
+            [Replicate]
             public string Derp;
+            [Replicate]
             public int? Herp { get; }
         }
         [ReplicateType]
         public class MockTypeGeneric<T> {
+            [Replicate]
             public T Derp;
         }
         [Test]

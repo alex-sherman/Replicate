@@ -18,21 +18,6 @@ namespace ReplicateTest {
             Two = 2,
         }
         [ReplicateType]
-        public class ObjectWithArrayField {
-            public List<double> ListField;
-            public double[] ArrayField;
-        }
-        [ReplicateType]
-        public class ObjectWithNullableField {
-            [SkipNull]
-            public uint? NullableValue;
-        }
-        [ReplicateType]
-        public class GenericSubClass<T, V> : GenericClass<T> {
-            [Replicate]
-            public V OtherValue;
-        }
-        [ReplicateType]
         public class ObjectWithDictFieldSurrogate {
             public Dictionary<string, string> Dict;
             public static implicit operator ObjectWithDictField(ObjectWithDictFieldSurrogate @this) {
@@ -108,6 +93,7 @@ namespace ReplicateTest {
             return new[] {
                 //Case(new Collection<int> { Array = new int[] { 1, 2, 3, 4 } }),
                 Case(new Collection<int> { List = new List<int> { 1, 2, 3, 4 } }),
+                Case(new Collection<double> { List = new List<double> { 1, 2, 3, 4 } }),
                 Case(new Collection<int> { ICollection = new List<int> { 1, 2, 3, 4 } }),
                 Case(new Collection<int> { IEnumerable = new List<int> { 1, 2, 3, 4 } }),
                 Case(new Collection<int> { HashSet = new HashSet<int> { 1, 2, 3, 4 } }),
@@ -134,17 +120,6 @@ namespace ReplicateTest {
         public void ObjectSerDes(Args args) {
             args.SerDes(new JSONSerializer(new ReplicationModel() { DictionaryAsObject = true }));
         }
-
-        [Test]
-        public void RepeatedInt() {
-            var ser = new ProtoSerializer(new ReplicationModel());
-            ObjectWithArrayField arrayObj = new ObjectWithArrayField() {
-                ListField = new List<double> { 1, 2, 3 }
-            };
-            var bytes = ser.SerializeBytes(arrayObj);
-            var output = ser.Deserialize<ObjectWithArrayField>(bytes);
-            CollectionAssert.AreEqual(arrayObj.ArrayField, output.ArrayField);
-        }
         [Test]
         public void Dictionary() {
             var obj = new ObjectWithDictField() { Dict = new Dictionary<string, string> { { "value", "herp" }, { "prop", "derp" } } };
@@ -153,20 +128,14 @@ namespace ReplicateTest {
             var output = ser.Deserialize<ObjectWithDictField>(str);
             Assert.AreEqual(obj.Dict, output.Dict);
         }
-        // [Test] TODO: Support surrogates in proto serializer.
-        public void ArrayField() {
-            var obj = new ObjectWithArrayField() { ArrayField = new[] { 1, 2, 1.23 } };
-            var ser = new ProtoSerializer(new ReplicationModel() { });
-            var str = ser.SerializeString(obj);
-            var output = ser.Deserialize<ObjectWithArrayField>(str);
-            Assert.AreEqual(obj.ArrayField, output.ArrayField);
-        }
         [ReplicateType]
         class ObjectWithDefaultedDictField {
+            [Replicate]
             public Dictionary<string, string> Dict = new Dictionary<string, string> { { "value", "herp" }, { "prop", "derp" } };
         }
         [ReplicateType]
         class ObjectWithDefaultedDictField2 {
+            [Replicate]
             public Dictionary<string, string> Dict = new Dictionary<string, string> { { "value", "herp" }, { "new_prop", "herp" } };
         }
         [Test]
