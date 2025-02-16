@@ -41,7 +41,6 @@ namespace Replicate.MetaData {
             GetConvertTo = getConvertTo ?? ((originalAccessor, surrogateAccessor) => {
                 var originalType = originalAccessor.Type;
                 var surrogateType = surrogateAccessor.Type;
-                // TODO: Unity WebGL is failing to find RepKeyValuePair convert methods here?
                 var castToOp = surrogateType.GetMethod("op_Implicit", new Type[] { originalType });
                 if (castToOp != null)
                     return (_, obj) => obj == null ? null : castToOp.Invoke(null, new[] { obj });

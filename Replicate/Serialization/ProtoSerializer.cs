@@ -41,6 +41,12 @@ namespace Replicate.Serialization {
             }
             throw new NotImplementedException();
         }
+        public static uint GetWireLength(TypeAccessor type, object obj) {
+            if (type.TypeData.PrimitiveType == PrimitiveType.String) {
+                return (uint?)(obj as string)?.Length ?? 0;
+            }
+            return uint.MaxValue;
+        }
         const int NVARINT = 10;
         public class ProtoIntSerializer : ITypedSerializer {
             object ITypedSerializer.Read(Stream stream) => ReadVarInt(stream);
@@ -81,15 +87,16 @@ namespace Replicate.Serialization {
             if (((num >> 63) & 1) == 1) zig ^= ulong.MaxValue;
             WriteVarInt(zig, stream);
         }
-        public static void WriteVarInt(ulong num, Stream stream) {
-            int n = 1;
+        public static void WriteVarInt(ulong num, Stream stream, int n = 1) {
             var bytes = new byte[NVARINT];
-            for (int i = 0; i < NVARINT; i++) {
-                bytes[i] = (byte)((num >> 7 * i) & 0x7F);
-                if (bytes[i] != 0) n = i + 1;
+            for (int i = 0; num != 0 && i < NVARINT; i++) {
+                bytes[i] = (byte)(num & 0x7F);
+                if (bytes[i] != 0 && n <= i) n = i + 1;
+                num >>= 7;
             }
-            for (int i = 0; i < n; i++)
-                stream.WriteByte((byte)((byte)(i == (n - 1) ? 0 : 0x80) | bytes[i]));
+            for (int i = 0; i < n - 1; i++)
+                stream.WriteByte((byte)(0x80 | bytes[i]));
+            stream.WriteByte(bytes[n - 1]);
         }
         public static long ReadSVarInt(Stream stream) {
             var num = ReadVarInt(stream);
@@ -147,13 +154,23 @@ namespace Replicate.Serialization {
             var typeAccessor = ObjectMemberType(member);
             var wireType = GetWireType(typeAccessor.TypeData);
             WriteVarInt((ulong)((long)(key.Index.Value << 3) | (long)wireType), stream);
-            var subStream = wireType == WireType.Length ? new MemoryStream() : stream;
-            Write(subStream, obj, typeAccessor, member);
             if (wireType == WireType.Length) {
-                subStream.Position = 0;
-                WriteVarInt((ulong)subStream.Length, stream);
-                // TODO: This could be SG
-                subStream.CopyTo(stream);
+                uint knownLength = GetWireLength(typeAccessor, obj);
+                if (knownLength != uint.MaxValue) {
+                    WriteVarInt(knownLength, stream);
+                    Write(stream, obj, typeAccessor, member);
+                } else {
+                    long lengthPos = stream.Position;
+                    // Just always write the length as 5 bytes, reserve ahead of time.
+                    stream.Seek(5, SeekOrigin.Current);
+                    stream.SetLength(stream.Position);
+                    Write(stream, obj, typeAccessor, member);
+                    stream.Position = lengthPos;
+                    WriteVarInt((ulong)(stream.Length - lengthPos - 5), stream, 5);
+                    stream.Position = stream.Length;
+                }
+            } else {
+                Write(stream, obj, typeAccessor, member);
             }
         }
         public override object ReadObject(object obj, Stream stream, TypeAccessor typeAccessor, MemberAccessor memberAccessor) {

@@ -193,12 +193,12 @@ namespace ReplicateTest {
             var output = ser.Deserialize<Dictionary<KeyType, string>>(str);
         }
         [ReplicateType]
-        class ObjectWithDefaultedDictField {
+        public class ObjectWithDefaultedDictField {
             [Replicate]
             public Dictionary<int, string> Dict = new Dictionary<int, string> { { 1, "herp" }, { 2, "derp" } };
         }
         [ReplicateType]
-        class ObjectWithDefaultedDictField2 {
+        public class ObjectWithDefaultedDictField2 {
             [Replicate]
             public Dictionary<int, string> Dict = new Dictionary<int, string> { { 1, "herp" }, { 3, "herp" } };
         }

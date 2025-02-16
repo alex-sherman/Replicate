@@ -43,7 +43,7 @@ namespace ReplicateTest {
             var bytes = ser.SerializeBytes(new SubClass() { Property = 3, Field = "faff" });
             Assert.AreEqual(new byte[] {
                 0x08, 0x03,
-                0x12, 4, (byte)'f', (byte)'a', (byte)'f', (byte)'f'
+                0x12, 0x04, (byte)'f', (byte)'a', (byte)'f', (byte)'f'
             }, bytes);
             var obj = ser.Deserialize<SubClass>(bytes);
             Assert.AreEqual(3, obj.Property);
@@ -109,8 +109,6 @@ namespace ReplicateTest {
                 Case(new SubClass()),
                 Case(new SubClass() { Field = "derp" }),
                 Case(new SubClass() { Property = 2 }),
-                Case(new Dictionary<string, string>() { { "value", "herp" }, { "prop", "derp" } }),
-                Case(new Dictionary<int, string>() { { 0, "herp" }, { 1, "derp" } }),
                 Case(new ObjectWithDictField() { Dict = new Dictionary<string, string>() { { "value", "herp" }, { "prop", "derp" } } }),
                 Case(new GenericClass<string>() { Value = "herp", Prop = "derp" }),
                 Case(new PropClass() { Property = 3 }),
@@ -118,15 +116,7 @@ namespace ReplicateTest {
         }
         [TestCaseSource(nameof(ObjectArgs))]
         public void ObjectSerDes(Args args) {
-            args.SerDes(new JSONSerializer(new ReplicationModel() { DictionaryAsObject = true }));
-        }
-        [Test]
-        public void Dictionary() {
-            var obj = new ObjectWithDictField() { Dict = new Dictionary<string, string> { { "value", "herp" }, { "prop", "derp" } } };
-            var ser = new ProtoSerializer(new ReplicationModel() { });
-            var str = ser.SerializeString(obj);
-            var output = ser.Deserialize<ObjectWithDictField>(str);
-            Assert.AreEqual(obj.Dict, output.Dict);
+            args.SerDes(new ProtoSerializer(new ReplicationModel() { DictionaryAsObject = true }));
         }
         [ReplicateType]
         class ObjectWithDefaultedDictField {
@@ -143,7 +133,7 @@ namespace ReplicateTest {
             var obj = new ObjectWithDefaultedDictField();
             obj.Dict["value"] = "faff";
             var ser = new ProtoSerializer(new ReplicationModel() { });
-            var str = ser.SerializeString(obj);
+            var str = ser.SerializeBytes(obj);
             var output = ser.Deserialize<ObjectWithDefaultedDictField>(str);
             Assert.AreEqual(obj.Dict, output.Dict);
             var output2 = ser.Deserialize<ObjectWithDefaultedDictField2>(str);

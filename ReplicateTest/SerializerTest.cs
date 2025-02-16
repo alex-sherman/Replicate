@@ -29,7 +29,7 @@ namespace ReplicateTest {
     [ReplicateType]
     public class SubClass : PropClass {
         [Replicate(2)]
-        public string Field;
+        public string Field = "";
 
         public override bool Equals(object obj) {
             return (obj is SubClass other) &&
