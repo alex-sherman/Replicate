@@ -45,23 +45,23 @@ namespace Replicate.MetaData {
             var autoMembers = Model.Add(member.DeclaringType)?.TypeAttribute?.AutoMembers ?? TypeAttribute?.AutoMembers ?? AutoAdd.None;
             return autoMembers == AutoAdd.All || (autoMembers == AutoAdd.AllPublic && member.IsPublic);
         }
+        const BindingFlags Flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
         public void InitializeMembers() {
             TypeAttribute ??= Type.GetCustomAttribute<ReplicateTypeAttribute>(false);
             IsInstanceRPC = TypeAttribute?.IsInstanceRPC ?? false;
             var surrogateType = TypeAttribute?.SurrogateType;
             if (surrogateType != null) SetSurrogate(surrogateType);
 
-            var bindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
             var autoMethods = TypeAttribute?.AutoMethods ?? AutoAdd.None;
             // TODO: Enforce unique names of methods
-            Methods = Type.GetMethods(bindingFlags | BindingFlags.Static)
+            Methods = Type.GetMethods(Flags | BindingFlags.Static)
                 .Where(meth => meth.DeclaringType.Namespace != "System")
                 .Where(meth => !meth.IsSpecialName)
                 .Where(meth => meth.GetCustomAttribute<ReplicateIgnoreAttribute>() == null)
                 .Where(meth => meth.GetCustomAttribute<ReplicateRPCAttribute>() != null || autoMethods == AutoAdd.All || (autoMethods == AutoAdd.AllPublic && meth.IsPublic))
                 .ToList();
             Members.Clear();
-            foreach (var member in GetMembers(bindingFlags)) {
+            foreach (var member in GetMembers(Flags)) {
                 if (member.DeclaringType.Namespace == "System")
                     continue;
                 if (member.GetAttribute<ReplicateIgnoreAttribute>() != null)
@@ -79,22 +79,22 @@ namespace Replicate.MetaData {
                 yield return new MemberInfo(Model, property);
         }
 
-        public TypeData AddMember(string name) {
+        public TypeData AddMember(string name, ReplicateAttribute attr = null) {
             FieldInfo fieldInfo;
             PropertyInfo propInfo;
             MemberInfo member;
-            if ((fieldInfo = Type.GetField(name)) != null)
+            if ((fieldInfo = Type.GetField(name, Flags)) != null)
                 member = new MemberInfo(Model, fieldInfo);
-            else if ((propInfo = Type.GetProperty(name)) != null)
+            else if ((propInfo = Type.GetProperty(name, Flags)) != null)
                 member = new MemberInfo(Model, propInfo);
             else
                 throw new KeyNotFoundException(string.Format("Could not find member {0} in type {1}", name, Type.Name));
-            AddMember(member);
+            AddMember(member, attr);
             return this;
         }
-        void AddMember(MemberInfo member) {
+        void AddMember(MemberInfo member, ReplicateAttribute attr = null) {
             if (member.IsStatic) throw new InvalidOperationException("Can't add static members");
-            RepKey key = member.GetAttribute<ReplicateAttribute>()?.Key ?? new RepKey();
+            RepKey key = (attr ?? member.GetAttribute<ReplicateAttribute>())?.Key ?? new RepKey();
             if (string.IsNullOrEmpty(key.Name)) key.Name = member.Name;
             Members.Add(key, member);
             var addType = member.MemberType;

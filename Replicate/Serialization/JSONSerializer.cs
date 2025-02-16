@@ -134,8 +134,7 @@ namespace Replicate.Serialization {
             if (obj == null) obj = typeAccessor.Construct();
             return ReadObject(stream, name => {
                 var convertedName = Config.KeyConvert.From?.Invoke(name) ?? name;
-                var childMember = typeAccessor.SerializedMembers.Values.FirstOrDefault(m => m.Info.Name == convertedName);
-                if (childMember == null) {
+                if (!typeAccessor.SerializedMembers.TryGetValue(convertedName, out var childMember)) {
                     CheckAndThrow(stream, !Config.Strict, $"Unknown field {name}");
                     ReadToken(stream);
                     return;
