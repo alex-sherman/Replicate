@@ -15,6 +15,7 @@ namespace ReplicateTest {
     public enum JSONEnum {
         One = 1,
         Two = 2,
+        Three = 3,
     }
     [ReplicateType]
     public class PropClass {
@@ -56,12 +57,12 @@ namespace ReplicateTest {
         public V OtherValue;
     }
     [ReplicateType]
-    public class ObjectWithDictField {
+    public class ObjectWithDictField<K, V> {
         [Replicate(1)]
-        public Dictionary<string, string> Dict;
+        public Dictionary<K, V> Dict;
 
         public override bool Equals(object obj) {
-            return (obj is ObjectWithDictField other) && Dict.SequenceEqual(other.Dict);
+            return (obj is ObjectWithDictField<K, V> other) && Dict.SequenceEqual(other.Dict);
         }
     }
     [ReplicateType]

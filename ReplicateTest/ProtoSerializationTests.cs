@@ -20,10 +20,10 @@ namespace ReplicateTest {
         [ReplicateType]
         public class ObjectWithDictFieldSurrogate {
             public Dictionary<string, string> Dict;
-            public static implicit operator ObjectWithDictField(ObjectWithDictFieldSurrogate @this) {
-                return new ObjectWithDictField() { Dict = @this.Dict?.ToDictionary(kvp => kvp.Key.Replace("faff", ""), kvp => kvp.Value) };
+            public static implicit operator ObjectWithDictField<string, string>(ObjectWithDictFieldSurrogate @this) {
+                return new ObjectWithDictField<string, string>() { Dict = @this.Dict?.ToDictionary(kvp => kvp.Key.Replace("faff", ""), kvp => kvp.Value) };
             }
-            public static implicit operator ObjectWithDictFieldSurrogate(ObjectWithDictField @this) {
+            public static implicit operator ObjectWithDictFieldSurrogate(ObjectWithDictField<string, string> @this) {
                 return new ObjectWithDictFieldSurrogate() { Dict = @this.Dict?.ToDictionary(kvp => kvp.Key + "faff", kvp => kvp.Value) };
             }
         }
@@ -97,6 +97,7 @@ namespace ReplicateTest {
                 Case(new Collection<int> { ICollection = new List<int> { 1, 2, 3, 4 } }),
                 Case(new Collection<int> { IEnumerable = new List<int> { 1, 2, 3, 4 } }),
                 Case(new Collection<int> { HashSet = new HashSet<int> { 1, 2, 3, 4 } }),
+                Case(new Collection<JSONEnum> { List = new List<JSONEnum> { JSONEnum.Three, JSONEnum.Two } }),
             };
         }
         [TestCaseSource(nameof(CollectionArgs))]
@@ -109,7 +110,8 @@ namespace ReplicateTest {
                 Case(new SubClass()),
                 Case(new SubClass() { Field = "derp" }),
                 Case(new SubClass() { Property = 2 }),
-                Case(new ObjectWithDictField() { Dict = new Dictionary<string, string>() { { "value", "herp" }, { "prop", "derp" } } }),
+                Case(new ObjectWithDictField<string, string>() { Dict = new Dictionary<string, string>() { { "value", "herp" }, { "prop", "derp" } } }),
+                Case(new ObjectWithDictField<JSONEnum, string>() { Dict = new Dictionary<JSONEnum, string>() { { JSONEnum.One, "herp" }, { JSONEnum.Two, "derp" } } }),
                 Case(new GenericClass<string>() { Value = "herp", Prop = "derp" }),
                 Case(new PropClass() { Property = 3 }),
             };

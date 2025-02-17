@@ -53,10 +53,10 @@ namespace ReplicateTest {
         public class ObjectWithDictFieldSurrogate {
             [Replicate]
             public Dictionary<string, string> Dict;
-            public static implicit operator ObjectWithDictField(ObjectWithDictFieldSurrogate @this) {
-                return new ObjectWithDictField() { Dict = @this.Dict?.ToDictionary(kvp => kvp.Key.Replace("faff", ""), kvp => kvp.Value) };
+            public static implicit operator ObjectWithDictField<string, string>(ObjectWithDictFieldSurrogate @this) {
+                return new ObjectWithDictField<string, string>() { Dict = @this.Dict?.ToDictionary(kvp => kvp.Key.Replace("faff", ""), kvp => kvp.Value) };
             }
-            public static implicit operator ObjectWithDictFieldSurrogate(ObjectWithDictField @this) {
+            public static implicit operator ObjectWithDictFieldSurrogate(ObjectWithDictField<string, string> @this) {
                 return new ObjectWithDictFieldSurrogate() { Dict = @this.Dict?.ToDictionary(kvp => kvp.Key + "faff", kvp => kvp.Value) };
             }
         }
@@ -70,7 +70,7 @@ namespace ReplicateTest {
             [Replicate]
             public string Name;
         }
-        [ReplicateType(AutoMembers =AutoAdd.All)]
+        [ReplicateType(AutoMembers = AutoAdd.All)]
         public struct NonSerializedField {
             [NonSerialized]
             public string Skipped;
@@ -162,8 +162,10 @@ namespace ReplicateTest {
                     "{\"value\": \"herp\", \"prop\": \"derp\"}"),
                 Case(new Dictionary<int, string>() { { 0, "herp" }, { 1, "derp" } },
                     "[{\"Key\": 0, \"Value\": \"herp\"}, {\"Key\": 1, \"Value\": \"derp\"}]"),
-                Case(new ObjectWithDictField() { Dict = new Dictionary<string, string>() { { "value", "herp" }, { "prop", "derp" } } },
+                Case(new ObjectWithDictField<string, string>() { Dict = new Dictionary<string, string>() { { "value", "herp" }, { "prop", "derp" } } },
                     "{\"Dict\": {\"value\": \"herp\", \"prop\": \"derp\"}}"),
+                Case(new ObjectWithDictField<JSONEnum, string>() { Dict = new Dictionary<JSONEnum, string>() { { JSONEnum.One, "herp" }, { JSONEnum.Two, "derp" } } },
+                    "{\"Dict\": {\"One\": \"herp\", \"Two\": \"derp\"}}"),
                 Case(new GenericClass<string>() { Value = "herp", Prop = "derp" },
                     "{\"Value\": \"herp\", \"Prop\": \"derp\"}"),
                 Case(new PropClass() { Property = 3 },
@@ -172,7 +174,9 @@ namespace ReplicateTest {
         }
         [TestCaseSource(nameof(ObjectArgs))]
         public void ObjectSerDes(Args args) {
-            args.SerDes(new JSONSerializer(new ReplicationModel() { DictionaryAsObject = true }));
+            var model = new ReplicationModel() { DictionaryAsObject = true };
+            model[typeof(JSONEnum)].SetSurrogate(Surrogate.EnumAsString<JSONEnum>());
+            args.SerDes(new JSONSerializer(model));
         }
         [Test]
         public void DictionaryWithSurrogateKey() {
@@ -230,9 +234,9 @@ namespace ReplicateTest {
         [Test]
         public void DeserializeSurrogate() {
             var model = new ReplicationModel() { DictionaryAsObject = true };
-            model[typeof(ObjectWithDictField)].SetSurrogate(typeof(ObjectWithDictFieldSurrogate));
+            model[typeof(ObjectWithDictField<string, string>)].SetSurrogate(typeof(ObjectWithDictFieldSurrogate));
             var ser = new JSONSerializer(model);
-            var obj = new ObjectWithDictField() {
+            var obj = new ObjectWithDictField<string, string>() {
                 Dict = new Dictionary<string, string>()
                 {
                     {"a", "herp" },
@@ -241,7 +245,7 @@ namespace ReplicateTest {
             };
             var serStr = ser.SerializeString(obj);
             Assert.AreEqual("{\"Dict\": {\"afaff\": \"herp\", \"bfaff\": \"derp\"}}", serStr);
-            var deser = ser.Deserialize<ObjectWithDictField>(serStr);
+            var deser = ser.Deserialize<ObjectWithDictField<string, string>>(serStr);
             CollectionAssert.AreEqual(obj.Dict, deser.Dict);
         }
         [Test]
