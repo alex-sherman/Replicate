@@ -185,14 +185,14 @@ namespace Replicate.Serialization {
                     WireType.Bit64 => 8,
                     WireType.Length => (long)ReadVarInt(stream),
                     WireType.Bit32 => 4,
-                    _ => 0,
+                    _ => -1,
                 };
                 if (member == null) {
                     if (type == WireType.VarInt) ReadVarInt(stream);
                     stream.Position += length;
                     continue;
                 }
-                var subStream = length != 0 ? new SubStream(stream, length) : stream;
+                var subStream = length != -1 ? new SubStream(stream, length) : stream;
                 var memberTypeAccessor = ObjectMemberType(member);
                 var value = Read(null, subStream, memberTypeAccessor, member);
                 if (member.TypeAccessor.TypeData.MarshallMethod == MarshallMethod.Collection) {

@@ -18,6 +18,15 @@ namespace ReplicateTest {
         Three = 3,
     }
     [ReplicateType]
+    public struct StructType {
+        public double Double;
+
+        public override bool Equals(object obj) {
+            return (obj is StructType other) &&
+                   Double.Equals(other.Double);
+        }
+    }
+    [ReplicateType]
     public class PropClass {
         [Replicate(1)]
         public uint Property { get; set; }
@@ -31,11 +40,14 @@ namespace ReplicateTest {
     public class SubClass : PropClass {
         [Replicate(2)]
         public string Field = "";
+        [Replicate(3)]
+        public string Field2 = "";
 
         public override bool Equals(object obj) {
             return (obj is SubClass other) &&
                    Property == other.Property &&
-                   Field == other.Field;
+                   Field == other.Field &&
+                   Field2 == other.Field2;
         }
     }
     [ReplicateType]
