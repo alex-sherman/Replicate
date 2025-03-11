@@ -201,7 +201,7 @@ namespace Replicate.Serialization {
                         collection = member.TypeAccessor.Construct();
                         member.SetValue(obj, collection);
                     }
-                    CollectionUtil.AddToCollection(collection, value);
+                    CollectionUtil.AddToCollection(member.TypeAccessor, collection, value);
                 } else {
                     member.SetValue(obj, value);
                 }

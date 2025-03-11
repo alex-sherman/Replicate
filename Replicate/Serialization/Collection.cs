@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Replicate.MetaData;
+using System;
 using System.Collections.Generic;
 
 namespace Replicate.Serialization {
@@ -29,17 +30,15 @@ namespace Replicate.Serialization {
             }
             return collection;
         }
-        public static void AddToDictionary<TKey, TValue>(IDictionary<TKey, TValue> dict, KeyValuePair<TKey, TValue> value) {
-            dict[value.Key] = value.Value;
-        }
-        public static void AddToCollection(object collection, object value) {
+        public static void AddToCollection(TypeAccessor typeAccessor, object collection, object value) {
             var type = collection.GetType();
             var dictionaryType = type.GetInterface("IDictionary`2");
             if (dictionaryType != null) {
-                var setMeth = typeof(CollectionUtil).GetMethod("AddToDictionary");
+                var setMeth = dictionaryType?.GetMethod("set_Item");
                 if (setMeth == null) throw new ReplicateError($"Cannot deserialize repeated fields into {type.Name}");
-                setMeth = setMeth.MakeGenericMethod(dictionaryType.GetGenericArguments());
-                setMeth.Invoke(null, new[] { collection, value });
+                var keyMember = typeAccessor.CollectionValue.Members["Key"];
+                var valueMember  = typeAccessor.CollectionValue.Members["Value"];
+                setMeth.Invoke(collection, new[] { keyMember.GetValue(value), valueMember.GetValue(value) });
                 return;
             }
             var collectionType = type.GetInterface("ICollection`1");

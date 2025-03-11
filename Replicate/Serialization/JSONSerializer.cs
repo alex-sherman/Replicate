@@ -102,7 +102,7 @@ namespace Replicate.Serialization {
             }
 
             return ReadCollection(stream,
-                () => CollectionUtil.AddToCollection(obj, Read(null, stream, typeAccessor.CollectionValue, null)))
+                () => CollectionUtil.AddToCollection(typeAccessor, obj, Read(null, stream, typeAccessor.CollectionValue, null)))
                     ? obj : null;
         }
 
