@@ -33,13 +33,10 @@ namespace Replicate.Serialization {
         public static void AddToCollection(TypeAccessor typeAccessor, object collection, object value) {
             var type = collection.GetType();
             var dictionaryType = type.GetInterface("IDictionary`2");
-            if (dictionaryType != null) {
-                var setMeth = dictionaryType?.GetMethod("set_Item");
-                if (setMeth == null) throw new ReplicateError($"Cannot deserialize repeated fields into {type.Name}");
+            var removeMeth = dictionaryType?.GetMethod("Remove");
+            if (removeMeth != null) {
                 var keyMember = typeAccessor.CollectionValue.Members["Key"];
-                var valueMember  = typeAccessor.CollectionValue.Members["Value"];
-                setMeth.Invoke(collection, new[] { keyMember.GetValue(value), valueMember.GetValue(value) });
-                return;
+                removeMeth.Invoke(collection, new[] { keyMember.GetValue(value) });
             }
             var collectionType = type.GetInterface("ICollection`1");
             var addMeth = collectionType?.GetMethod("Add");
