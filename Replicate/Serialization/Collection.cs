@@ -33,6 +33,8 @@ namespace Replicate.Serialization {
         public static void AddToCollection(TypeAccessor typeAccessor, object collection, object value) {
             var type = collection.GetType();
             var dictionaryType = type.GetInterface("IDictionary`2");
+            // WASM AOT compilation doesn't support `Invoke` on non-compiled generic methods, so avoid if possible.
+            // Tried using `set_Item` here instead, but that also failed in WASM.
             var removeMeth = dictionaryType?.GetMethod("Remove");
             if (removeMeth != null) {
                 var keyMember = typeAccessor.CollectionValue.Members["Key"];
